@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Workload Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #12151c;
+    --bg3: #181c26;
+    --bg4: #1e2330;
+    --border: #252a38;
+    --border2: #2e3448;
+    --text: #e2e8f0;
+    --text2: #8892a4;
+    --text3: #5a6478;
+    --accent: #4f9cf9;
+    --accent2: #3b82f6;
+    --success: #34d399;
+    --warn: #fbbf24;
+    --danger: #f87171;
+
+    --cwc: #22c55e;
+    --charlotte: #3b82f6;
+    --ipp: #a78bfa;
+    --doee: #f97316;
+    --admin: #94a3b8;
+    --src: #f87171;
+    --p2: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .header-title span { color: var(--accent); }
+
+  .header-meta {
+    color: var(--text3);
+    font-size: 11px;
+  }
+
+  /* TABS */
+  .tabs {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 20px;
+    gap: 2px;
+  }
+
+  .tab {
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN */
+  .main { padding: 16px 20px; max-width: 1200px; margin: 0 auto; }
+
+  /* TAB PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    width: 200px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text3); }
+
+  .filter-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .filter-select:focus { border-color: var(--accent); }
+
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+  /* TASK LIST */
+  .task-group { margin-bottom: 20px; }
+
+  .task-group-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 6px 0 6px 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .group-count {
+    background: var(--bg4);
+    color: var(--text3);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+  }
+
+  .task-row {
+    display: grid;
+    grid-template-columns: 20px 8px auto 1fr auto auto auto auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 8px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    margin-bottom: 3px;
+    transition: all 0.12s;
+    background: var(--bg2);
+    cursor: default;
+  }
+
+  .task-row:hover { background: var(--bg3); border-color: var(--border); }
+  .task-row.running { border-color: var(--accent) !important; background: #0d1929 !important; }
+
+  .task-check {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--border2);
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    flex-shrink: 0;
+  }
+
+  .task-check:hover { border-color: var(--success); }
+
+  .project-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .task-name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+
+  .task-name:hover { color: var(--accent); }
+
+  .task-category {
+    font-size: 10px;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .task-waiting {
+    font-size: 10px;
+    color: var(--warn);
+    white-space: nowrap;
+  }
+
+  .priority-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-transform: uppercase;
+    transition: opacity 0.12s;
+  }
+
+  .priority-badge:hover { opacity: 0.7; }
+
+  .p-urgent { background: #3d1515; color: #f87171; border: 1px solid #f87171; }
+  .p-high   { background: #3d2a10; color: #fbbf24; border: 1px solid #fbbf24; }
+  .p-med    { background: #1a2d3d; color: #60a5fa; border: 1px solid #60a5fa; }
+  .p-low    { background: #1a2a1a; color: #4ade80; border: 1px solid #4ade80; }
+
+  .task-due {
+    font-size: 11px;
+    color: var(--text3);
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.12s;
+  }
+
+  .task-due:hover { background: var(--bg4); color: var(--text2); }
+  .task-due.overdue { color: var(--danger); }
+  .task-due.today { color: var(--warn); }
+
+  .task-est {
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+
+  .timer-display {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text3);
+    min-width: 52px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .timer-display.running { color: var(--accent); }
+
+  .timer-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    flex-shrink: 0;
+    font-size: 9px;
+  }
+
+  .timer-btn:hover { border-color: var(--accent); background: var(--bg4); }
+  .timer-btn.running { border-color: var(--danger); }
+  .timer-btn.running:hover { background: #3d1515; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    color: var(--text3);
+    padding: 40px;
+    font-size: 12px;
+  }
+
+  /* ADD TASK FORM */
+  .add-form {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .add-form.open { display: block; }
+
+  .form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .form-input {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+  .form-input.flex-1 { flex: 1; min-width: 200px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 24px;
+    width: 440px;
+    max-width: 95vw;
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .modal-subtitle {
+    color: var(--text3);
+    font-size: 11px;
+    margin-bottom: 18px;
+  }
+
+  .modal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .modal-row:last-of-type { border-bottom: none; }
+
+  .modal-label { color: var(--text2); }
+
+  .modal-value {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .modal-value.over { color: var(--danger); }
+  .modal-value.under { color: var(--warn); }
+  .modal-value.good { color: var(--success); }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    justify-content: flex-end;
+  }
+
+  .bill-input {
+    background: var(--bg3);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 4px;
+    width: 90px;
+    text-align: center;
+    outline: none;
+  }
+
+  /* PROJECTS TAB */
+  .project-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .project-card-header {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .project-card-header:hover { background: var(--bg3); }
+
+  .project-name-big {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    flex: 1;
+  }
+
+  .progress-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--bg4);
+    border-radius: 2px;
+    max-width: 120px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .progress-pct {
+    font-size: 11px;
+    color: var(--text3);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .session-list { border-top: 1px solid var(--border); }
+
+  .session-row {
+    display: grid;
+    grid-template-columns: 20px 30px 1fr auto auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    transition: background 0.12s;
+  }
+
+  .session-row:last-child { border-bottom: none; }
+  .session-row:hover { background: var(--bg3); }
+
+  .session-num {
+    color: var(--text3);
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .session-check {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--border2);
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+  }
+
+  .session-check:hover { border-color: var(--success); }
+  .session-check.done { background: var(--success); border-color: var(--success); }
+
+  .session-desc { color: var(--text); }
+  .session-date { color: var(--text3); font-size: 11px; }
+  .session-hours { color: var(--text2); font-size: 11px; }
+
+  /* TEAM TAB */
+  .team-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    margin-bottom: 3px;
+    background: var(--bg2);
+    transition: all 0.12s;
+  }
+
+  .team-row:hover { background: var(--bg3); border-color: var(--border); }
+
+  .team-task-name { font-size: 13px; color: var(--text); }
+  .team-owner { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  .status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-transform: uppercase;
+    transition: opacity 0.12s;
+  }
+
+  .status-badge:hover { opacity: 0.75; }
+
+  .s-not-started { background: #1e2330; color: var(--text3); border: 1px solid var(--border2); }
+  .s-pending     { background: #2a2a10; color: #e2c662; border: 1px solid #e2c662; }
+  .s-in-progress { background: #0d1929; color: #60a5fa; border: 1px solid #60a5fa; }
+  .s-in-review   { background: #1a1a3d; color: #a78bfa; border: 1px solid #a78bfa; }
+  .s-complete    { background: #0d2a1a; color: #34d399; border: 1px solid #34d399; }
+  .s-blocked     { background: #3d1515; color: #f87171; border: 1px solid #f87171; }
+
+  .team-due { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .team-notes { font-size: 11px; color: var(--text3); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* TIMESHEET TAB */
+  .ts-project-block { margin-bottom: 20px; }
+
+  .ts-project-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px;
+    background: var(--bg3);
+    border-radius: 5px 5px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .ts-project-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    flex: 1;
+  }
+
+  .ts-accuracy {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  .ts-accuracy.good { background: #0d2a1a; color: #34d399; }
+  .ts-accuracy.warn { background: #3d2a10; color: #fbbf24; }
+  .ts-accuracy.bad  { background: #3d1515; color: #f87171; }
+
+  .ts-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    border-radius: 0 0 5px 5px;
+    overflow: hidden;
+  }
+
+  .ts-table th {
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ts-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ts-table tr:last-child td { border-bottom: none; }
+  .ts-table tr:hover td { background: var(--bg3); }
+
+  .ts-var { font-size: 11px; }
+  .ts-var.over { color: var(--danger); }
+  .ts-var.under { color: var(--warn); }
+  .ts-var.good { color: var(--success); }
+
+  .ts-summary-row td {
+    background: var(--bg3);
+    font-weight: 600;
+    color: var(--text2);
+    border-top: 1px solid var(--border2);
+  }
+
+  /* INLINE DATE EDITOR */
+  .date-input-inline {
+    background: var(--bg4);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* CHECKBOX CHECKED */
+  .check-icon { color: var(--success); font-size: 11px; }
+
+  /* ACTIVE TIMER STRIP */
+  .active-timer-strip {
+    background: #0a1520;
+    border-bottom: 1px solid var(--accent);
+    padding: 6px 20px;
+    font-size: 11px;
+    color: var(--accent);
+    display: none;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .active-timer-strip.visible { display: flex; }
+  .active-timer-dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: pulse 1s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* NOTES EXPAND */
+  .task-notes-row {
+    grid-column: 1 / -1;
+    padding: 4px 10px 8px 36px;
+    font-size: 11px;
+    color: var(--text3);
+    display: none;
+  }
+
+  .task-notes-row.open { display: block; }
+
+  /* SECTION TOGGLE */
+  .collapse-icon { font-size: 10px; color: var(--text3); }
+
+  /* EDIT MODAL */
+  .edit-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .edit-form-group { display: flex; flex-direction: column; gap: 4px; }
+  .edit-form-group.full { grid-column: 1 / -1; }
+  .edit-label { font-size: 10px; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; }
+  .edit-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    outline: none;
+  }
+  .edit-input:focus { border-color: var(--accent); }
+
+  /* TEAM NOTES EDIT */
+  .team-notes-full {
+    font-size: 11px;
+    color: var(--text3);
+    grid-column: 1 / -1;
+    padding: 2px 10px 6px 10px;
+    display: none;
+  }
+  .team-notes-full.open { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">PM <span>//</span> Workload</div>
+  <div class="header-meta" id="headerMeta"></div>
+</div>
+
+<div class="active-timer-strip" id="activeStrip">
+  <div class="active-timer-dot"></div>
+  <span id="activeStripText">Timer running</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="tasks">My Tasks</div>
+  <div class="tab" data-tab="projects">Big Projects</div>
+  <div class="tab" data-tab="team">Team Deliverables</div>
+  <div class="tab" data-tab="timesheet">Timesheet</div>
+</div>
+
+<div class="main">
+
+  <!-- MY TASKS -->
+  <div class="panel active" id="panel-tasks">
+    <div class="toolbar">
+      <input class="search-box" type="text" id="taskSearch" placeholder="Search tasks...">
+      <select class="filter-select" id="filterDate">
+        <option value="all">All dates</option>
+        <option value="today">Today</option>
+        <option value="week">This week</option>
+        <option value="soon">Soon (2w)</option>
+        <option value="later">Later</option>
+      </select>
+      <select class="filter-select" id="filterPriority">
+        <option value="all">All priorities</option>
+        <option value="urgent">Urgent</option>
+        <option value="high">High</option>
+        <option value="med">Med</option>
+        <option value="low">Low</option>
+      </select>
+      <select class="filter-select" id="filterProject">
+        <option value="all">All projects</option>
+      </select>
+      <select class="filter-select" id="filterWaiting">
+        <option value="all">All tasks</option>
+        <option value="waiting">Waiting on...</option>
+        <option value="active">Not waiting</option>
+      </select>
+      <button class="btn primary" onclick="toggleAddForm()">+ Add Task</button>
+    </div>
+
+    <div class="add-form" id="addForm">
+      <div class="form-row">
+        <input class="form-input flex-1" type="text" id="newTaskName" placeholder="Task name">
+        <select class="form-input filter-select" id="newTaskProject"></select>
+        <select class="form-input filter-select" id="newTaskPriority">
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="med" selected>Med</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input class="form-input" type="date" id="newTaskDue">
+        <input class="form-input" type="number" id="newTaskEst" placeholder="Est hrs" step="0.25" min="0.25">
+        <input class="form-input" type="text" id="newTaskCategory" placeholder="Category">
+        <input class="form-input flex-1" type="text" id="newTaskWaiting" placeholder="Waiting on (optional)">
+      </div>
+      <div class="form-row">
+        <input class="form-input flex-1" type="text" id="newTaskNotes" placeholder="Notes (optional)">
+        <button class="btn primary" onclick="addTask()">Add</button>
+        <button class="btn" onclick="toggleAddForm()">Cancel</button>
+      </div>
+    </div>
+
+    <div id="taskList"></div>
+  </div>
+
+  <!-- BIG PROJECTS -->
+  <div class="panel" id="panel-projects">
+    <div class="toolbar">
+      <button class="btn primary" onclick="openAddProjectModal()">+ Add Project</button>
+    </div>
+    <div id="projectList"></div>
+  </div>
+
+  <!-- TEAM DELIVERABLES -->
+  <div class="panel" id="panel-team">
+    <div class="toolbar">
+      <input class="search-box" type="text" id="teamSearch" placeholder="Search deliverables...">
+      <select class="filter-select" id="teamFilterProject">
+        <option value="all">All projects</option>
+      </select>
+      <select class="filter-select" id="teamFilterStatus">
+        <option value="all">All statuses</option>
+        <option value="not-started">Not Started</option>
+        <option value="pending">Pending</option>
+        <option value="in-progress">In Progress</option>
+        <option value="in-review">In Review</option>
+        <option value="complete">Complete</option>
+        <option value="blocked">Blocked</option>
+      </select>
+      <button class="btn primary" onclick="openAddTeamModal()">+ Add Deliverable</button>
+    </div>
+    <div id="teamList"></div>
+  </div>
+
+  <!-- TIMESHEET -->
+  <div class="panel" id="panel-timesheet">
+    <div class="toolbar">
+      <select class="filter-select" id="tsFilterProject">
+        <option value="all">All projects</option>
+      </select>
+      <div style="margin-left:auto; color:var(--text3); font-size:11px;" id="tsTotals"></div>
+    </div>
+    <div id="timesheetList"></div>
+  </div>
+
+</div>
+
+<!-- COMPLETION MODAL -->
+<div class="modal-overlay" id="completionModal">
+  <div class="modal">
+    <div class="modal-title" id="compModalTitle">Complete Task</div>
+    <div class="modal-subtitle" id="compModalSub"></div>
+    <div class="modal-row">
+      <span class="modal-label">Estimated</span>
+      <span class="modal-value" id="compEst">—</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Timer time</span>
+      <span class="modal-value" id="compTimer">—</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Variance</span>
+      <span class="modal-value" id="compVariance">—</span>
+    </div>
+    <div class="modal-row" style="border-bottom:none; margin-top:8px;">
+      <span class="modal-label">Billable hours</span>
+      <input class="bill-input" type="number" id="compBillable" step="0.25" min="0.25">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeCompletionModal()">Cancel</button>
+      <button class="btn primary" onclick="confirmComplete()">Mark Complete</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TASK MODAL -->
+<div class="modal-overlay" id="editTaskModal">
+  <div class="modal">
+    <div class="modal-title">Edit Task</div>
+    <div style="margin-bottom:14px;"></div>
+    <div class="edit-form-grid">
+      <div class="edit-form-group full">
+        <label class="edit-label">Task Name</label>
+        <input class="edit-input" id="editName">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Project</label>
+        <select class="edit-input" id="editProject"></select>
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Priority</label>
+        <select class="edit-input" id="editPriority">
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="med">Med</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Due Date</label>
+        <input class="edit-input" type="date" id="editDue">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Est. Hours</label>
+        <input class="edit-input" type="number" id="editEst" step="0.25" min="0.25">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Category</label>
+        <input class="edit-input" type="text" id="editCategory">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Waiting On</label>
+        <input class="edit-input" type="text" id="editWaiting">
+      </div>
+      <div class="edit-form-group full">
+        <label class="edit-label">Notes</label>
+        <input class="edit-input" type="text" id="editNotes">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="editDeleteBtn" style="margin-right:auto; color:var(--danger); border-color:var(--danger);" onclick="deleteEditTask()">Delete</button>
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn primary" onclick="saveEditTask()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TEAM MODAL -->
+<div class="modal-overlay" id="addTeamModal">
+  <div class="modal">
+    <div class="modal-title">Add Deliverable</div>
+    <div style="margin-bottom:14px;"></div>
+    <div class="edit-form-grid">
+      <div class="edit-form-group full">
+        <label class="edit-label">Task / Deliverable</label>
+        <input class="edit-input" id="teamAddName">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Owner</label>
+        <input class="edit-input" id="teamAddOwner">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Project</label>
+        <select class="edit-input" id="teamAddProject"></select>
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Due Date</label>
+        <input class="edit-input" type="date" id="teamAddDue">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Status</label>
+        <select class="edit-input" id="teamAddStatus">
+          <option value="not-started">Not Started</option>
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="in-review">In Review</option>
+          <option value="complete">Complete</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      <div class="edit-form-group full">
+        <label class="edit-label">Notes</label>
+        <input class="edit-input" id="teamAddNotes">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddTeamModal()">Cancel</button>
+      <button class="btn primary" onclick="confirmAddTeam()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PROJECT MODAL -->
+<div class="modal-overlay" id="addProjectModal">
+  <div class="modal">
+    <div class="modal-title">Add Big Project</div>
+    <div style="margin-bottom:14px;"></div>
+    <div class="edit-form-grid">
+      <div class="edit-form-group full">
+        <label class="edit-label">Project Name</label>
+        <input class="edit-input" id="projAddName">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Linked Project</label>
+        <select class="edit-input" id="projAddProject"></select>
+      </div>
+      <div class="edit-form-group full">
+        <label class="edit-label">Work Sessions (one per line: date | description | hours)</label>
+        <textarea class="edit-input" id="projAddSessions" rows="5" placeholder="2025-06-01 | Review draft | 2&#10;2025-06-03 | Revise content | 1.5"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddProjectModal()">Cancel</button>
+      <button class="btn primary" onclick="confirmAddProject()">Add Project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// DATA LAYER
+// =============================================
+
+const PROJECTS = {
+  cwc:      { label: 'CWC',                   color: '#22c55e' },
+  charlotte: { label: 'Charlotte Water / IWP', color: '#3b82f6' },
+  ipp:      { label: 'IPP / Instructor Network', color: '#a78bfa' },
+  doee:     { label: 'DOEE / Kansas City',     color: '#f97316' },
+  admin:    { label: 'Admin / Internal',       color: '#94a3b8' },
+  src:      { label: 'SRC',                   color: '#f87171' },
+  p2:       { label: 'P2',                    color: '#fbbf24' }
+};
+
+function uid() {
+  return '_' + Math.random().toString(36).slice(2, 11);
+}
+
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e) { return fallback; }
+}
+
+function save(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+// =============================================
+// SEED DATA (only loaded once)
+// =============================================
+
+const SEED_TASKS = [
+  { id: uid(), name: 'Finalize Q2 CWC cohort schedule', project: 'cwc', priority: 'urgent', due: '2025-06-02', est: 2, category: 'Planning', waiting: '', notes: 'Coordinate with site leads first', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Update IWP audit documentation binder', project: 'charlotte', priority: 'high', due: '2025-06-05', est: 3, category: 'Audit', waiting: '', notes: '', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Draft Instructor Network onboarding guide', project: 'ipp', priority: 'high', due: '2025-06-10', est: 4, category: 'Content', waiting: '', notes: 'Use Canva template from last cohort', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Review DOEE curriculum alignment doc', project: 'doee', priority: 'med', due: '2025-06-12', est: 1.5, category: 'Review', waiting: 'Marcus (DOEE team)', notes: '', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Submit June budget actuals', project: 'admin', priority: 'urgent', due: '2025-06-01', est: 1, category: 'Finance', waiting: '', notes: 'Check with Tanya on SRC line items', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Build SRC participant tracker spreadsheet', project: 'src', priority: 'high', due: '2025-06-08', est: 2.5, category: 'Data', waiting: '', notes: '', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'P2 stakeholder slide deck — first draft', project: 'p2', priority: 'med', due: '2025-06-15', est: 3, category: 'Decks', waiting: '', notes: 'Align with business model framing', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Weekly intern check-in prep', project: 'admin', priority: 'low', due: '2025-06-03', est: 0.5, category: 'Mentoring', waiting: '', notes: '', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Kansas City licensee intro call — agenda', project: 'doee', priority: 'high', due: '2025-06-04', est: 1, category: 'Comms', waiting: '', notes: 'Send agenda 48hrs before call', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'CWC format guide update (Canva)', project: 'cwc', priority: 'med', due: '2025-06-14', est: 2, category: 'Content', waiting: '', notes: 'Match new brand colors', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'Charlotte Water IWP training delivery — Session 4', project: 'charlotte', priority: 'urgent', due: '2025-06-06', est: 4, category: 'Training', waiting: '', notes: '', timer: 0, timerStart: null, completed: false },
+  { id: uid(), name: 'SRC program evolution strategy doc', project: 'src', priority: 'med', due: '2025-06-20', est: 5, category: 'Strategy', waiting: '', notes: 'Phase 2 scope included', timer: 0, timerStart: null, completed: false },
+];
+
+const SEED_PROJECTS = [
+  {
+    id: uid(),
+    name: 'IWP Licensee Onboarding Playbook',
+    project: 'charlotte',
+    sessions: [
+      { id: uid(), num: 1, desc: 'Scope outline and structure', date: '2025-05-20', hours: 2, done: true },
+      { id: uid(), num: 2, desc: 'Draft Part 1: Roles & Responsibilities', date: '2025-05-27', hours: 3, done: true },
+      { id: uid(), num: 3, desc: 'Draft Part 2: Timeline & Milestones', date: '2025-06-03', hours: 2.5, done: false },
+      { id: uid(), num: 4, desc: 'Review with Charlotte Water PM', date: '2025-06-10', hours: 1.5, done: false },
+      { id: uid(), num: 5, desc: 'Final revisions and formatting', date: '2025-06-17', hours: 2, done: false },
+    ]
+  },
+  {
+    id: uid(),
+    name: 'P2 Business Model Development',
+    project: 'p2',
+    sessions: [
+      { id: uid(), num: 1, desc: 'Market landscape research', date: '2025-05-15', hours: 3, done: true },
+      { id: uid(), num: 2, desc: 'Revenue model options analysis', date: '2025-05-22', hours: 2, done: true },
+      { id: uid(), num: 3, desc: 'Draft model deck v1', date: '2025-06-05', hours: 3, done: false },
+      { id: uid(), num: 4, desc: 'Stakeholder feedback session', date: '2025-06-12', hours: 1.5, done: false },
+      { id: uid(), num: 5, desc: 'Revised model + exec summary', date: '2025-06-19', hours: 2.5, done: false },
+    ]
+  }
+];
+
+const SEED_TEAM = [
+  { id: uid(), name: 'IWP training site logistics confirmation', owner: 'Jordan P.', project: 'charlotte', due: '2025-06-03', status: 'in-progress', notes: 'Confirm room booking and AV' },
+  { id: uid(), name: 'SRC cohort data entry', owner: 'Intern – Aisha', project: 'src', due: '2025-06-05', status: 'pending', notes: 'Template sent 5/28' },
+  { id: uid(), name: 'DOEE participant eval forms', owner: 'Marcus T.', project: 'doee', due: '2025-06-08', status: 'not-started', notes: '' },
+  { id: uid(), name: 'CWC flyer design (Canva)', owner: 'Intern – Dev', project: 'cwc', due: '2025-06-07', status: 'in-review', notes: 'First draft received, minor edits needed' },
+  { id: uid(), name: 'P2 stakeholder contact list', owner: 'Sarah M.', project: 'p2', due: '2025-06-06', status: 'complete', notes: '' },
+];
+
+const SEED_COMPLETED = [
+  { id: uid(), name: 'May timesheet reconciliation', project: 'admin', dateCompleted: '2025-05-31', estHours: 1, actualHours: 1.25, category: 'Finance' },
+  { id: uid(), name: 'CWC Session 3 delivery', project: 'cwc', dateCompleted: '2025-05-29', estHours: 4, actualHours: 4, category: 'Training' },
+  { id: uid(), name: 'Charlotte Water kickoff deck', project: 'charlotte', dateCompleted: '2025-05-27', estHours: 3, actualHours: 2.75, category: 'Decks' },
+  { id: uid(), name: 'Instructor Network welcome email', project: 'ipp', dateCompleted: '2025-05-26', estHours: 0.5, actualHours: 0.5, category: 'Comms' },
+  { id: uid(), name: 'SRC kick-off planning call notes', project: 'src', dateCompleted: '2025-05-28', estHours: 0.5, actualHours: 0.25, category: 'Planning' },
+];
+
+// Initialize state
+let tasks     = load('wt_tasks',     null);
+let bigProjs  = load('wt_bigprojs',  null);
+let teamItems = load('wt_team',      null);
+let completed = load('wt_completed', null);
+
+if (!tasks)     { tasks = SEED_TASKS;     save('wt_tasks', tasks); }
+if (!bigProjs)  { bigProjs = SEED_PROJECTS; save('wt_bigprojs', bigProjs); }
+if (!teamItems) { teamItems = SEED_TEAM;  save('wt_team', teamItems); }
+if (!completed) { completed = SEED_COMPLETED; save('wt_completed', completed); }
+
+// =============================================
+// TIMER STATE
+// =============================================
+
+let activeTimerId = null;
+let timerInterval = null;
+
+function startTimer(taskId) {
+  if (activeTimerId && activeTimerId !== taskId) stopTimer(activeTimerId);
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.timerStart = Date.now();
+  activeTimerId = taskId;
+  save('wt_tasks', tasks);
+  timerInterval = setInterval(tickTimers, 1000);
+  renderTasks();
+  updateActiveStrip();
+}
+
+function stopTimer(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.timerStart) return;
+  task.timer += Math.floor((Date.now() - task.timerStart) / 1000);
+  task.timerStart = null;
+  if (activeTimerId === taskId) {
+    activeTimerId = null;
+    clearInterval(timerInterval);
+  }
+  save('wt_tasks', tasks);
+  renderTasks();
+  updateActiveStrip();
+}
+
+function tickTimers() {
+  if (!activeTimerId) return;
+  const el = document.querySelector(`.timer-display[data-id="${activeTimerId}"]`);
+  if (el) {
+    const task = tasks.find(t => t.id === activeTimerId);
+    if (task && task.timerStart) {
+      const secs = task.timer + Math.floor((Date.now() - task.timerStart) / 1000);
+      el.textContent = fmtSecs(secs);
+    }
+  }
+  updateActiveStrip();
+}
+
+function fmtSecs(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function secsToHours(s) {
+  return s / 3600;
+}
+
+function roundToQuarter(h) {
+  if (h <= 0) return 0.25;
+  const q = Math.ceil(h / 0.25) * 0.25;
+  return Math.max(0.25, q);
+}
+
+function updateActiveStrip() {
+  const strip = document.getElementById('activeStrip');
+  const text = document.getElementById('activeStripText');
+  if (activeTimerId) {
+    const task = tasks.find(t => t.id === activeTimerId);
+    if (task) {
+      const secs = task.timer + (task.timerStart ? Math.floor((Date.now() - task.timerStart) / 1000) : 0);
+      text.textContent = `Timer running — ${task.name} — ${fmtSecs(secs)}`;
+      strip.classList.add('visible');
+    }
+  } else {
+    strip.classList.remove('visible');
+  }
+}
+
+// =============================================
+// DATE HELPERS
+// =============================================
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDays(d, n) {
+  const dt = new Date(d);
+  dt.setDate(dt.getDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+
+function startOfWeek() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  return d.toISOString().slice(0, 10);
+}
+
+function endOfWeek() {
+  return addDays(startOfWeek(), 6);
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m)-1]} ${parseInt(day)}`;
+}
+
+function dateGroup(due) {
+  if (!due) return 'later';
+  const t = today();
+  if (due <= t) return 'today';
+  if (due <= endOfWeek()) return 'week';
+  if (due <= addDays(t, 14)) return 'soon';
+  return 'later';
+}
+
+function dueCls(due) {
+  if (!due) return '';
+  const t = today();
+  if (due < t) return 'overdue';
+  if (due === t) return 'today';
+  return '';
+}
+
+// =============================================
+// PROJECT HELPERS
+// =============================================
+
+function projColor(key) { return PROJECTS[key]?.color || '#666'; }
+function projLabel(key) { return PROJECTS[key]?.label || key; }
+
+function populateProjectSelects() {
+  const ids = ['filterProject', 'newTaskProject', 'editProject', 'teamAddProject', 'projAddProject', 'teamFilterProject', 'tsFilterProject'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isFilter = id.startsWith('filter') || id.startsWith('teamFilter') || id.startsWith('tsFilter');
+    el.innerHTML = isFilter ? '<option value="all">All projects</option>' : '';
+    Object.entries(PROJECTS).forEach(([k, v]) => {
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = v.label;
+      el.appendChild(opt);
+    });
+  });
+}
+
+// =============================================
+// TASKS RENDER
+// =============================================
+
+function priorityBadge(p) {
+  const map = { urgent: ['Urgent', 'p-urgent'], high: ['High', 'p-high'], med: ['Med', 'p-med'], low: ['Low', 'p-low'] };
+  const [label, cls] = map[p] || ['Med', 'p-med'];
+  return `<span class="priority-badge ${cls}">${label}</span>`;
+}
+
+function cycleTaskPriority(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const order = ['urgent', 'high', 'med', 'low'];
+  const i = order.indexOf(task.priority);
+  task.priority = order[(i + 1) % order.length];
+  save('wt_tasks', tasks);
+  renderTasks();
+}
+
+function renderTasks() {
+  const search = document.getElementById('taskSearch')?.value?.toLowerCase() || '';
+  const fDate  = document.getElementById('filterDate')?.value || 'all';
+  const fPri   = document.getElementById('filterPriority')?.value || 'all';
+  const fProj  = document.getElementById('filterProject')?.value || 'all';
+  const fWait  = document.getElementById('filterWaiting')?.value || 'all';
+
+  let visible = tasks.filter(t => !t.completed);
+
+  if (search) visible = visible.filter(t => t.name.toLowerCase().includes(search) || t.notes?.toLowerCase().includes(search) || t.category?.toLowerCase().includes(search));
+  if (fDate !== 'all') visible = visible.filter(t => {
+    const g = dateGroup(t.due);
+    if (fDate === 'today') return g === 'today';
+    if (fDate === 'week') return g === 'today' || g === 'week';
+    if (fDate === 'soon') return g === 'soon';
+    if (fDate === 'later') return g === 'later';
+    return true;
+  });
+  if (fPri !== 'all') visible = visible.filter(t => t.priority === fPri);
+  if (fProj !== 'all') visible = visible.filter(t => t.project === fProj);
+  if (fWait === 'waiting') visible = visible.filter(t => t.waiting);
+  if (fWait === 'active') visible = visible.filter(t => !t.waiting);
+
+  // Group
+  const groups = { today: [], week: [], soon: [], later: [] };
+  const groupLabels = { today: 'Today & Overdue', week: 'This Week', soon: 'Soon', later: 'Later' };
+  visible.forEach(t => {
+    const g = dateGroup(t.due);
+    groups[g].push(t);
+  });
+
+  const priorityOrder = { urgent: 0, high: 1, med: 2, low: 3 };
+  Object.values(groups).forEach(g => g.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]));
+
+  const container = document.getElementById('taskList');
+  container.innerHTML = '';
+
+  let hasAny = false;
+  ['today', 'week', 'soon', 'later'].forEach(gKey => {
+    const group = groups[gKey];
+    if (!group.length) return;
+    hasAny = true;
+
+    const section = document.createElement('div');
+    section.className = 'task-group';
+    section.innerHTML = `<div class="task-group-header">${groupLabels[gKey]} <span class="group-count">${group.length}</span></div>`;
+
+    group.forEach(task => {
+      const isRunning = task.timerStart !== null;
+      const secs = task.timer + (task.timerStart ? Math.floor((Date.now() - task.timerStart) / 1000) : 0);
+      const timerStr = secs > 0 ? fmtSecs(secs) : '—';
+      const dc = dueCls(task.due);
+
+      const row = document.createElement('div');
+      row.className = `task-row${isRunning ? ' running' : ''}`;
+      row.dataset.id = task.id;
+
+      row.innerHTML = `
+        <div class="task-check" onclick="openCompletionModal('${task.id}')" title="Complete task"></div>
+        <div class="project-dot" style="background:${projColor(task.project)};" title="${projLabel(task.project)}"></div>
+        <div class="task-name" onclick="openEditModal('${task.id}')" title="${task.notes || ''}">${task.name}</div>
+        ${task.category ? `<span class="task-category">${task.category}</span>` : '<span></span>'}
+        ${task.waiting ? `<span class="task-waiting" title="Waiting on: ${task.waiting}">⏳ ${task.waiting}</span>` : '<span></span>'}
+        <div onclick="cycleTaskPriority('${task.id}')">${priorityBadge(task.priority)}</div>
+        <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(task.due)}</div>
+        <div class="task-est">${task.est ? task.est + 'h' : '—'}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
+          <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">
+            ${isRunning ? '⏹' : '▶'}
+          </div>
+        </div>
+      `;
+
+      section.appendChild(row);
+    });
+
+    container.appendChild(section);
+  });
+
+  if (!hasAny) {
+    container.innerHTML = '<div class="empty-state">No tasks match your filters.</div>';
+  }
+}
+
+// =============================================
+// ADD TASK
+// =============================================
+
+function toggleAddForm() {
+  const f = document.getElementById('addForm');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) document.getElementById('newTaskName').focus();
+}
+
+function addTask() {
+  const name = document.getElementById('newTaskName').value.trim();
+  if (!name) return alert('Task name required.');
+  const task = {
+    id: uid(),
+    name,
+    project: document.getElementById('newTaskProject').value || 'admin',
+    priority: document.getElementById('newTaskPriority').value || 'med',
+    due: document.getElementById('newTaskDue').value || '',
+    est: parseFloat(document.getElementById('newTaskEst').value) || 0,
+    category: document.getElementById('newTaskCategory').value.trim(),
+    waiting: document.getElementById('newTaskWaiting').value.trim(),
+    notes: document.getElementById('newTaskNotes').value.trim(),
+    timer: 0, timerStart: null, completed: false
+  };
+  tasks.unshift(task);
+  save('wt_tasks', tasks);
+  // Reset
+  ['newTaskName','newTaskDue','newTaskEst','newTaskCategory','newTaskWaiting','newTaskNotes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  toggleAddForm();
+  renderTasks();
+}
+
+// =============================================
+// DUE DATE INLINE PICKER
+// =============================================
+
+let dueDateTaskId = null;
+
+function openDueDatePicker(el, taskId) {
+  dueDateTaskId = taskId;
+  const task = tasks.find(t => t.id === taskId);
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.className = 'date-input-inline';
+  input.value = task.due || '';
+  el.parentNode.insertBefore(input, el);
+  el.style.display = 'none';
+  input.focus();
+  input.addEventListener('change', () => {
+    task.due = input.value;
+    save('wt_tasks', tasks);
+    renderTasks();
+  });
+  input.addEventListener('blur', () => {
+    renderTasks();
+  });
+}
+
+// =============================================
+// EDIT MODAL
+// =============================================
+
+let editingTaskId = null;
+
+function openEditModal(taskId) {
+  editingTaskId = taskId;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  document.getElementById('editName').value = task.name;
+  document.getElementById('editProject').value = task.project;
+  document.getElementById('editPriority').value = task.priority;
+  document.getElementById('editDue').value = task.due || '';
+  document.getElementById('editEst').value = task.est || '';
+  document.getElementById('editCategory').value = task.category || '';
+  document.getElementById('editWaiting').value = task.waiting || '';
+  document.getElementById('editNotes').value = task.notes || '';
+  document.getElementById('editTaskModal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editTaskModal').classList.remove('open');
+  editingTaskId = null;
+}
+
+function saveEditTask() {
+  const task = tasks.find(t => t.id === editingTaskId);
+  if (!task) return;
+  task.name     = document.getElementById('editName').value.trim() || task.name;
+  task.project  = document.getElementById('editProject').value;
+  task.priority = document.getElementById('editPriority').value;
+  task.due      = document.getElementById('editDue').value;
+  task.est      = parseFloat(document.getElementById('editEst').value) || 0;
+  task.category = document.getElementById('editCategory').value.trim();
+  task.waiting  = document.getElementById('editWaiting').value.trim();
+  task.notes    = document.getElementById('editNotes').value.trim();
+  save('wt_tasks', tasks);
+  closeEditModal();
+  renderTasks();
+}
+
+function deleteEditTask() {
+  if (!confirm('Delete this task?')) return;
+  tasks = tasks.filter(t => t.id !== editingTaskId);
+  save('wt_tasks', tasks);
+  closeEditModal();
+  renderTasks();
+}
+
+// =============================================
+// COMPLETION MODAL
+// =============================================
+
+let completingTaskId = null;
+
+function openCompletionModal(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  if (task.timerStart) stopTimer(taskId);
+
+  completingTaskId = taskId;
+  const secs = task.timer;
+  const rawHours = secsToHours(secs);
+  const billable = roundToQuarter(rawHours || (task.est || 0.25));
+
+  document.getElementById('compModalTitle').textContent = 'Complete Task';
+  document.getElementById('compModalSub').textContent = task.name;
+  document.getElementById('compEst').textContent = task.est ? task.est + 'h' : '—';
+  document.getElementById('compTimer').textContent = secs > 0 ? `${fmtSecs(secs)} (${rawHours.toFixed(2)}h)` : 'No timer data';
+  document.getElementById('compBillable').value = billable;
+
+  // Variance
+  const varEl = document.getElementById('compVariance');
+  if (task.est && task.est > 0) {
+    const pct = ((billable - task.est) / task.est) * 100;
+    const sign = pct >= 0 ? '+' : '';
+    varEl.textContent = `${sign}${pct.toFixed(0)}% vs estimate`;
+    varEl.className = 'modal-value ' + (Math.abs(pct) <= 5 ? 'good' : pct > 5 ? 'over' : 'under');
+  } else {
+    varEl.textContent = '—';
+    varEl.className = 'modal-value';
+  }
+
+  document.getElementById('completionModal').classList.add('open');
+}
+
+function closeCompletionModal() {
+  document.getElementById('completionModal').classList.remove('open');
+  completingTaskId = null;
+}
+
+function confirmComplete() {
+  const task = tasks.find(t => t.id === completingTaskId);
+  if (!task) return;
+  const billable = parseFloat(document.getElementById('compBillable').value) || 0.25;
+
+  const entry = {
+    id: uid(),
+    name: task.name,
+    project: task.project,
+    dateCompleted: today(),
+    estHours: task.est,
+    actualHours: billable,
+    category: task.category
+  };
+
+  completed.unshift(entry);
+  save('wt_completed', completed);
+  tasks = tasks.filter(t => t.id !== completingTaskId);
+  save('wt_tasks', tasks);
+
+  closeCompletionModal();
+  renderTasks();
+  renderTimesheet();
+}
+
+// =============================================
+// BIG PROJECTS RENDER
+// =============================================
+
+function renderProjects() {
+  const container = document.getElementById('projectList');
+  container.innerHTML = '';
+
+  if (!bigProjs.length) {
+    container.innerHTML = '<div class="empty-state">No big projects yet.</div>';
+    return;
+  }
+
+  bigProjs.forEach(proj => {
+    const total = proj.sessions.length;
+    const done = proj.sessions.filter(s => s.done).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'project-card';
+
+    card.innerHTML = `
+      <div class="project-card-header" onclick="toggleProjectSessions('${proj.id}')">
+        <div class="project-dot" style="background:${projColor(proj.project)};width:9px;height:9px;border-radius:50%;"></div>
+        <div class="project-name-big">${proj.name}</div>
+        <div style="font-size:11px;color:var(--text3);margin-right:8px;">${projLabel(proj.project)}</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:${pct}%;background:${projColor(proj.project)};"></div>
+        </div>
+        <div class="progress-pct">${pct}%</div>
+        <span class="collapse-icon" style="margin-left:8px;">▼</span>
+      </div>
+      <div class="session-list" id="sessions-${proj.id}">
+        ${proj.sessions.map(s => `
+          <div class="session-row">
+            <div class="session-check${s.done ? ' done' : ''}" onclick="toggleSession('${proj.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
+              ${s.done ? '<span style="color:#0d0f14;font-size:11px;">✓</span>' : ''}
+            </div>
+            <div class="session-num">#${s.num}</div>
+            <div class="session-desc" style="${s.done ? 'text-decoration:line-through;color:var(--text3);' : ''}">${s.desc}</div>
+            <div class="session-date">${fmtDate(s.date)}</div>
+            <div class="session-hours">${s.hours}h</div>
+          </div>
+        `).join('')}
+        <div style="padding:8px 14px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:16px;">
+          <span style="font-size:11px;color:var(--text3);">Total: ${proj.sessions.reduce((a,s) => a + s.hours, 0)}h</span>
+          <span style="font-size:11px;color:var(--text3);">Done: ${proj.sessions.filter(s=>s.done).reduce((a,s) => a + s.hours, 0)}h</span>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+function toggleProjectSessions(projId) {
+  const el = document.getElementById(`sessions-${projId}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function toggleSession(projId, sessionId) {
+  const proj = bigProjs.find(p => p.id === projId);
+  if (!proj) return;
+  const s = proj.sessions.find(s => s.id === sessionId);
+  if (s) s.done = !s.done;
+  save('wt_bigprojs', bigProjs);
+  renderProjects();
+}
+
+function openAddProjectModal() {
+  document.getElementById('addProjectModal').classList.add('open');
+}
+
+function closeAddProjectModal() {
+  document.getElementById('addProjectModal').classList.remove('open');
+}
+
+function confirmAddProject() {
+  const name = document.getElementById('projAddName').value.trim();
+  if (!name) return alert('Project name required.');
+  const project = document.getElementById('projAddProject').value || 'admin';
+  const rawSessions = document.getElementById('projAddSessions').value.trim();
+
+  const sessions = rawSessions.split('\n').filter(Boolean).map((line, i) => {
+    const parts = line.split('|').map(p => p.trim());
+    return {
+      id: uid(),
+      num: i + 1,
+      date: parts[0] || '',
+      desc: parts[1] || `Session ${i + 1}`,
+      hours: parseFloat(parts[2]) || 1,
+      done: false
+    };
+  });
+
+  bigProjs.unshift({ id: uid(), name, project, sessions });
+  save('wt_bigprojs', bigProjs);
+  closeAddProjectModal();
+  renderProjects();
+}
+
+// =============================================
+// TEAM RENDER
+// =============================================
+
+const STATUS_CYCLE = ['not-started', 'pending', 'in-progress', 'in-review', 'complete', 'blocked'];
+const STATUS_LABELS = {
+  'not-started': 'Not Started',
+  'pending': 'Pending',
+  'in-progress': 'In Progress',
+  'in-review': 'In Review',
+  'complete': 'Complete',
+  'blocked': 'Blocked'
+};
+const STATUS_CLS = {
+  'not-started': 's-not-started',
+  'pending': 's-pending',
+  'in-progress': 's-in-progress',
+  'in-review': 's-in-review',
+  'complete': 's-complete',
+  'blocked': 's-blocked'
+};
+
+function cycleStatus(id) {
+  const item = teamItems.find(t => t.id === id);
+  if (!item) return;
+  const i = STATUS_CYCLE.indexOf(item.status);
+  item.status = STATUS_CYCLE[(i + 1) % STATUS_CYCLE.length];
+  save('wt_team', teamItems);
+  renderTeam();
+}
+
+function renderTeam() {
+  const search  = document.getElementById('teamSearch')?.value?.toLowerCase() || '';
+  const fProj   = document.getElementById('teamFilterProject')?.value || 'all';
+  const fStatus = document.getElementById('teamFilterStatus')?.value || 'all';
+
+  let visible = [...teamItems];
+  if (search) visible = visible.filter(t => t.name.toLowerCase().includes(search) || t.owner.toLowerCase().includes(search) || t.notes.toLowerCase().includes(search));
+  if (fProj !== 'all') visible = visible.filter(t => t.project === fProj);
+  if (fStatus !== 'all') visible = visible.filter(t => t.status === fStatus);
+
+  const container = document.getElementById('teamList');
+  container.innerHTML = '';
+
+  if (!visible.length) {
+    container.innerHTML = '<div class="empty-state">No deliverables match.</div>';
+    return;
+  }
+
+  visible.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'team-row';
+    const dc = dueCls(item.due);
+    row.innerHTML = `
+      <div class="team-task-name" onclick="toggleTeamNotes('${item.id}')" style="cursor:pointer;">${item.name}</div>
+      <span class="team-owner">👤 ${item.owner}</span>
+      <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
+      <span class="team-due ${dc}">${fmtDate(item.due)}</span>
+      <span class="status-badge ${STATUS_CLS[item.status]}" onclick="cycleStatus('${item.id}')">${STATUS_LABELS[item.status]}</span>
+    `;
+    container.appendChild(row);
+    if (item.notes) {
+      const notesRow = document.createElement('div');
+      notesRow.className = 'team-notes-full';
+      notesRow.id = `team-notes-${item.id}`;
+      notesRow.textContent = '↳ ' + item.notes;
+      container.appendChild(notesRow);
+    }
+  });
+}
+
+function toggleTeamNotes(id) {
+  const el = document.getElementById(`team-notes-${id}`);
+  if (el) el.classList.toggle('open');
+}
+
+function openAddTeamModal() {
+  document.getElementById('addTeamModal').classList.add('open');
+}
+
+function closeAddTeamModal() {
+  document.getElementById('addTeamModal').classList.remove('open');
+}
+
+function confirmAddTeam() {
+  const name = document.getElementById('teamAddName').value.trim();
+  if (!name) return alert('Name required.');
+  const item = {
+    id: uid(),
+    name,
+    owner: document.getElementById('teamAddOwner').value.trim(),
+    project: document.getElementById('teamAddProject').value || 'admin',
+    due: document.getElementById('teamAddDue').value || '',
+    status: document.getElementById('teamAddStatus').value || 'not-started',
+    notes: document.getElementById('teamAddNotes').value.trim()
+  };
+  teamItems.unshift(item);
+  save('wt_team', teamItems);
+  closeAddTeamModal();
+  renderTeam();
+}
+
+// =============================================
+// TIMESHEET RENDER
+// =============================================
+
+function renderTimesheet() {
+  const fProj = document.getElementById('tsFilterProject')?.value || 'all';
+  let visible = [...completed];
+  if (fProj !== 'all') visible = visible.filter(t => t.project === fProj);
+
+  // Group by project
+  const byProject = {};
+  visible.forEach(item => {
+    if (!byProject[item.project]) byProject[item.project] = [];
+    byProject[item.project].push(item);
+  });
+
+  const container = document.getElementById('timesheetList');
+  container.innerHTML = '';
+
+  let grandEst = 0, grandActual = 0;
+
+  Object.entries(byProject).forEach(([projKey, items]) => {
+    const block = document.createElement('div');
+    block.className = 'ts-project-block';
+
+    const projEst = items.reduce((a, i) => a + (i.estHours || 0), 0);
+    const projActual = items.reduce((a, i) => a + (i.actualHours || 0), 0);
+    grandEst += projEst; grandActual += projActual;
+    const projAcc = projEst ? Math.round((1 - Math.abs(projActual - projEst) / projEst) * 100) : null;
+
+    let accCls = 'good';
+    if (projAcc !== null) {
+      if (projAcc < 85) accCls = 'bad';
+      else if (projAcc < 95) accCls = 'warn';
+    }
+
+    block.innerHTML = `
+      <div class="ts-project-header">
+        <div class="project-dot" style="background:${projColor(projKey)};width:9px;height:9px;border-radius:50%;"></div>
+        <div class="ts-project-name">${projLabel(projKey)}</div>
+        <span style="font-size:11px;color:var(--text3);margin-right:8px;">${items.length} tasks</span>
+        <span style="font-size:11px;color:var(--text2);margin-right:8px;">Est: ${projEst.toFixed(2)}h</span>
+        <span style="font-size:11px;color:var(--text2);margin-right:12px;">Billed: ${projActual.toFixed(2)}h</span>
+        ${projAcc !== null ? `<span class="ts-accuracy ${accCls}">${projAcc}% accuracy</span>` : ''}
+      </div>
+      <table class="ts-table">
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Category</th>
+            <th>Completed</th>
+            <th>Est</th>
+            <th>Billed</th>
+            <th>Variance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => {
+            const varH = item.estHours ? (item.actualHours - item.estHours) : null;
+            const varPct = item.estHours ? ((item.actualHours - item.estHours) / item.estHours * 100) : null;
+            let varCls = '', varStr = '—';
+            if (varH !== null) {
+              const sign = varH >= 0 ? '+' : '';
+              varStr = `${sign}${varH.toFixed(2)}h (${sign}${varPct.toFixed(0)}%)`;
+              varCls = Math.abs(varPct) <= 5 ? 'good' : varH > 0 ? 'over' : 'under';
+            }
+            return `
+              <tr>
+                <td>${item.name}</td>
+                <td style="color:var(--text3)">${item.category || '—'}</td>
+                <td style="color:var(--text3)">${fmtDate(item.dateCompleted)}</td>
+                <td>${item.estHours ? item.estHours + 'h' : '—'}</td>
+                <td style="font-weight:600;">${item.actualHours}h</td>
+                <td class="ts-var ${varCls}">${varStr}</td>
+              </tr>
+            `;
+          }).join('')}
+          <tr class="ts-summary-row">
+            <td colspan="3">Total</td>
+            <td>${projEst.toFixed(2)}h</td>
+            <td>${projActual.toFixed(2)}h</td>
+            <td class="ts-var ${accCls}">${projAcc !== null ? projAcc + '% acc.' : '—'}</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    container.appendChild(block);
+  });
+
+  if (!Object.keys(byProject).length) {
+    container.innerHTML = '<div class="empty-state">No completed tasks yet.</div>';
+  }
+
+  const totalsEl = document.getElementById('tsTotals');
+  if (totalsEl) {
+    const grandAcc = grandEst ? Math.round((1 - Math.abs(grandActual - grandEst) / grandEst) * 100) : null;
+    totalsEl.textContent = `Total billed: ${grandActual.toFixed(2)}h${grandAcc !== null ? ' · ' + grandAcc + '% overall accuracy' : ''}`;
+  }
+}
+
+// =============================================
+// HEADER META
+// =============================================
+
+function updateHeaderMeta() {
+  const el = document.getElementById('headerMeta');
+  const active = tasks.filter(t => !t.completed).length;
+  const urgent = tasks.filter(t => !t.completed && t.priority === 'urgent').length;
+  const waiting = teamItems.filter(t => t.status !== 'complete').length;
+  el.textContent = `${active} tasks · ${urgent} urgent · ${waiting} delegated`;
+}
+
+// =============================================
+// TAB NAVIGATION
+// =============================================
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// =============================================
+// CLOSE MODALS ON OVERLAY CLICK
+// =============================================
+
+['completionModal','editTaskModal','addTeamModal','addProjectModal'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// =============================================
+// LIVE FILTER LISTENERS
+// =============================================
+
+['taskSearch','filterDate','filterPriority','filterProject','filterWaiting'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderTasks);
+  if (el) el.addEventListener('change', renderTasks);
+});
+
+['teamSearch','teamFilterProject','teamFilterStatus'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderTeam);
+  if (el) el.addEventListener('change', renderTeam);
+});
+
+document.getElementById('tsFilterProject')?.addEventListener('change', renderTimesheet);
+
+// =============================================
+// INIT
+// =============================================
+
+populateProjectSelects();
+renderTasks();
+renderProjects();
+renderTeam();
+renderTimesheet();
+updateHeaderMeta();
+
+// Resume timer if page was reloaded mid-session
+tasks.forEach(t => {
+  if (t.timerStart) {
+    activeTimerId = t.id;
+    timerInterval = setInterval(tickTimers, 1000);
+    updateActiveStrip();
+  }
+});
+
+// Update header meta periodically
+setInterval(updateHeaderMeta, 5000);
+
+</script>
+</body>
+</html>
