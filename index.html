@@ -1299,6 +1299,10 @@
         </select>
       </div>
       <div class="edit-form-group full">
+        <label class="edit-label">Waiting On <span style="font-weight:400;color:var(--text3);">(optional)</span></label>
+        <input class="edit-input" id="teamAddWaiting" placeholder="Who or what is blocking this?">
+      </div>
+      <div class="edit-form-group full">
         <label class="edit-label">Notes</label>
         <input class="edit-input" id="teamAddNotes">
       </div>
@@ -1479,6 +1483,10 @@
           <option value="complete">Complete</option>
           <option value="blocked">Blocked</option>
         </select>
+      </div>
+      <div class="edit-form-group full">
+        <label class="edit-label">Waiting On <span style="font-weight:400;color:var(--text3);">(optional)</span></label>
+        <input class="edit-input" id="editTeamWaiting" placeholder="Who or what is blocking this?">
       </div>
       <div class="edit-form-group full">
         <label class="edit-label">Notes</label>
@@ -1774,7 +1782,8 @@ function localDateStr(d) {
 }
 
 function today() {
-  return localDateStr(new Date());
+  // Use Eastern Time (America/New_York) to match Newark, DE
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
 function addDays(d, n) {
@@ -1784,7 +1793,8 @@ function addDays(d, n) {
 }
 
 function startOfWeek() {
-  const d = new Date();
+  const nowET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const d = new Date(nowET + 'T00:00:00');
   d.setDate(d.getDate() - d.getDay());
   return localDateStr(d);
 }
@@ -2053,6 +2063,24 @@ function openDueDatePicker(el, taskId) {
   });
 }
 
+function openTeamDueDatePicker(el, itemId) {
+  const item = teamItems.find(t => t.id === itemId);
+  if (!item) return;
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.className = 'date-input-inline';
+  input.value = item.due || '';
+  el.parentNode.insertBefore(input, el);
+  el.style.display = 'none';
+  input.focus();
+  input.addEventListener('change', () => {
+    item.due = input.value;
+    save('wt_team', teamItems);
+    renderTeam();
+  });
+  input.addEventListener('blur', () => { renderTeam(); });
+}
+
 // =============================================
 // EDIT MODAL
 // =============================================
@@ -2193,18 +2221,17 @@ function renderProjects() {
 
     const cardColor = proj.color || projColor(proj.project);
     card.innerHTML = `
-      <div class="project-card-header" onclick="toggleProjectSessions('${proj.id}')">
+      <div class="project-card-header">
         <div class="project-dot" style="background:${cardColor};width:9px;height:9px;border-radius:50%;"></div>
-        <div class="project-name-big" onclick="event.stopPropagation();openEditBigProjModal('${proj.id}')" title="Edit project">${proj.name}</div>
+        <div class="project-name-big" onclick="openEditBigProjModal('${proj.id}')" title="Edit project">${proj.name}</div>
         <div style="font-size:11px;color:var(--text3);margin-right:8px;">${projLabel(proj.project)}</div>
         <div class="progress-bar-wrap">
           <div class="progress-bar-fill" style="width:${pct}%;background:${cardColor};"></div>
         </div>
         <div class="progress-pct">${pct}%</div>
-        <div class="proj-card-actions" onclick="event.stopPropagation()">
+        <div class="proj-card-actions">
           <button class="row-edit-btn" onclick="openEditBigProjModal('${proj.id}')" title="Edit project">✏</button>
         </div>
-        <span class="collapse-icon" style="margin-left:4px;">▼</span>
       </div>
       <div class="session-list" id="sessions-${proj.id}">
         ${proj.sessions.map(s => `
@@ -2361,7 +2388,7 @@ function renderTeam() {
         <div class="team-task-name" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')">${item.name} <span class="delegate-tag">↗ delegated</span></div>
         <span class="team-owner">👤 ${item.owner}</span>
         <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
-        <span class="team-due ${dc}">${fmtDate(item.due)}</span>
+        <span class="team-due ${dc}" style="cursor:pointer;" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')" title="Edit date">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}">${STATUS_LABELS[item.status]}</span>
         <button class="row-edit-btn" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')" title="Edit in project">✏</button>
       `;
@@ -2370,17 +2397,20 @@ function renderTeam() {
         <div class="team-task-name" onclick="openEditTeamModal('${item.id}')">${item.name}</div>
         <span class="team-owner">👤 ${item.owner}</span>
         <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
-        <span class="team-due ${dc}">${fmtDate(item.due)}</span>
+        <span class="team-due ${dc}" style="cursor:pointer;" onclick="openTeamDueDatePicker(this,'${item.id}')" title="Click to change date">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showStatusDropdown(event,'${item.id}')" style="cursor:pointer;" title="Change status">${STATUS_LABELS[item.status]}</span>
         <button class="row-edit-btn" onclick="openEditTeamModal('${item.id}')" title="Edit deliverable">✏</button>
       `;
     }
     container.appendChild(row);
-    if (item.notes) {
+    if (item.waiting || item.notes) {
       const notesRow = document.createElement('div');
-      notesRow.className = 'team-notes-full';
+      notesRow.className = 'team-notes-full open';
       notesRow.id = `team-notes-${item.id}`;
-      notesRow.textContent = '↳ ' + item.notes;
+      const parts = [];
+      if (item.waiting) parts.push(`<span style="color:var(--warning,#fbbf24);">⏳ ${item.waiting}</span>`);
+      if (item.notes)   parts.push(`<span>↳ ${item.notes}</span>`);
+      notesRow.innerHTML = parts.join('<span style="color:var(--border2);margin:0 6px;">·</span>');
       container.appendChild(notesRow);
     }
   }
@@ -2423,6 +2453,7 @@ function confirmAddTeam() {
     project: document.getElementById('teamAddProject').value || 'admin',
     due: document.getElementById('teamAddDue').value || '',
     status: document.getElementById('teamAddStatus').value || 'not-started',
+    waiting: document.getElementById('teamAddWaiting').value.trim(),
     notes: document.getElementById('teamAddNotes').value.trim()
   };
   teamItems.unshift(item);
@@ -3368,12 +3399,13 @@ function openEditTeamModal(itemId) {
   const item = teamItems.find(t => t.id === itemId);
   if (!item) return;
   populateProjectSelects();
-  document.getElementById('editTeamName').value   = item.name || '';
-  document.getElementById('editTeamOwner').value  = item.owner || '';
-  document.getElementById('editTeamProject').value= item.project || 'admin';
-  document.getElementById('editTeamDue').value    = item.due || '';
-  document.getElementById('editTeamStatus').value = item.status || 'not-started';
-  document.getElementById('editTeamNotes').value  = item.notes || '';
+  document.getElementById('editTeamName').value    = item.name || '';
+  document.getElementById('editTeamOwner').value   = item.owner || '';
+  document.getElementById('editTeamProject').value = item.project || 'admin';
+  document.getElementById('editTeamDue').value     = item.due || '';
+  document.getElementById('editTeamStatus').value  = item.status || 'not-started';
+  document.getElementById('editTeamWaiting').value = item.waiting || '';
+  document.getElementById('editTeamNotes').value   = item.notes || '';
   document.getElementById('editTeamModal').classList.add('open');
 }
 
@@ -3390,6 +3422,7 @@ function saveEditTeamItem() {
   item.project = document.getElementById('editTeamProject').value;
   item.due     = document.getElementById('editTeamDue').value;
   item.status  = document.getElementById('editTeamStatus').value;
+  item.waiting = document.getElementById('editTeamWaiting').value.trim();
   item.notes   = document.getElementById('editTeamNotes').value.trim();
   save('wt_team', teamItems);
   closeEditTeamModal();
