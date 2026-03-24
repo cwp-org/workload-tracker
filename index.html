@@ -1114,6 +1114,30 @@
         <input class="form-input flex-1" type="text" id="newTaskWaiting" placeholder="Waiting on (optional)">
       </div>
       <div class="form-row">
+        <select class="form-input" id="nrType" onchange="onNewRecurChange()" style="min-width:155px;">
+          <option value="">No repeat</option>
+          <option value="weekly">Weekly on a day</option>
+          <option value="monthly-date">Monthly on a date</option>
+          <option value="monthly-weekday">Monthly on a weekday</option>
+        </select>
+        <select class="form-input" id="nrWday" style="display:none;">
+          <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+          <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+        </select>
+        <input class="form-input" type="number" id="nrMday" min="1" max="31" placeholder="Day (1-31)" style="display:none;width:110px;">
+        <select class="form-input" id="nrWofM" style="display:none;">
+          <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="-1">Last</option>
+        </select>
+        <select class="form-input" id="nrMwday" style="display:none;">
+          <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+          <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+        </select>
+        <span id="nrEndWrap" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--text3);">
+          <span>Ends</span>
+          <input class="form-input" type="date" id="nrEnd" style="width:130px;" title="Leave blank for never">
+        </span>
+      </div>
+      <div class="form-row">
         <input class="form-input flex-1" type="text" id="newTaskNotes" placeholder="Notes (optional)">
         <button class="btn primary" onclick="addTask()">Add</button>
         <button class="btn" onclick="toggleAddForm()">Cancel</button>
@@ -1310,6 +1334,10 @@
           <option value="5">Friday</option>
           <option value="6">Saturday</option>
         </select>
+      </div>
+      <div class="edit-form-group" id="editRecurEndDateGroup" style="display:none;">
+        <label class="edit-label">Ends on <span style="font-weight:400;color:var(--text3);">(leave blank = never)</span></label>
+        <input type="date" class="edit-input" id="editRecurEndDate">
       </div>
     </div>
     <div class="modal-actions">
@@ -1922,10 +1950,20 @@ function recurLabel(task) {
 
 function onRecurTypeChange() {
   const type = document.getElementById('editRecurType').value;
-  document.getElementById('editRecurWeekdayGroup').style.display    = type === 'weekly' ? '' : 'none';
-  document.getElementById('editRecurMonthDayGroup').style.display    = type === 'monthly-date' ? '' : 'none';
-  document.getElementById('editRecurWeekOfMonthGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
-  document.getElementById('editRecurMonthWeekdayGroup').style.display= type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('editRecurWeekdayGroup').style.display     = type === 'weekly' ? '' : 'none';
+  document.getElementById('editRecurMonthDayGroup').style.display     = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('editRecurWeekOfMonthGroup').style.display  = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('editRecurMonthWeekdayGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('editRecurEndDateGroup').style.display      = type ? '' : 'none';
+}
+
+function onNewRecurChange() {
+  const type = document.getElementById('nrType').value;
+  document.getElementById('nrWday').style.display          = type === 'weekly' ? '' : 'none';
+  document.getElementById('nrMday').style.display          = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('nrWofM').style.display          = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('nrMwday').style.display         = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('nrEndWrap').style.display       = type ? 'flex' : 'none';
 }
 
 function fmtDate(d) {
@@ -2171,6 +2209,21 @@ function toggleAddForm() {
 function addTask() {
   const name = document.getElementById('newTaskName').value.trim();
   if (!name) return alert('Task name required.');
+  // Build recurrence from add-form fields
+  const rType = document.getElementById('nrType').value;
+  let recurrence = null;
+  if (rType) {
+    recurrence = { type: rType, endDate: document.getElementById('nrEnd').value || null };
+    if (rType === 'weekly') {
+      recurrence.dayOfWeek = +document.getElementById('nrWday').value;
+    } else if (rType === 'monthly-date') {
+      recurrence.dayOfMonth = +document.getElementById('nrMday').value || 1;
+    } else if (rType === 'monthly-weekday') {
+      recurrence.weekOfMonth = +document.getElementById('nrWofM').value;
+      recurrence.dayOfWeek   = +document.getElementById('nrMwday').value;
+    }
+  }
+
   const task = {
     id: uid(),
     name,
@@ -2181,6 +2234,7 @@ function addTask() {
     category: document.getElementById('newTaskCategory').value.trim(),
     waiting: document.getElementById('newTaskWaiting').value.trim(),
     notes: document.getElementById('newTaskNotes').value.trim(),
+    recurrence,
     timer: 0, timerStart: null, completed: false
   };
   tasks.unshift(task);
@@ -2189,6 +2243,8 @@ function addTask() {
   ['newTaskName','newTaskDue','newTaskEst','newTaskCategory','newTaskWaiting','newTaskNotes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  document.getElementById('nrType').value = ''; document.getElementById('nrEnd').value = '';
+  onNewRecurChange();
   toggleAddForm();
   renderTasks();
 }
@@ -2262,6 +2318,7 @@ function openEditModal(taskId) {
   document.getElementById('editRecurMonthDay').value    = r.dayOfMonth || 1;
   document.getElementById('editRecurWeekOfMonth').value = r.weekOfMonth !== undefined ? r.weekOfMonth : 1;
   document.getElementById('editRecurMonthWeekday').value= r.dayOfWeek !== undefined ? r.dayOfWeek : 1;
+  document.getElementById('editRecurEndDate').value     = r.endDate || '';
   onRecurTypeChange();
   document.getElementById('editTaskModal').classList.add('open');
 }
@@ -2285,7 +2342,7 @@ function saveEditTask() {
   // Recurrence
   const rType = document.getElementById('editRecurType').value;
   if (rType) {
-    task.recurrence = { type: rType };
+    task.recurrence = { type: rType, endDate: document.getElementById('editRecurEndDate').value || null };
     if (rType === 'weekly') {
       task.recurrence.dayOfWeek = +document.getElementById('editRecurWeekday').value;
     } else if (rType === 'monthly-date') {
@@ -2326,10 +2383,18 @@ function openCompletionModal(taskId) {
   const rawHours = secsToHours(secs);
   const billable = roundToQuarter(rawHours || (task.est || 0.25));
 
-  document.getElementById('compModalTitle').textContent = task.recurrence ? 'Complete & Reschedule' : 'Complete Task';
-  document.getElementById('compModalSub').textContent = task.recurrence
-    ? `${task.name} — next: ${fmtDate(nextRecurrenceAfter(task, task.due || today()))}`
-    : task.name;
+  if (task.recurrence) {
+    const nextDate = nextRecurrenceAfter(task, task.due || today());
+    const endDate  = task.recurrence.endDate;
+    const isLast   = !nextDate || (endDate && nextDate > endDate);
+    document.getElementById('compModalTitle').textContent = isLast ? 'Complete Task (Final Recurrence)' : 'Complete & Reschedule';
+    document.getElementById('compModalSub').textContent   = isLast
+      ? `${task.name} — this is the last recurrence`
+      : `${task.name} — next: ${fmtDate(nextDate)}`;
+  } else {
+    document.getElementById('compModalTitle').textContent = 'Complete Task';
+    document.getElementById('compModalSub').textContent   = task.name;
+  }
   document.getElementById('compEst').textContent = task.est ? task.est + 'h' : '—';
   document.getElementById('compTimer').textContent = secs > 0 ? `${fmtSecs(secs)} (${rawHours.toFixed(2)}h)` : 'No timer data';
   document.getElementById('compBillable').value = billable;
@@ -2373,11 +2438,18 @@ function confirmComplete() {
   save('wt_completed', completed);
 
   if (task.recurrence) {
-    // Regenerate: advance due date to next occurrence, reset timer
-    task.due        = nextRecurrenceAfter(task, task.due || today()) || task.due;
-    task.timer      = 0;
-    task.timerStart = null;
-    save('wt_tasks', tasks);
+    const nextDate = nextRecurrenceAfter(task, task.due || today());
+    const endDate  = task.recurrence.endDate;
+    const withinEnd = nextDate && (!endDate || nextDate <= endDate);
+    if (withinEnd) {
+      // Regenerate to next occurrence
+      task.due = nextDate; task.timer = 0; task.timerStart = null;
+      save('wt_tasks', tasks);
+    } else {
+      // Past end date — archive like a normal task
+      tasks = tasks.filter(t => t.id !== completingTaskId);
+      save('wt_tasks', tasks);
+    }
   } else {
     tasks = tasks.filter(t => t.id !== completingTaskId);
     save('wt_tasks', tasks);
@@ -2759,11 +2831,13 @@ function plannedItems(fromDate, toDate) {
         items.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, _planned: true });
       }
     } else {
-      // Expand recurring task into all occurrences in period
+      // Expand recurring task into all occurrences in period, capped at end date
+      const recurEnd = t.recurrence.endDate || null;
       let d = t.due; let iters = 0;
       while (d && d < fromDate && iters++ < 200) d = nextRecurrenceAfter(t, d);
       iters = 0;
       while (d && d <= toDate && iters++ < 60) {
+        if (recurEnd && d > recurEnd) break;
         items.push({ id: t.id + '_' + d, name: t.name, project: t.project, date: d, hours: t.est || 0, _planned: true, _recur: true });
         d = nextRecurrenceAfter(t, d);
       }
