@@ -3104,20 +3104,15 @@ function renderTimesheet() {
     const plannedAll = plannedItems(todayStr, futureDate)
       .filter(p => fProj === 'all' || p.project === fProj)
       .map(p => {
-        // Determine item type for display
         const baseId = p.id.includes('_') ? p.id.split('_').slice(0, -1).join('_') : p.id;
-        const isTask = tasks.some(t => t.id === baseId || t.id === p.id);
-        if (isTask) {
-          const t = tasks.find(t => t.id === baseId || t.id === p.id);
-          return { ...p, type: 'task', _taskId: t ? t.id : null };
-        }
-        // Session
+        const task = tasks.find(t => t.id === baseId || t.id === p.id);
+        if (task) return { ...p, type: 'task', _taskId: task.id };
         for (const proj of bigProjs) {
           const s = proj.sessions.find(s => s.id === p.id);
           if (s) return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
           for (const s2 of proj.sessions) {
-            const st = (s2.subtasks || []).find(st => st.id === p.id);
-            if (st) return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
+            if ((s2.subtasks || []).some(st => st.id === p.id))
+              return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
           }
         }
         return { ...p, type: 'task' };
@@ -3136,11 +3131,11 @@ function renderTimesheet() {
         byWeek[wk].push(item);
       });
 
-      // Total planned hours for summary
+      // Summary
       const totalH = plannedAll.reduce((a, i) => a + i.hours, 0);
+      const recurCount = plannedAll.filter(i => i._recur).length;
       const summaryEl = document.createElement('div');
       summaryEl.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);display:flex;gap:16px;';
-      const recurCount = plannedAll.filter(i => i._recur).length;
       summaryEl.innerHTML = `
         <span>📋 <strong style="color:var(--text)">${plannedAll.length}</strong> items planned</span>
         ${recurCount ? `<span>↻ <strong style="color:var(--text)">${recurCount}</strong> recurring occurrences</span>` : ''}
@@ -3187,11 +3182,11 @@ function renderTimesheet() {
           const editFn = item._taskId
             ? `openEditModal('${item._taskId}')`
             : item._projId ? `openEditSessionModal('${item._projId}','${item.id}')` : '';
-          const typeLabel = item.type === 'session' ? `project` : item._recur ? 'recurring' : 'task';
+          const typeLabel = item.type === 'session' ? 'project' : item._recur ? 'recurring' : 'task';
           const subLabel = item._projName ? ` <span style="font-size:10px;color:var(--text3);">· ${item._projName}</span>` : '';
           const recurBadge = item._recur ? `<span class="recur-badge">↻</span>` : '';
           row.innerHTML = `
-            <span class="ts-entry-name" ${editFn ? `onclick="${editFn}"` : ''} title="${item.type === 'session' ? 'From: ' + (item._projName || '') : ''}">${item.name}${recurBadge}${subLabel}</span>
+            <span class="ts-entry-name" ${editFn ? `onclick="${editFn}"` : ''} title="${item._projName ? 'From: ' + item._projName : ''}">${item.name}${recurBadge}${subLabel}</span>
             <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
             <span style="font-size:11px;color:var(--text3);">${dayLabel}</span>
             <span style="font-size:11px;color:var(--text3);">${typeLabel}</span>
