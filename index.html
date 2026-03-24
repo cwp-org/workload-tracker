@@ -2794,7 +2794,7 @@ function renderProjects() {
         </div>
         <span class="proj-collapse-chevron${isCollapsed ? '' : ' open'}">›</span>
       </div>
-      <div class="session-list" id="sessions-${proj.id}" style="${isCollapsed ? 'display:none;' : ''}">`
+      <div class="session-list" id="sessions-${proj.id}" style="${isCollapsed ? 'display:none;' : ''}">
         ${[...proj.sessions].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')).map(s => `
           <div class="session-row">
             <div class="session-check${s.done ? ' done' : ''}" onclick="toggleSession('${proj.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
@@ -2983,7 +2983,8 @@ function renderTeam() {
         <span class="team-owner">👤 ${item.owner}</span>
         <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')" title="Edit date">${fmtDate(item.due)}</span>
-        <span class="status-badge ${STATUS_CLS[item.status]}">${STATUS_LABELS[item.status]}</span>
+        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showDelegatedStatusDropdown(event,'${item._projId}','${item._sessionId}')" style="cursor:pointer;" title="Change status">${STATUS_LABELS[item.status]}</span>
+        <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${item._projId}','${item._sessionId}')" title="Reassign">↗</button>
         <button class="row-edit-btn" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')" title="Edit in project">✏</button>
       `;
     } else {
@@ -3994,6 +3995,23 @@ function showStatusDropdown(e, itemId) {
     item.status = val;
     save('wt_team', teamItems);
     renderTeam();
+  });
+}
+
+function showDelegatedStatusDropdown(e, projId, sessionId) {
+  e.stopPropagation();
+  const proj = bigProjs.find(p => p.id === projId);
+  if (!proj) return;
+  const s = proj.sessions.find(s => s.id === sessionId);
+  if (!s) return;
+  const curStatus = s.done ? 'complete' : (s.status || 'not-started');
+  showDropdown(e.currentTarget, STATUS_OPTS, curStatus, val => {
+    s.done = (val === 'complete');
+    s.status = val;
+    save('wt_bigprojs', bigProjs);
+    renderTeam();
+    renderTasks();
+    renderProjects();
   });
 }
 
