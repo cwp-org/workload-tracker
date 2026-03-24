@@ -3059,6 +3059,10 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
           <span></span>
           <div class="ts-entry-actions" style="opacity:1;">
             ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit task">✏</button>` : ''}
+            ${taskObj && taskObj.recurrence ? `
+              <button class="row-edit-btn" onclick="skipRecurOccurrence('${taskObj.id}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
+              <button class="row-edit-btn" onclick="rescheduleRecurOccurrence('${taskObj.id}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
+            ` : ''}
           </div>
         `;
       } else {
