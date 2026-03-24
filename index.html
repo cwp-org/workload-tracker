@@ -1343,7 +1343,8 @@
     <div class="add-form" id="addForm">
       <div class="form-row">
         <input class="form-input flex-1" type="text" id="newTaskName" placeholder="Task name">
-        <select class="form-input filter-select" id="newTaskProject"></select>
+        <select class="form-input filter-select" id="newTaskProject" onchange="populateSubCodeSelect('newTaskSubCode', this.value)"></select>
+        <select class="form-input filter-select" id="newTaskSubCode" style="max-width:160px;"></select>
         <select class="form-input filter-select" id="newTaskPriority">
           <option value="urgent">Urgent</option>
           <option value="high">High</option>
@@ -1571,7 +1572,11 @@
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Project</label>
-        <select class="edit-input" id="editProject"></select>
+        <select class="edit-input" id="editProject" onchange="populateSubCodeSelect('editSubCode', this.value)"></select>
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Sub-Code</label>
+        <select class="edit-input" id="editSubCode"></select>
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Priority</label>
@@ -2515,6 +2520,9 @@ function populateProjectSelects() {
       el.appendChild(opt);
     });
   });
+  // Initialize sub-code dropdowns for add/edit task forms
+  const newProjEl = document.getElementById('newTaskProject');
+  if (newProjEl) populateSubCodeSelect('newTaskSubCode', newProjEl.value);
 }
 
 // =============================================
@@ -2805,6 +2813,7 @@ function addTask() {
     id: uid(),
     name,
     project: document.getElementById('newTaskProject').value || 'admin',
+    subCode: document.getElementById('newTaskSubCode').value || '',
     priority: document.getElementById('newTaskPriority').value || 'med',
     due: document.getElementById('newTaskDue').value || '',
     est: parseFloat(document.getElementById('newTaskEst').value) || 0,
@@ -2883,6 +2892,7 @@ function openEditModal(taskId) {
   if (!task) return;
   document.getElementById('editName').value = task.name;
   document.getElementById('editProject').value = task.project;
+  populateSubCodeSelect('editSubCode', task.project, task.subCode || '');
   document.getElementById('editPriority').value = task.priority;
   document.getElementById('editDue').value = task.due || '';
   document.getElementById('editEst').value = task.est || '';
@@ -2913,6 +2923,7 @@ function saveEditTask() {
 
   task.name     = document.getElementById('editName').value.trim() || task.name;
   task.project  = document.getElementById('editProject').value;
+  task.subCode  = document.getElementById('editSubCode').value;
   task.priority = document.getElementById('editPriority').value;
   task.due      = document.getElementById('editDue').value;
   task.est      = parseFloat(document.getElementById('editEst').value) || 0;
