@@ -512,6 +512,10 @@
   .session-desc:hover { color: var(--accent); }
   .delegate-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; vertical-align: middle; border: 1px solid transparent; }
   .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); vertical-align: middle; }
+  .day-toggle { cursor:pointer; user-select:none; }
+  .day-toggle input { display:none; }
+  .day-toggle span { display:inline-block; padding:3px 9px; border-radius:20px; background:var(--bg3); border:1px solid var(--border); font-size:11px; transition:all 0.12s; color:var(--text2); }
+  .day-toggle input:checked + span { background:#7c3aed22; border-color:#7c3aed; color:#7c3aed; font-weight:600; }
   .member-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; color: var(--text2); }
   .member-chip button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
   .member-chip button:hover { color: var(--danger); }
@@ -1116,14 +1120,20 @@
       <div class="form-row">
         <select class="form-input" id="nrType" onchange="onNewRecurChange()" style="min-width:155px;">
           <option value="">No repeat</option>
-          <option value="weekly">Weekly on a day</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-weekly</option>
           <option value="monthly-date">Monthly on a date</option>
           <option value="monthly-weekday">Monthly on a weekday</option>
         </select>
-        <select class="form-input" id="nrWday" style="display:none;">
-          <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
-          <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
-        </select>
+        <div id="nrDayWrap" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;">
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="0"><span>Sun</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="1" checked><span>Mon</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="2"><span>Tue</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="3"><span>Wed</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="4"><span>Thu</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="5"><span>Fri</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="6"><span>Sat</span></label>
+        </div>
         <input class="form-input" type="number" id="nrMday" min="1" max="31" placeholder="Day (1-31)" style="display:none;width:110px;">
         <select class="form-input" id="nrWofM" style="display:none;">
           <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="-1">Last</option>
@@ -1206,6 +1216,13 @@
         <input type="number" id="tsCapacityInput" min="1" max="168" step="1" style="width:46px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);font-size:12px;" onchange="saveTsCapacity(this.value)">
         <span style="font-size:11px;color:var(--text3);">h/wk</span>
       </div>
+      <select id="tsPlannedHorizon" class="filter-select" style="display:none;" onchange="renderTimesheet()">
+        <option value="4">Next 4 weeks</option>
+        <option value="8">Next 8 weeks</option>
+        <option value="13" selected>Next 3 months</option>
+        <option value="26">Next 6 months</option>
+        <option value="52">Next 12 months</option>
+      </select>
       <button class="btn primary" onclick="openAddTsEntryModal()" style="font-size:11px;padding:4px 10px;">+ Log time</button>
     </div>
     <div id="tsCapacityBar" style="padding:10px 14px;border-bottom:1px solid var(--border);display:none;"></div>
@@ -1289,23 +1306,24 @@
         <label class="edit-label">Repeats</label>
         <select class="edit-input" id="editRecurType" onchange="onRecurTypeChange()">
           <option value="">Does not repeat</option>
-          <option value="weekly">Weekly on a day</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-weekly</option>
           <option value="monthly-date">Monthly on a date</option>
           <option value="monthly-weekday">Monthly on a weekday</option>
         </select>
       </div>
-      <!-- Weekly: pick day of week -->
-      <div class="edit-form-group" id="editRecurWeekdayGroup" style="display:none;">
-        <label class="edit-label">Day of week</label>
-        <select class="edit-input" id="editRecurWeekday">
-          <option value="0">Sunday</option>
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
-        </select>
+      <!-- Weekly / Bi-weekly: pick day(s) of week -->
+      <div class="edit-form-group full" id="editRecurWeekdayGroup" style="display:none;">
+        <label class="edit-label">Day(s) of week</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:2px;">
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="0"><span>Sun</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="1"><span>Mon</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="2"><span>Tue</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="3"><span>Wed</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="4"><span>Thu</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="5"><span>Fri</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="6"><span>Sat</span></label>
+        </div>
       </div>
       <!-- Monthly-date: pick day number -->
       <div class="edit-form-group" id="editRecurMonthDayGroup" style="display:none;">
@@ -1910,13 +1928,28 @@ function getNthWeekdayOfMonth(year, month, dayOfWeek, weekOfMonth) {
   }
 }
 
+function normDows(r) {
+  if (r.daysOfWeek && r.daysOfWeek.length) return [...r.daysOfWeek].map(Number).sort((a,b)=>a-b);
+  if (r.dayOfWeek !== undefined) return [+r.dayOfWeek];
+  return [1];
+}
+
 function nextRecurrenceAfter(task, fromDateStr) {
   if (!task.recurrence) return null;
-  const { type, dayOfWeek, dayOfMonth, weekOfMonth } = task.recurrence;
+  const { type, dayOfMonth, weekOfMonth } = task.recurrence;
   const from = new Date(fromDateStr + 'T00:00:00');
-  if (type === 'weekly') {
+  const fromDow = from.getDay();
+  if (type === 'weekly' || type === 'biweekly') {
+    const dows = normDows(task.recurrence);
+    const gap  = type === 'biweekly' ? 14 : 7;
+    const nextInWeek = dows.find(d => d > fromDow);
+    if (nextInWeek !== undefined) {
+      const d = new Date(from);
+      d.setDate(d.getDate() + (nextInWeek - fromDow));
+      return localDateStr(d);
+    }
     const d = new Date(from);
-    d.setDate(d.getDate() + 7);
+    d.setDate(d.getDate() + (gap - fromDow + dows[0]));
     return localDateStr(d);
   }
   if (type === 'monthly-date') {
@@ -1927,6 +1960,7 @@ function nextRecurrenceAfter(task, fromDateStr) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
   }
   if (type === 'monthly-weekday') {
+    const [dayOfWeek] = normDows(task.recurrence);
     let m = from.getMonth() + 1, y = from.getFullYear();
     if (m > 11) { m = 0; y++; }
     return getNthWeekdayOfMonth(y, m, dayOfWeek, weekOfMonth);
@@ -1936,21 +1970,22 @@ function nextRecurrenceAfter(task, fromDateStr) {
 
 function recurLabel(task) {
   if (!task.recurrence) return '';
-  const { type, dayOfWeek, dayOfMonth, weekOfMonth } = task.recurrence;
+  const { type, dayOfMonth, weekOfMonth } = task.recurrence;
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const ordinal = n => { const s=['th','st','nd','rd']; const v=+n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
-  if (type === 'weekly') return `↻ Weekly ${days[dayOfWeek]}`;
+  if (type === 'weekly')   return `↻ Weekly ${normDows(task.recurrence).map(d=>days[d]).join('/')}`;
+  if (type === 'biweekly') return `↻ Biweekly ${normDows(task.recurrence).map(d=>days[d]).join('/')}`;
   if (type === 'monthly-date') return `↻ ${ordinal(dayOfMonth)} monthly`;
   if (type === 'monthly-weekday') {
     const wk = +weekOfMonth === -1 ? 'Last' : ordinal(weekOfMonth);
-    return `↻ ${wk} ${days[dayOfWeek]} monthly`;
+    return `↻ ${wk} ${days[normDows(task.recurrence)[0]]} monthly`;
   }
   return '';
 }
 
 function onRecurTypeChange() {
   const type = document.getElementById('editRecurType').value;
-  document.getElementById('editRecurWeekdayGroup').style.display     = type === 'weekly' ? '' : 'none';
+  document.getElementById('editRecurWeekdayGroup').style.display     = (type === 'weekly' || type === 'biweekly') ? '' : 'none';
   document.getElementById('editRecurMonthDayGroup').style.display     = type === 'monthly-date' ? '' : 'none';
   document.getElementById('editRecurWeekOfMonthGroup').style.display  = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('editRecurMonthWeekdayGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
@@ -1959,7 +1994,7 @@ function onRecurTypeChange() {
 
 function onNewRecurChange() {
   const type = document.getElementById('nrType').value;
-  document.getElementById('nrWday').style.display          = type === 'weekly' ? '' : 'none';
+  document.getElementById('nrDayWrap').style.display       = (type === 'weekly' || type === 'biweekly') ? 'flex' : 'none';
   document.getElementById('nrMday').style.display          = type === 'monthly-date' ? '' : 'none';
   document.getElementById('nrWofM').style.display          = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('nrMwday').style.display         = type === 'monthly-weekday' ? '' : 'none';
@@ -2214,8 +2249,9 @@ function addTask() {
   let recurrence = null;
   if (rType) {
     recurrence = { type: rType, endDate: document.getElementById('nrEnd').value || null };
-    if (rType === 'weekly') {
-      recurrence.dayOfWeek = +document.getElementById('nrWday').value;
+    if (rType === 'weekly' || rType === 'biweekly') {
+      const checked = Array.from(document.querySelectorAll('[name="nrDow"]:checked')).map(cb => +cb.value);
+      recurrence.daysOfWeek = checked.length ? checked : [1];
     } else if (rType === 'monthly-date') {
       recurrence.dayOfMonth = +document.getElementById('nrMday').value || 1;
     } else if (rType === 'monthly-weekday') {
@@ -2244,6 +2280,7 @@ function addTask() {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('nrType').value = ''; document.getElementById('nrEnd').value = '';
+  document.querySelectorAll('[name="nrDow"]').forEach(cb => { cb.checked = cb.value === '1'; });
   onNewRecurChange();
   toggleAddForm();
   renderTasks();
@@ -2314,10 +2351,11 @@ function openEditModal(taskId) {
   // Recurrence
   const r = task.recurrence || {};
   document.getElementById('editRecurType').value        = r.type || '';
-  document.getElementById('editRecurWeekday').value     = r.dayOfWeek !== undefined ? r.dayOfWeek : 1;
+  const activeDows = normDows(r);
+  document.querySelectorAll('.edit-recur-dow').forEach(cb => { cb.checked = activeDows.includes(+cb.value); });
   document.getElementById('editRecurMonthDay').value    = r.dayOfMonth || 1;
   document.getElementById('editRecurWeekOfMonth').value = r.weekOfMonth !== undefined ? r.weekOfMonth : 1;
-  document.getElementById('editRecurMonthWeekday').value= r.dayOfWeek !== undefined ? r.dayOfWeek : 1;
+  document.getElementById('editRecurMonthWeekday').value= normDows(r)[0] !== undefined ? normDows(r)[0] : 1;
   document.getElementById('editRecurEndDate').value     = r.endDate || '';
   onRecurTypeChange();
   document.getElementById('editTaskModal').classList.add('open');
@@ -2343,8 +2381,9 @@ function saveEditTask() {
   const rType = document.getElementById('editRecurType').value;
   if (rType) {
     task.recurrence = { type: rType, endDate: document.getElementById('editRecurEndDate').value || null };
-    if (rType === 'weekly') {
-      task.recurrence.dayOfWeek = +document.getElementById('editRecurWeekday').value;
+    if (rType === 'weekly' || rType === 'biweekly') {
+      const checked = Array.from(document.querySelectorAll('.edit-recur-dow:checked')).map(cb => +cb.value);
+      task.recurrence.daysOfWeek = checked.length ? checked : [1];
     } else if (rType === 'monthly-date') {
       task.recurrence.dayOfMonth = +document.getElementById('editRecurMonthDay').value || 1;
     } else if (rType === 'monthly-weekday') {
@@ -2774,6 +2813,7 @@ function setTsView(v) {
     document.getElementById('tsView' + x.charAt(0).toUpperCase() + x.slice(1))?.classList.toggle('active', x === v);
   });
   document.getElementById('tsPeriodNav').style.display = (v === 'all' || v === 'planned') ? 'none' : 'flex';
+  document.getElementById('tsPlannedHorizon').style.display = v === 'planned' ? '' : 'none';
   renderTimesheet();
 }
 
@@ -3049,32 +3089,34 @@ function renderTimesheet() {
     if (!hasAny) container.innerHTML = '<div class="empty-state">No data this month.</div>';
 
   } else if (tsView === 'planned') {
-    // PLANNED view — upcoming tasks + undelegated project sessions grouped by week
+    // PLANNED view — upcoming tasks (including all recurring occurrences) + project sessions grouped by week
     document.getElementById('tsCapacityBar').style.display = 'none';
 
-    // Collect all planned items with a date on or after today
     const todayStr = today();
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-    const plannedAll = [];
+    // Horizon: N weeks forward from today
+    const horizonWeeks = parseInt(document.getElementById('tsPlannedHorizon')?.value || '13');
+    const futureDate = addDays(todayStr, horizonWeeks * 7);
 
-    // Active tasks with a due date
-    tasks.forEach(t => {
-      if (t.due && t.due >= todayStr && (fProj === 'all' || t.project === fProj)) {
-        plannedAll.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, type: 'task', _taskId: t.id });
-      }
-    });
-
-    // Undone, undelegated big project sessions
-    bigProjs.forEach(proj => {
-      if (fProj !== 'all' && proj.project !== fProj) return;
-      proj.sessions.forEach(s => {
-        if (!s.done && !normDelegated(s.delegatedTo).length && s.date && s.date >= todayStr) {
-          plannedAll.push({ id: s.id, name: s.desc, project: proj.project, date: s.date, hours: s.hours || 0, type: 'session', _projId: proj.id, _projName: proj.name });
+    // Use plannedItems() to expand all recurring tasks into individual occurrences
+    const plannedAll = plannedItems(todayStr, futureDate)
+      .filter(p => fProj === 'all' || p.project === fProj)
+      .map(p => {
+        const baseId = p.id.includes('_') ? p.id.split('_').slice(0, -1).join('_') : p.id;
+        const task = tasks.find(t => t.id === baseId || t.id === p.id);
+        if (task) return { ...p, type: 'task', _taskId: task.id };
+        for (const proj of bigProjs) {
+          const s = proj.sessions.find(s => s.id === p.id);
+          if (s) return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
+          for (const s2 of proj.sessions) {
+            if ((s2.subtasks || []).some(st => st.id === p.id))
+              return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
+          }
         }
+        return { ...p, type: 'task' };
       });
-    });
 
     if (!plannedAll.length) {
       container.innerHTML = '<div class="empty-state">No upcoming planned work.</div>';
@@ -3089,12 +3131,14 @@ function renderTimesheet() {
         byWeek[wk].push(item);
       });
 
-      // Total planned hours for summary
+      // Summary
       const totalH = plannedAll.reduce((a, i) => a + i.hours, 0);
+      const recurCount = plannedAll.filter(i => i._recur).length;
       const summaryEl = document.createElement('div');
       summaryEl.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);display:flex;gap:16px;';
       summaryEl.innerHTML = `
         <span>📋 <strong style="color:var(--text)">${plannedAll.length}</strong> items planned</span>
+        ${recurCount ? `<span>↻ <strong style="color:var(--text)">${recurCount}</strong> recurring occurrences</span>` : ''}
         <span>⏱ <strong style="color:var(--text)">${totalH.toFixed(1)}h</strong> total estimated</span>
         <span>📅 <strong style="color:var(--text)">${Object.keys(byWeek).length}</strong> weeks</span>
       `;
@@ -3135,17 +3179,20 @@ function renderTimesheet() {
           const dayLabel = `${dayNames[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
           const row = document.createElement('div');
           row.className = 'ts-entry-row';
-          const editFn = item.type === 'task'
+          const editFn = item._taskId
             ? `openEditModal('${item._taskId}')`
-            : `openEditSessionModal('${item._projId}','${item.id}')`;
+            : item._projId ? `openEditSessionModal('${item._projId}','${item.id}')` : '';
+          const typeLabel = item.type === 'session' ? 'project' : item._recur ? 'recurring' : 'task';
+          const subLabel = item._projName ? ` <span style="font-size:10px;color:var(--text3);">· ${item._projName}</span>` : '';
+          const recurBadge = item._recur ? `<span class="recur-badge">↻</span>` : '';
           row.innerHTML = `
-            <span class="ts-entry-name" onclick="${editFn}" title="${item.type === 'session' ? 'From: ' + item._projName : 'Task'}">${item.name}${item.type === 'session' ? ` <span style="font-size:10px;color:var(--text3);">· ${item._projName}</span>` : ''}</span>
+            <span class="ts-entry-name" ${editFn ? `onclick="${editFn}"` : ''} title="${item._projName ? 'From: ' + item._projName : ''}">${item.name}${recurBadge}${subLabel}</span>
             <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
             <span style="font-size:11px;color:var(--text3);">${dayLabel}</span>
-            <span style="font-size:11px;color:var(--text3);">${item.type === 'task' ? 'task' : 'project'}</span>
+            <span style="font-size:11px;color:var(--text3);">${typeLabel}</span>
             <span style="font-size:12px;font-weight:700;">${item.hours}h</span>
             <div class="ts-entry-actions" style="opacity:1;">
-              <button class="row-edit-btn" onclick="${editFn}" title="Edit">✏</button>
+              ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit">✏</button>` : ''}
             </div>
           `;
           container.appendChild(row);
