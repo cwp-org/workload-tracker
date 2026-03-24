@@ -4363,7 +4363,7 @@ function renderAllocations() {
     if (viewMode === 'detail' && subs.length > 0) {
       subs.forEach(sc => {
         const fullCode = (proj.billingCode || '') + sc.code;
-        html += `<tr class="alloc-sc-row"><td>${fullCode} ${sc.label}</td>`;
+        html += `<tr class="alloc-sc-row"><td>${sc.code} ${sc.label}</td>`;
         let scAllocYTD = 0, scActualYTD = 0;
         months.forEach((m, mi) => {
           const aKey = allocKey(projKey, sc.id, m.ym);
