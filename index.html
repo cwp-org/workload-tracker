@@ -516,9 +516,9 @@
   .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); vertical-align: middle; }
   .recur-occurrence-actions {
     display: none; gap: 3px;
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    position: absolute; right: 68px; top: 50%; transform: translateY(-50%);
     background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
-    padding: 2px 4px; z-index: 10;
+    padding: 2px 4px; z-index: 10; white-space: nowrap;
   }
   .task-row:hover .recur-occurrence-actions,
   .ts-entry-row:hover .recur-occurrence-actions { display: flex; }
@@ -2520,25 +2520,28 @@ function saveEditTask() {
   renderTasks();
 }
 
-function skipRecurOccurrence(taskId) {
+function skipRecurOccurrence(taskId, occurrenceDate) {
   const task = tasks.find(t => t.id === taskId);
   if (!task || !task.recurrence || !task.due) return;
-  const orig = task.due;
+  const orig = occurrenceDate || task.due;
   task.recurrence.skips = [...(task.recurrence.skips || []), orig];
-  task.due = nextRecurrenceAfter(task, orig) || orig;
+  // Only advance task.due if we're skipping the anchor occurrence
+  if (orig === task.due) task.due = nextRecurrenceAfter(task, orig) || orig;
   save('wt_tasks', tasks);
   renderTasks();
+  renderTimesheet();
 }
 
-function rescheduleRecurOccurrence(taskId) {
+function rescheduleRecurOccurrence(taskId, occurrenceDate) {
   const task = tasks.find(t => t.id === taskId);
   if (!task || !task.recurrence || !task.due) return;
-  const orig = task.due;
+  const orig = occurrenceDate || task.due;
   const newDate = prompt('New date for this occurrence only (YYYY-MM-DD):', orig);
   if (!newDate || newDate === orig || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
   task.recurrence.overrides = { ...(task.recurrence.overrides || {}), [orig]: newDate };
   save('wt_tasks', tasks);
   renderTasks();
+  renderTimesheet();
 }
 
 function deleteEditTask() {
@@ -3144,10 +3147,10 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
           <div class="ts-entry-actions" style="opacity:1;">
             ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit task">✏</button>` : ''}
           </div>
-          ${taskObj && taskObj.recurrence ? `<span class="recur-occurrence-actions">
-            <button class="row-edit-btn" onclick="skipRecurOccurrence('${taskObj.id}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
-            <button class="row-edit-btn" onclick="rescheduleRecurOccurrence('${taskObj.id}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
-          </span>` : ''}
+          ${taskObj && taskObj.recurrence ? (() => { const occDate = item.id.includes('_') ? item.id.slice(taskObj.id.length + 1) : taskObj.id; return `<span class="recur-occurrence-actions">
+            <button class="row-edit-btn" onclick="skipRecurOccurrence('${taskObj.id}','${occDate}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
+            <button class="row-edit-btn" onclick="rescheduleRecurOccurrence('${taskObj.id}','${occDate}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
+          </span>`; })() : ''}
         `;
       } else {
         row.innerHTML = `
