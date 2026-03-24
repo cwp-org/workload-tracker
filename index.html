@@ -512,6 +512,10 @@
   .session-desc:hover { color: var(--accent); }
   .delegate-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; vertical-align: middle; border: 1px solid transparent; }
   .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); vertical-align: middle; }
+  .day-toggle { cursor:pointer; user-select:none; }
+  .day-toggle input { display:none; }
+  .day-toggle span { display:inline-block; padding:3px 9px; border-radius:20px; background:var(--bg3); border:1px solid var(--border); font-size:11px; transition:all 0.12s; color:var(--text2); }
+  .day-toggle input:checked + span { background:#7c3aed22; border-color:#7c3aed; color:#7c3aed; font-weight:600; }
   .member-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; color: var(--text2); }
   .member-chip button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
   .member-chip button:hover { color: var(--danger); }
@@ -1114,6 +1118,36 @@
         <input class="form-input flex-1" type="text" id="newTaskWaiting" placeholder="Waiting on (optional)">
       </div>
       <div class="form-row">
+        <select class="form-input" id="nrType" onchange="onNewRecurChange()" style="min-width:155px;">
+          <option value="">No repeat</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-weekly</option>
+          <option value="monthly-date">Monthly on a date</option>
+          <option value="monthly-weekday">Monthly on a weekday</option>
+        </select>
+        <div id="nrDayWrap" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;">
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="0"><span>Sun</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="1" checked><span>Mon</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="2"><span>Tue</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="3"><span>Wed</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="4"><span>Thu</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="5"><span>Fri</span></label>
+          <label class="day-toggle"><input type="checkbox" name="nrDow" value="6"><span>Sat</span></label>
+        </div>
+        <input class="form-input" type="number" id="nrMday" min="1" max="31" placeholder="Day (1-31)" style="display:none;width:110px;">
+        <select class="form-input" id="nrWofM" style="display:none;">
+          <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="-1">Last</option>
+        </select>
+        <select class="form-input" id="nrMwday" style="display:none;">
+          <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+          <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+        </select>
+        <span id="nrEndWrap" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--text3);">
+          <span>Ends</span>
+          <input class="form-input" type="date" id="nrEnd" style="width:130px;" title="Leave blank for never">
+        </span>
+      </div>
+      <div class="form-row">
         <input class="form-input flex-1" type="text" id="newTaskNotes" placeholder="Notes (optional)">
         <button class="btn primary" onclick="addTask()">Add</button>
         <button class="btn" onclick="toggleAddForm()">Cancel</button>
@@ -1265,23 +1299,24 @@
         <label class="edit-label">Repeats</label>
         <select class="edit-input" id="editRecurType" onchange="onRecurTypeChange()">
           <option value="">Does not repeat</option>
-          <option value="weekly">Weekly on a day</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-weekly</option>
           <option value="monthly-date">Monthly on a date</option>
           <option value="monthly-weekday">Monthly on a weekday</option>
         </select>
       </div>
-      <!-- Weekly: pick day of week -->
-      <div class="edit-form-group" id="editRecurWeekdayGroup" style="display:none;">
-        <label class="edit-label">Day of week</label>
-        <select class="edit-input" id="editRecurWeekday">
-          <option value="0">Sunday</option>
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
-        </select>
+      <!-- Weekly / Bi-weekly: pick day(s) of week -->
+      <div class="edit-form-group full" id="editRecurWeekdayGroup" style="display:none;">
+        <label class="edit-label">Day(s) of week</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:2px;">
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="0"><span>Sun</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="1"><span>Mon</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="2"><span>Tue</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="3"><span>Wed</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="4"><span>Thu</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="5"><span>Fri</span></label>
+          <label class="day-toggle"><input type="checkbox" class="edit-recur-dow" value="6"><span>Sat</span></label>
+        </div>
       </div>
       <!-- Monthly-date: pick day number -->
       <div class="edit-form-group" id="editRecurMonthDayGroup" style="display:none;">
@@ -1310,6 +1345,10 @@
           <option value="5">Friday</option>
           <option value="6">Saturday</option>
         </select>
+      </div>
+      <div class="edit-form-group" id="editRecurEndDateGroup" style="display:none;">
+        <label class="edit-label">Ends on <span style="font-weight:400;color:var(--text3);">(leave blank = never)</span></label>
+        <input type="date" class="edit-input" id="editRecurEndDate">
       </div>
     </div>
     <div class="modal-actions">
@@ -1882,13 +1921,28 @@ function getNthWeekdayOfMonth(year, month, dayOfWeek, weekOfMonth) {
   }
 }
 
+function normDows(r) {
+  if (r.daysOfWeek && r.daysOfWeek.length) return [...r.daysOfWeek].map(Number).sort((a,b)=>a-b);
+  if (r.dayOfWeek !== undefined) return [+r.dayOfWeek];
+  return [1];
+}
+
 function nextRecurrenceAfter(task, fromDateStr) {
   if (!task.recurrence) return null;
-  const { type, dayOfWeek, dayOfMonth, weekOfMonth } = task.recurrence;
+  const { type, dayOfMonth, weekOfMonth } = task.recurrence;
   const from = new Date(fromDateStr + 'T00:00:00');
-  if (type === 'weekly') {
+  const fromDow = from.getDay();
+  if (type === 'weekly' || type === 'biweekly') {
+    const dows = normDows(task.recurrence);
+    const gap  = type === 'biweekly' ? 14 : 7;
+    const nextInWeek = dows.find(d => d > fromDow);
+    if (nextInWeek !== undefined) {
+      const d = new Date(from);
+      d.setDate(d.getDate() + (nextInWeek - fromDow));
+      return localDateStr(d);
+    }
     const d = new Date(from);
-    d.setDate(d.getDate() + 7);
+    d.setDate(d.getDate() + (gap - fromDow + dows[0]));
     return localDateStr(d);
   }
   if (type === 'monthly-date') {
@@ -1899,6 +1953,7 @@ function nextRecurrenceAfter(task, fromDateStr) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
   }
   if (type === 'monthly-weekday') {
+    const [dayOfWeek] = normDows(task.recurrence);
     let m = from.getMonth() + 1, y = from.getFullYear();
     if (m > 11) { m = 0; y++; }
     return getNthWeekdayOfMonth(y, m, dayOfWeek, weekOfMonth);
@@ -1908,24 +1963,35 @@ function nextRecurrenceAfter(task, fromDateStr) {
 
 function recurLabel(task) {
   if (!task.recurrence) return '';
-  const { type, dayOfWeek, dayOfMonth, weekOfMonth } = task.recurrence;
+  const { type, dayOfMonth, weekOfMonth } = task.recurrence;
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const ordinal = n => { const s=['th','st','nd','rd']; const v=+n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
-  if (type === 'weekly') return `↻ Weekly ${days[dayOfWeek]}`;
+  if (type === 'weekly')   return `↻ Weekly ${normDows(task.recurrence).map(d=>days[d]).join('/')}`;
+  if (type === 'biweekly') return `↻ Biweekly ${normDows(task.recurrence).map(d=>days[d]).join('/')}`;
   if (type === 'monthly-date') return `↻ ${ordinal(dayOfMonth)} monthly`;
   if (type === 'monthly-weekday') {
     const wk = +weekOfMonth === -1 ? 'Last' : ordinal(weekOfMonth);
-    return `↻ ${wk} ${days[dayOfWeek]} monthly`;
+    return `↻ ${wk} ${days[normDows(task.recurrence)[0]]} monthly`;
   }
   return '';
 }
 
 function onRecurTypeChange() {
   const type = document.getElementById('editRecurType').value;
-  document.getElementById('editRecurWeekdayGroup').style.display    = type === 'weekly' ? '' : 'none';
-  document.getElementById('editRecurMonthDayGroup').style.display    = type === 'monthly-date' ? '' : 'none';
-  document.getElementById('editRecurWeekOfMonthGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
-  document.getElementById('editRecurMonthWeekdayGroup').style.display= type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('editRecurWeekdayGroup').style.display     = (type === 'weekly' || type === 'biweekly') ? '' : 'none';
+  document.getElementById('editRecurMonthDayGroup').style.display     = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('editRecurWeekOfMonthGroup').style.display  = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('editRecurMonthWeekdayGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('editRecurEndDateGroup').style.display      = type ? '' : 'none';
+}
+
+function onNewRecurChange() {
+  const type = document.getElementById('nrType').value;
+  document.getElementById('nrDayWrap').style.display       = (type === 'weekly' || type === 'biweekly') ? 'flex' : 'none';
+  document.getElementById('nrMday').style.display          = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('nrWofM').style.display          = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('nrMwday').style.display         = type === 'monthly-weekday' ? '' : 'none';
+  document.getElementById('nrEndWrap').style.display       = type ? 'flex' : 'none';
 }
 
 function fmtDate(d) {
@@ -2171,6 +2237,22 @@ function toggleAddForm() {
 function addTask() {
   const name = document.getElementById('newTaskName').value.trim();
   if (!name) return alert('Task name required.');
+  // Build recurrence from add-form fields
+  const rType = document.getElementById('nrType').value;
+  let recurrence = null;
+  if (rType) {
+    recurrence = { type: rType, endDate: document.getElementById('nrEnd').value || null };
+    if (rType === 'weekly' || rType === 'biweekly') {
+      const checked = Array.from(document.querySelectorAll('[name="nrDow"]:checked')).map(cb => +cb.value);
+      recurrence.daysOfWeek = checked.length ? checked : [1];
+    } else if (rType === 'monthly-date') {
+      recurrence.dayOfMonth = +document.getElementById('nrMday').value || 1;
+    } else if (rType === 'monthly-weekday') {
+      recurrence.weekOfMonth = +document.getElementById('nrWofM').value;
+      recurrence.dayOfWeek   = +document.getElementById('nrMwday').value;
+    }
+  }
+
   const task = {
     id: uid(),
     name,
@@ -2181,6 +2263,7 @@ function addTask() {
     category: document.getElementById('newTaskCategory').value.trim(),
     waiting: document.getElementById('newTaskWaiting').value.trim(),
     notes: document.getElementById('newTaskNotes').value.trim(),
+    recurrence,
     timer: 0, timerStart: null, completed: false
   };
   tasks.unshift(task);
@@ -2189,6 +2272,9 @@ function addTask() {
   ['newTaskName','newTaskDue','newTaskEst','newTaskCategory','newTaskWaiting','newTaskNotes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  document.getElementById('nrType').value = ''; document.getElementById('nrEnd').value = '';
+  document.querySelectorAll('[name="nrDow"]').forEach(cb => { cb.checked = cb.value === '1'; });
+  onNewRecurChange();
   toggleAddForm();
   renderTasks();
 }
@@ -2258,10 +2344,12 @@ function openEditModal(taskId) {
   // Recurrence
   const r = task.recurrence || {};
   document.getElementById('editRecurType').value        = r.type || '';
-  document.getElementById('editRecurWeekday').value     = r.dayOfWeek !== undefined ? r.dayOfWeek : 1;
+  const activeDows = normDows(r);
+  document.querySelectorAll('.edit-recur-dow').forEach(cb => { cb.checked = activeDows.includes(+cb.value); });
   document.getElementById('editRecurMonthDay').value    = r.dayOfMonth || 1;
   document.getElementById('editRecurWeekOfMonth').value = r.weekOfMonth !== undefined ? r.weekOfMonth : 1;
-  document.getElementById('editRecurMonthWeekday').value= r.dayOfWeek !== undefined ? r.dayOfWeek : 1;
+  document.getElementById('editRecurMonthWeekday').value= normDows(r)[0] !== undefined ? normDows(r)[0] : 1;
+  document.getElementById('editRecurEndDate').value     = r.endDate || '';
   onRecurTypeChange();
   document.getElementById('editTaskModal').classList.add('open');
 }
@@ -2285,9 +2373,10 @@ function saveEditTask() {
   // Recurrence
   const rType = document.getElementById('editRecurType').value;
   if (rType) {
-    task.recurrence = { type: rType };
-    if (rType === 'weekly') {
-      task.recurrence.dayOfWeek = +document.getElementById('editRecurWeekday').value;
+    task.recurrence = { type: rType, endDate: document.getElementById('editRecurEndDate').value || null };
+    if (rType === 'weekly' || rType === 'biweekly') {
+      const checked = Array.from(document.querySelectorAll('.edit-recur-dow:checked')).map(cb => +cb.value);
+      task.recurrence.daysOfWeek = checked.length ? checked : [1];
     } else if (rType === 'monthly-date') {
       task.recurrence.dayOfMonth = +document.getElementById('editRecurMonthDay').value || 1;
     } else if (rType === 'monthly-weekday') {
@@ -2326,10 +2415,18 @@ function openCompletionModal(taskId) {
   const rawHours = secsToHours(secs);
   const billable = roundToQuarter(rawHours || (task.est || 0.25));
 
-  document.getElementById('compModalTitle').textContent = task.recurrence ? 'Complete & Reschedule' : 'Complete Task';
-  document.getElementById('compModalSub').textContent = task.recurrence
-    ? `${task.name} — next: ${fmtDate(nextRecurrenceAfter(task, task.due || today()))}`
-    : task.name;
+  if (task.recurrence) {
+    const nextDate = nextRecurrenceAfter(task, task.due || today());
+    const endDate  = task.recurrence.endDate;
+    const isLast   = !nextDate || (endDate && nextDate > endDate);
+    document.getElementById('compModalTitle').textContent = isLast ? 'Complete Task (Final Recurrence)' : 'Complete & Reschedule';
+    document.getElementById('compModalSub').textContent   = isLast
+      ? `${task.name} — this is the last recurrence`
+      : `${task.name} — next: ${fmtDate(nextDate)}`;
+  } else {
+    document.getElementById('compModalTitle').textContent = 'Complete Task';
+    document.getElementById('compModalSub').textContent   = task.name;
+  }
   document.getElementById('compEst').textContent = task.est ? task.est + 'h' : '—';
   document.getElementById('compTimer').textContent = secs > 0 ? `${fmtSecs(secs)} (${rawHours.toFixed(2)}h)` : 'No timer data';
   document.getElementById('compBillable').value = billable;
@@ -2373,11 +2470,18 @@ function confirmComplete() {
   save('wt_completed', completed);
 
   if (task.recurrence) {
-    // Regenerate: advance due date to next occurrence, reset timer
-    task.due        = nextRecurrenceAfter(task, task.due || today()) || task.due;
-    task.timer      = 0;
-    task.timerStart = null;
-    save('wt_tasks', tasks);
+    const nextDate = nextRecurrenceAfter(task, task.due || today());
+    const endDate  = task.recurrence.endDate;
+    const withinEnd = nextDate && (!endDate || nextDate <= endDate);
+    if (withinEnd) {
+      // Regenerate to next occurrence
+      task.due = nextDate; task.timer = 0; task.timerStart = null;
+      save('wt_tasks', tasks);
+    } else {
+      // Past end date — archive like a normal task
+      tasks = tasks.filter(t => t.id !== completingTaskId);
+      save('wt_tasks', tasks);
+    }
   } else {
     tasks = tasks.filter(t => t.id !== completingTaskId);
     save('wt_tasks', tasks);
@@ -2402,8 +2506,9 @@ function renderProjects() {
   }
 
   bigProjs.forEach(proj => {
-    const total = proj.sessions.length;
-    const done = proj.sessions.filter(s => s.done).length;
+    const allItems = proj.sessions.flatMap(s => [s, ...(s.subtasks||[])]);
+    const total = allItems.length;
+    const done  = allItems.filter(x => x.done).length;
     const pct = total ? Math.round((done / total) * 100) : 0;
 
     const card = document.createElement('div');
@@ -2439,7 +2544,6 @@ function renderProjects() {
             <div class="session-hours">${s.hours}h</div>
             <div class="session-row-actions" onclick="event.stopPropagation()">
               <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}')" title="Assign">↗</button>
-              <button class="row-edit-btn" onclick="openAddSubtaskModal('${proj.id}','${s.id}')" title="Add subtask" style="color:var(--text3);">⊕</button>
               <button class="row-edit-btn" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="Edit">✏</button>
               <button class="row-edit-btn" onclick="deleteSession('${proj.id}','${s.id}')" title="Delete" style="color:var(--danger);">×</button>
             </div>
@@ -2459,17 +2563,24 @@ function renderProjects() {
               <div class="session-hours">${st.hours}h</div>
               <div class="session-row-actions" onclick="event.stopPropagation()">
                 <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}','${st.id}')" title="Assign">↗</button>
-                <button class="row-edit-btn" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Edit subtask">✏</button>
+                <button class="row-edit-btn" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Edit">✏</button>
                 <button class="row-edit-btn" onclick="deleteSubtask('${proj.id}','${s.id}','${st.id}')" title="Delete" style="color:var(--danger);">×</button>
               </div>
             </div>
           `).join('')}
+          <div style="padding:3px 14px 4px 46px;border-bottom:1px solid var(--border);">
+            <button onclick="event.stopPropagation();openAddSubtaskModal('${proj.id}','${s.id}')"
+              style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;"
+              onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">
+              <span style="font-size:13px;line-height:1;">+</span> add subtask
+            </button>
+          </div>
         `).join('')}
         <div style="padding:8px 14px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
           <button class="btn" style="font-size:11px;padding:3px 10px;" onclick="event.stopPropagation();openAddSessionModal('${proj.id}')">+ Add work item</button>
           <div style="display:flex;gap:16px;">
-            <span style="font-size:11px;color:var(--text3);">Total: ${proj.sessions.reduce((a,s)=>a+s.hours,0)}h</span>
-            <span style="font-size:11px;color:var(--text3);">Done: ${proj.sessions.filter(s=>s.done).reduce((a,s)=>a+s.hours,0)}h</span>
+            <span style="font-size:11px;color:var(--text3);">Total: ${proj.sessions.reduce((a,s)=>a+s.hours+(s.subtasks||[]).reduce((b,st)=>b+st.hours,0),0)}h</span>
+            <span style="font-size:11px;color:var(--text3);">Done: ${proj.sessions.reduce((a,s)=>a+(s.done?s.hours:0)+(s.subtasks||[]).filter(st=>st.done).reduce((b,st)=>b+st.hours,0),0)}h</span>
           </div>
         </div>
       </div>
@@ -2759,11 +2870,13 @@ function plannedItems(fromDate, toDate) {
         items.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, _planned: true });
       }
     } else {
-      // Expand recurring task into all occurrences in period
+      // Expand recurring task into all occurrences in period, capped at end date
+      const recurEnd = t.recurrence.endDate || null;
       let d = t.due; let iters = 0;
       while (d && d < fromDate && iters++ < 200) d = nextRecurrenceAfter(t, d);
       iters = 0;
       while (d && d <= toDate && iters++ < 60) {
+        if (recurEnd && d > recurEnd) break;
         items.push({ id: t.id + '_' + d, name: t.name, project: t.project, date: d, hours: t.est || 0, _planned: true, _recur: true });
         d = nextRecurrenceAfter(t, d);
       }
@@ -2771,12 +2884,14 @@ function plannedItems(fromDate, toDate) {
   });
   bigProjs.forEach(proj => {
     proj.sessions.forEach(s => {
-      const isMyWork = !normDelegated(s.delegatedTo).filter(p => p !== 'Me').length;
+      const sDel = normDelegated(s.delegatedTo);
+      const isMyWork = !sDel.length || sDel.includes('Me');
       if (!s.done && isMyWork && s.date && s.date >= fromDate && s.date <= toDate) {
         items.push({ id: s.id, name: s.desc, project: proj.project, date: s.date, hours: s.hours || 0, _planned: true });
       }
       (s.subtasks || []).forEach(st => {
-        const stIsMyWork = !normDelegated(st.delegatedTo).filter(p => p !== 'Me').length;
+        const stDel2 = normDelegated(st.delegatedTo);
+        const stIsMyWork = !stDel2.length || stDel2.includes('Me');
         if (!st.done && stIsMyWork && st.date && st.date >= fromDate && st.date <= toDate) {
           items.push({ id: st.id, name: st.desc, project: proj.project, date: st.date, hours: st.hours || 0, _planned: true });
         }
