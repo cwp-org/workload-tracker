@@ -2299,13 +2299,26 @@ function renderTasks() {
     return row;
   }
 
-  function renderSection(label, items, isToday) {
-    if (!items.length) return;
+  function renderSection(label, items, isToday, dayCap) {
+    if (!items.length && !dayCap) return;
     hasAny = true;
     const section = document.createElement('div');
     section.className = 'task-group';
     const est = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
-    section.innerHTML = `<div class="task-group-header${isToday ? ' today-header' : ''}">${label} <span class="group-count">${items.length}</span>${est > 0 ? `<span style="margin-left:6px;font-size:10px;font-weight:400;color:var(--text3);">${est.toFixed(1)}h</span>` : ''}</div>`;
+    let capHtml = '';
+    if (dayCap) {
+      const pct  = Math.min(Math.round((est / dayCap) * 100), 100);
+      const cls  = est > dayCap ? 'over' : est > dayCap * 0.8 ? 'warn' : 'ok';
+      const left = est > dayCap ? `+${(est - dayCap).toFixed(1)}h over` : `${(dayCap - est).toFixed(1)}h free`;
+      const leftCol = cls === 'over' ? 'var(--danger)' : cls === 'warn' ? 'var(--warn)' : 'var(--success)';
+      capHtml = `
+        <div style="margin:4px 0 6px;display:flex;align-items:center;gap:8px;">
+          <div class="ts-cap-bar-wrap" style="flex:1;"><div class="ts-cap-bar-fill ${cls}" style="width:${pct}%;"></div></div>
+          <span style="font-size:10px;color:${leftCol};white-space:nowrap;font-weight:600;">${left}</span>
+          <span style="font-size:10px;color:var(--text3);white-space:nowrap;">${est.toFixed(1)}/${dayCap.toFixed(0)}h</span>
+        </div>`;
+    }
+    section.innerHTML = `<div class="task-group-header${isToday ? ' today-header' : ''}">${label} <span class="group-count">${items.length}</span></div>${capHtml}`;
     items.forEach(item => section.appendChild(buildRow(item)));
     container.appendChild(section);
   }
@@ -2318,11 +2331,10 @@ function renderTasks() {
     const mo = months[dt.getMonth()];
     const isToday = d === todayStr;
     const isPast  = d < todayStr;
-    const label   = isToday ? `Today — ${dayName} ${mo} ${dt.getDate()}` : isPast ? null : `${dayName} ${mo} ${dt.getDate()}`;
-    // only show past days if they have items
-    if (!isToday && isPast && !items.length) return;
-    if (!isToday && !isPast && !items.length) return;
-    renderSection(label || `${dayName} ${mo} ${dt.getDate()}`, items, isToday);
+    // hide past days with no items; always show today and future days
+    if (isPast && !isToday && !items.length) return;
+    const label = isToday ? `Today — ${dayName} ${mo} ${dt.getDate()}` : `${dayName} ${mo} ${dt.getDate()}`;
+    renderSection(label, items, isToday, tsCapacity);
   });
 
   // ── future weeks ──
