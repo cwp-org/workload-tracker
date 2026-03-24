@@ -179,6 +179,7 @@
     align-items: center;
     gap: 8px;
   }
+  .task-group-header.today-header { color: var(--accent); border-bottom-color: var(--accent); }
 
   .group-count {
     background: var(--bg4);
@@ -1186,6 +1187,13 @@
       </div>
     </div>
 
+    <div id="tasksCapBar" style="margin-bottom:10px;display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text2);" id="tasksCapLabel"></span>
+        <span style="font-size:11px;color:var(--text3);" id="tasksCapDetail"></span>
+      </div>
+      <div class="ts-cap-bar-wrap"><div id="tasksCapFill" class="ts-cap-bar-fill ok" style="width:0%;"></div></div>
+    </div>
     <div id="taskList"></div>
   </div>
 
@@ -2141,15 +2149,9 @@ function renderTasks() {
   if (fWait === 'waiting') visible = visible.filter(t => t.waiting);
   if (fWait === 'active') visible = visible.filter(t => !t.waiting);
 
-  // Group regular tasks + big-project sessions/subtasks by date
-  const groups = { today: [], week: [], soon: [], later: [] };
-  const groupLabels = { today: 'Today & Overdue', week: 'This Week', soon: 'Soon', later: 'Later' };
-
-  visible.forEach(t => {
-    groups[dateGroup(t.due)].push({ _type: 'task', task: t });
-  });
-
-  // Merge big-project sessions (unassigned or assigned to Me)
+  // ── build a flat list of all items (tasks + sessions + subtasks) ──
+  const allItems = [];
+  visible.forEach(t => allItems.push({ _type: 'task', task: t, _date: t.due || null }));
   bigProjs.forEach(proj => {
     if (fProj !== 'all' && proj.project !== fProj) return;
     proj.sessions.forEach(s => {
@@ -2157,110 +2159,185 @@ function renderTasks() {
       const delegatees = normDelegated(s.delegatedTo);
       if (delegatees.length && !delegatees.includes('Me')) return;
       if (search && !s.desc.toLowerCase().includes(search) && !proj.name.toLowerCase().includes(search)) return;
-      groups[dateGroup(s.date)].push({ _type: 'session', s, proj });
-      // Subtasks of this session
+      allItems.push({ _type: 'session', s, proj, _date: s.date || null });
       (s.subtasks || []).forEach(st => {
         if (st.done) return;
         const stDel = normDelegated(st.delegatedTo);
         if (stDel.length && !stDel.includes('Me')) return;
         if (search && !st.desc.toLowerCase().includes(search)) return;
-        groups[dateGroup(st.date)].push({ _type: 'subtask', st, s, proj });
+        allItems.push({ _type: 'subtask', st, s, proj, _date: st.date || null });
       });
     });
   });
 
   const priorityOrder = { urgent: 0, high: 1, med: 2, low: 3 };
-  Object.values(groups).forEach(g => g.sort((a, b) => {
-    if (a._type === 'task' && b._type === 'task') return priorityOrder[a.task.priority] - priorityOrder[b.task.priority];
-    if (a._type === 'task') return -1;
-    if (b._type === 'task') return 1;
-    return (a.s?.date || a.st?.date || '').localeCompare(b.s?.date || b.st?.date || '');
-  }));
+  const itemPri = i => i._type === 'task' ? priorityOrder[i.task.priority] : 99;
+  allItems.sort((a, b) => (a._date || 'zzz').localeCompare(b._date || 'zzz') || itemPri(a) - itemPri(b));
 
+  // ── date helpers ──
+  const todayStr  = today();
+  const wkStart   = startOfWeek();   // Sunday
+  const wkEnd     = endOfWeek();     // Saturday
+  const days      = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Current week's Mon–Fri day buckets (overdue → today)
+  const currentWeekDays = [];
+  for (let i = 1; i <= 5; i++) {   // Mon=1 … Fri=5
+    const d = addDays(wkStart, i);
+    currentWeekDays.push(d);
+  }
+
+  // ── capacity bar for this week ──
+  const wkItems = allItems.filter(i => i._date && i._date >= wkStart && i._date <= wkEnd);
+  const wkEst = wkItems.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+  const wkCap = workingDays(wkStart, wkEnd) * tsCapacity;
+  const wkPct = Math.min(Math.round((wkEst / wkCap) * 100), 100);
+  const wkCls = wkEst > wkCap ? 'over' : wkEst > wkCap * 0.8 ? 'warn' : 'ok';
+  const capBar = document.getElementById('tasksCapBar');
+  if (capBar) {
+    capBar.style.display = '';
+    document.getElementById('tasksCapLabel').textContent = `This week — ${wkEst.toFixed(1)}h estimated / ${wkCap.toFixed(0)}h capacity`;
+    document.getElementById('tasksCapDetail').textContent = wkEst > wkCap ? `+${(wkEst - wkCap).toFixed(1)}h over` : `${(wkCap - wkEst).toFixed(1)}h left`;
+    document.getElementById('tasksCapDetail').style.color = wkCls === 'over' ? 'var(--danger)' : wkCls === 'warn' ? 'var(--warn)' : 'var(--success)';
+    const fill = document.getElementById('tasksCapFill');
+    fill.style.width = wkPct + '%';
+    fill.className = `ts-cap-bar-fill ${wkCls}`;
+  }
+
+  // ── bucket items ──
+  // overdue → clamp to today's bucket
+  const dayBuckets = {};   // YYYY-MM-DD → items (current week days only)
+  currentWeekDays.forEach(d => { dayBuckets[d] = []; });
+
+  const futureBuckets = {};  // week-start string → items
+  const unscheduled = [];
+
+  allItems.forEach(item => {
+    const d = item._date;
+    if (!d) { unscheduled.push(item); return; }
+    if (d <= todayStr) { (dayBuckets[todayStr] || (dayBuckets[todayStr] = [])).push(item); return; }
+    if (currentWeekDays.includes(d)) { dayBuckets[d].push(item); return; }
+    if (d > wkEnd) {
+      // find Mon of that week
+      const dt = new Date(d + 'T00:00:00');
+      const diff = (dt.getDay() + 6) % 7;   // days since Monday
+      dt.setDate(dt.getDate() - diff);
+      const wk = localDateStr(dt);
+      if (!futureBuckets[wk]) futureBuckets[wk] = [];
+      futureBuckets[wk].push(item);
+    }
+  });
+
+  // ── render helpers ──
   const container = document.getElementById('taskList');
   container.innerHTML = '';
   let hasAny = false;
 
-  ['today', 'week', 'soon', 'later'].forEach(gKey => {
-    const group = groups[gKey];
-    if (!group.length) return;
-    hasAny = true;
+  function buildRow(item) {
+    const row = document.createElement('div');
+    if (item._type === 'task') {
+      const { task } = item;
+      const isRunning = task.timerStart !== null;
+      const secs = task.timer + (task.timerStart ? Math.floor((Date.now() - task.timerStart) / 1000) : 0);
+      const timerStr = secs > 0 ? fmtSecs(secs) : '—';
+      const dc = dueCls(task.due);
+      row.className = `task-row${isRunning ? ' running' : ''}`;
+      row.dataset.id = task.id;
+      row.innerHTML = `
+        <div class="task-check" onclick="openCompletionModal('${task.id}')" title="Complete task"></div>
+        <div class="project-dot" style="background:${projColor(task.project)};" title="${projLabel(task.project)}"></div>
+        <div class="task-name" onclick="openEditModal('${task.id}')" title="${task.notes || ''}">${task.name}${task.recurrence ? `<span class="recur-badge">${recurLabel(task)}</span>` : ''}</div>
+        ${task.category ? `<span class="task-category">${task.category}</span>` : '<span></span>'}
+        ${task.waiting ? `<span class="task-waiting" title="Waiting on: ${task.waiting}">⏳ ${task.waiting}</span>` : '<span></span>'}
+        <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
+        <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(task.due)}</div>
+        <div class="task-est">${task.est ? task.est + 'h' : '—'}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
+          <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
+        </div>
+        ${task.recurrence ? `<span class="recur-occurrence-actions">
+          <button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
+          <button class="row-edit-btn" onclick="event.stopPropagation();rescheduleRecurOccurrence('${task.id}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
+        </span>` : ''}`;
+    } else if (item._type === 'session') {
+      const { s, proj } = item;
+      const dc = dueCls(s.date);
+      row.className = 'task-row';
+      row.innerHTML = `
+        <div class="task-check${s.done ? ' done' : ''}" onclick="toggleSession('${proj.id}','${s.id}')" title="Mark complete" style="cursor:pointer;"></div>
+        <div class="project-dot" style="background:${proj.color || projColor(proj.project)};" title="${projLabel(proj.project)}"></div>
+        <div class="task-name" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="${proj.name}">${s.desc}${delegateTagsHtml(s.delegatedTo)}</div>
+        <span class="task-category" style="color:var(--text3);font-style:italic;">${proj.name}</span>
+        ${s.waiting ? `<span class="task-waiting" title="Waiting on: ${s.waiting}">⏳ ${s.waiting}</span>` : '<span></span>'}
+        <span style="font-size:11px;color:var(--text3);padding:2px 6px;border-radius:3px;background:var(--bg3);">project</span>
+        <div class="task-due ${dc}">${fmtDate(s.date)}</div>
+        <div class="task-est">${s.hours ? s.hours + 'h' : '—'}</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button class="row-edit-btn" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="Edit">✏</button>
+        </div>`;
+    } else if (item._type === 'subtask') {
+      const { st, s, proj } = item;
+      const dc = dueCls(st.date);
+      row.className = 'task-row';
+      row.style.paddingLeft = '20px';
+      row.style.borderLeft = '2px solid var(--border)';
+      row.innerHTML = `
+        <div class="task-check${st.done ? ' done' : ''}" onclick="toggleSubtask('${proj.id}','${s.id}','${st.id}')" style="cursor:pointer;"></div>
+        <div class="project-dot" style="background:${proj.color || projColor(proj.project)};" title="${proj.name}"></div>
+        <div class="task-name" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Subtask of: ${s.desc}" style="font-size:11px;">╰ ${st.desc}${delegateTagsHtml(st.delegatedTo)}</div>
+        <span class="task-category" style="color:var(--text3);font-style:italic;font-size:10px;">${proj.name}</span>
+        ${st.waiting ? `<span class="task-waiting" title="Waiting on: ${st.waiting}">⏳ ${st.waiting}</span>` : '<span></span>'}
+        <span style="font-size:10px;color:var(--text3);padding:2px 6px;border-radius:3px;background:var(--bg3);">subtask</span>
+        <div class="task-due ${dc}" style="font-size:11px;">${fmtDate(st.date)}</div>
+        <div class="task-est" style="font-size:11px;">${st.hours ? st.hours + 'h' : '—'}</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button class="row-edit-btn" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Edit">✏</button>
+        </div>`;
+    }
+    return row;
+  }
 
+  function renderSection(label, items, isToday) {
+    if (!items.length) return;
+    hasAny = true;
     const section = document.createElement('div');
     section.className = 'task-group';
-    section.innerHTML = `<div class="task-group-header">${groupLabels[gKey]} <span class="group-count">${group.length}</span></div>`;
-
-    group.forEach(item => {
-      const row = document.createElement('div');
-
-      if (item._type === 'task') {
-        const { task } = item;
-        const isRunning = task.timerStart !== null;
-        const secs = task.timer + (task.timerStart ? Math.floor((Date.now() - task.timerStart) / 1000) : 0);
-        const timerStr = secs > 0 ? fmtSecs(secs) : '—';
-        const dc = dueCls(task.due);
-        row.className = `task-row${isRunning ? ' running' : ''}`;
-        row.dataset.id = task.id;
-        row.innerHTML = `
-          <div class="task-check" onclick="openCompletionModal('${task.id}')" title="Complete task"></div>
-          <div class="project-dot" style="background:${projColor(task.project)};" title="${projLabel(task.project)}"></div>
-          <div class="task-name" onclick="openEditModal('${task.id}')" title="${task.notes || ''}">${task.name}${task.recurrence ? `<span class="recur-badge">${recurLabel(task)}</span>` : ''}</div>
-          ${task.category ? `<span class="task-category">${task.category}</span>` : '<span></span>'}
-          ${task.waiting ? `<span class="task-waiting" title="Waiting on: ${task.waiting}">⏳ ${task.waiting}</span>` : '<span></span>'}
-          <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
-          <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(task.due)}</div>
-          <div class="task-est">${task.est ? task.est + 'h' : '—'}</div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
-            <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
-          </div>
-          ${task.recurrence ? `<span class="recur-occurrence-actions">
-            <button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
-            <button class="row-edit-btn" onclick="event.stopPropagation();rescheduleRecurOccurrence('${task.id}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
-          </span>` : ''}`;
-
-      } else if (item._type === 'session') {
-        const { s, proj } = item;
-        const dc = dueCls(s.date);
-        row.className = 'task-row';
-        row.innerHTML = `
-          <div class="task-check${s.done ? ' done' : ''}" onclick="toggleSession('${proj.id}','${s.id}')" title="Mark complete" style="cursor:pointer;"></div>
-          <div class="project-dot" style="background:${proj.color || projColor(proj.project)};" title="${projLabel(proj.project)}"></div>
-          <div class="task-name" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="${proj.name}">${s.desc}${delegateTagsHtml(s.delegatedTo)}</div>
-          <span class="task-category" style="color:var(--text3);font-style:italic;">${proj.name}</span>
-          ${s.waiting ? `<span class="task-waiting" title="Waiting on: ${s.waiting}">⏳ ${s.waiting}</span>` : '<span></span>'}
-          <span style="font-size:11px;color:var(--text3);padding:2px 6px;border-radius:3px;background:var(--bg3);">project</span>
-          <div class="task-due ${dc}">${fmtDate(s.date)}</div>
-          <div class="task-est">${s.hours ? s.hours + 'h' : '—'}</div>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <button class="row-edit-btn" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="Edit">✏</button>
-          </div>`;
-
-      } else if (item._type === 'subtask') {
-        const { st, s, proj } = item;
-        const dc = dueCls(st.date);
-        row.className = 'task-row';
-        row.style.paddingLeft = '20px';
-        row.style.borderLeft = '2px solid var(--border)';
-        row.innerHTML = `
-          <div class="task-check${st.done ? ' done' : ''}" onclick="toggleSubtask('${proj.id}','${s.id}','${st.id}')" style="cursor:pointer;"></div>
-          <div class="project-dot" style="background:${proj.color || projColor(proj.project)};" title="${proj.name}"></div>
-          <div class="task-name" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Subtask of: ${s.desc}" style="font-size:11px;">╰ ${st.desc}${delegateTagsHtml(st.delegatedTo)}</div>
-          <span class="task-category" style="color:var(--text3);font-style:italic;font-size:10px;">${proj.name}</span>
-          ${st.waiting ? `<span class="task-waiting" title="Waiting on: ${st.waiting}">⏳ ${st.waiting}</span>` : '<span></span>'}
-          <span style="font-size:10px;color:var(--text3);padding:2px 6px;border-radius:3px;background:var(--bg3);">subtask</span>
-          <div class="task-due ${dc}" style="font-size:11px;">${fmtDate(st.date)}</div>
-          <div class="task-est" style="font-size:11px;">${st.hours ? st.hours + 'h' : '—'}</div>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <button class="row-edit-btn" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Edit">✏</button>
-          </div>`;
-      }
-
-      section.appendChild(row);
-    });
-
+    const est = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+    section.innerHTML = `<div class="task-group-header${isToday ? ' today-header' : ''}">${label} <span class="group-count">${items.length}</span>${est > 0 ? `<span style="margin-left:6px;font-size:10px;font-weight:400;color:var(--text3);">${est.toFixed(1)}h</span>` : ''}</div>`;
+    items.forEach(item => section.appendChild(buildRow(item)));
     container.appendChild(section);
+  }
+
+  // ── current week: one section per day ──
+  currentWeekDays.forEach(d => {
+    const items = dayBuckets[d] || [];
+    const dt = new Date(d + 'T00:00:00');
+    const dayName = days[dt.getDay()];
+    const mo = months[dt.getMonth()];
+    const isToday = d === todayStr;
+    const isPast  = d < todayStr;
+    const label   = isToday ? `Today — ${dayName} ${mo} ${dt.getDate()}` : isPast ? null : `${dayName} ${mo} ${dt.getDate()}`;
+    // only show past days if they have items
+    if (!isToday && isPast && !items.length) return;
+    if (!isToday && !isPast && !items.length) return;
+    renderSection(label || `${dayName} ${mo} ${dt.getDate()}`, items, isToday);
   });
+
+  // ── future weeks ──
+  Object.keys(futureBuckets).sort().forEach(wk => {
+    const items = futureBuckets[wk];
+    const dt = new Date(wk + 'T00:00:00');
+    const wkEst = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+    const wkCapF = workingDays(wk, addDays(wk, 6)) * tsCapacity;
+    const capNote = wkCapF > 0 ? ` · ${wkEst.toFixed(1)}/${wkCapF.toFixed(0)}h` : '';
+    const label = `Week of ${months[dt.getMonth()]} ${dt.getDate()}${capNote}`;
+    renderSection(label, items, false);
+  });
+
+  // ── unscheduled ──
+  renderSection('Unscheduled', unscheduled, false);
 
   if (!hasAny) {
     container.innerHTML = '<div class="empty-state">No tasks match your filters.</div>';
