@@ -2474,8 +2474,9 @@ function renderProjects() {
   }
 
   bigProjs.forEach(proj => {
-    const total = proj.sessions.length;
-    const done = proj.sessions.filter(s => s.done).length;
+    const allItems = proj.sessions.flatMap(s => [s, ...(s.subtasks||[])]);
+    const total = allItems.length;
+    const done  = allItems.filter(x => x.done).length;
     const pct = total ? Math.round((done / total) * 100) : 0;
 
     const card = document.createElement('div');
@@ -2511,7 +2512,6 @@ function renderProjects() {
             <div class="session-hours">${s.hours}h</div>
             <div class="session-row-actions" onclick="event.stopPropagation()">
               <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}')" title="Assign">↗</button>
-              <button class="row-edit-btn" onclick="openAddSubtaskModal('${proj.id}','${s.id}')" title="Add subtask" style="color:var(--text3);">⊕</button>
               <button class="row-edit-btn" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="Edit">✏</button>
               <button class="row-edit-btn" onclick="deleteSession('${proj.id}','${s.id}')" title="Delete" style="color:var(--danger);">×</button>
             </div>
@@ -2531,17 +2531,24 @@ function renderProjects() {
               <div class="session-hours">${st.hours}h</div>
               <div class="session-row-actions" onclick="event.stopPropagation()">
                 <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}','${st.id}')" title="Assign">↗</button>
-                <button class="row-edit-btn" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Edit subtask">✏</button>
+                <button class="row-edit-btn" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')" title="Edit">✏</button>
                 <button class="row-edit-btn" onclick="deleteSubtask('${proj.id}','${s.id}','${st.id}')" title="Delete" style="color:var(--danger);">×</button>
               </div>
             </div>
           `).join('')}
+          <div style="padding:3px 14px 4px 46px;border-bottom:1px solid var(--border);">
+            <button onclick="event.stopPropagation();openAddSubtaskModal('${proj.id}','${s.id}')"
+              style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;"
+              onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">
+              <span style="font-size:13px;line-height:1;">+</span> add subtask
+            </button>
+          </div>
         `).join('')}
         <div style="padding:8px 14px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
           <button class="btn" style="font-size:11px;padding:3px 10px;" onclick="event.stopPropagation();openAddSessionModal('${proj.id}')">+ Add work item</button>
           <div style="display:flex;gap:16px;">
-            <span style="font-size:11px;color:var(--text3);">Total: ${proj.sessions.reduce((a,s)=>a+s.hours,0)}h</span>
-            <span style="font-size:11px;color:var(--text3);">Done: ${proj.sessions.filter(s=>s.done).reduce((a,s)=>a+s.hours,0)}h</span>
+            <span style="font-size:11px;color:var(--text3);">Total: ${proj.sessions.reduce((a,s)=>a+s.hours+(s.subtasks||[]).reduce((b,st)=>b+st.hours,0),0)}h</span>
+            <span style="font-size:11px;color:var(--text3);">Done: ${proj.sessions.reduce((a,s)=>a+(s.done?s.hours:0)+(s.subtasks||[]).filter(st=>st.done).reduce((b,st)=>b+st.hours,0),0)}h</span>
           </div>
         </div>
       </div>
