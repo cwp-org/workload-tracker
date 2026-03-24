@@ -901,6 +901,36 @@
     box-shadow: 0 8px 28px rgba(0,0,0,0.5);
   }
   .dropdown-menu.open { display: block; }
+
+  /* ASSIGN DROPDOWN (multi-select) */
+  .assign-dropdown {
+    position: fixed;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    z-index: 9999;
+    min-width: 190px;
+    display: none;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    padding: 4px;
+  }
+  .assign-dropdown.open { display: block; }
+  .assign-dd-item {
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    user-select: none;
+  }
+  .assign-dd-item:hover { background: var(--bg2); }
+  .assign-dd-check { width: 14px; font-size: 11px; color: var(--accent, #7c3aed); flex-shrink: 0; }
+  .assign-dd-empty { padding: 8px 10px; font-size: 11px; color: var(--text3); }
+  .assign-dd-empty a { color: var(--accent, #7c3aed); }
+
   .dropdown-item {
     padding: 7px 10px;
     border-radius: 4px;
@@ -1092,6 +1122,7 @@
   <!-- BIG PROJECTS -->
   <div class="panel" id="panel-projects">
     <div class="toolbar">
+      <button class="btn" onclick="openManagePersonsModal()">Manage Persons</button>
       <button class="btn primary" onclick="openAddProjectModal()">+ Add Project</button>
     </div>
     <div id="projectList"></div>
@@ -1308,6 +1339,9 @@
 <!-- FLOATING DROPDOWN (shared for priority & status) -->
 <div id="dropdownMenu" class="dropdown-menu"></div>
 
+<!-- FLOATING ASSIGN DROPDOWN (multi-select for session delegation) -->
+<div id="assignDropdown" class="assign-dropdown"></div>
+
 <!-- EDIT BIG PROJECT MODAL -->
 <div class="modal-overlay" id="editBigProjModal">
   <div class="modal">
@@ -1364,7 +1398,7 @@
       <div class="edit-form-group full">
         <label class="edit-label">Assign to <span style="font-weight:400;color:var(--text3);">(optional — appears in Team tab)</span></label>
         <div id="editSessionDelegateWrap" style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 0;min-height:28px;"></div>
-        <div id="editSessionDelegateNote" style="font-size:11px;color:var(--text3);display:none;">Add team members to this project first via the project edit modal.</div>
+        <div id="editSessionDelegateNote" style="font-size:11px;color:var(--text3);display:none;">No persons available. Use <strong>Manage Persons</strong> on the Big Projects tab to add people.</div>
       </div>
     </div>
     <div class="modal-actions">
@@ -1476,6 +1510,22 @@
   </div>
 </div>
 
+<!-- MANAGE PERSONS MODAL -->
+<div class="modal-overlay" id="managePersonsModal">
+  <div class="modal modal-wide">
+    <div class="modal-title">Manage Persons</div>
+    <div class="modal-subtitle">Add or remove people available for assignment across all projects.</div>
+    <div id="personMetaList" style="max-height:380px;overflow-y:auto;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;align-items:center;padding-top:10px;border-top:1px solid var(--border);">
+      <input class="edit-input" id="newPersonName" placeholder="New person name" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewPerson();}">
+      <button class="btn primary" onclick="addNewPerson()">+ Add</button>
+    </div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn primary" onclick="closeManagePersonsModal()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- BRAIN DUMP MODAL -->
 <div class="modal-overlay" id="brainDumpModal">
   <div class="modal modal-wide">
@@ -1540,6 +1590,15 @@ let PROJECTS = load('wt_projects_meta', null);
 if (!PROJECTS) { PROJECTS = DEFAULT_PROJECTS; save('wt_projects_meta', PROJECTS); }
 
 function saveProjects() { save('wt_projects_meta', PROJECTS); }
+
+let PERSONS = load('wt_persons', []);
+function savePersons() { save('wt_persons', PERSONS); }
+
+function getPersonsForProject(projId) {
+  const proj = bigProjs ? bigProjs.find(p => p.id === projId) : null;
+  const projMembers = proj && proj.members ? proj.members : [];
+  return [...new Set([...PERSONS, ...projMembers])];
+}
 
 function uid() {
   return '_' + Math.random().toString(36).slice(2, 11);
@@ -2154,10 +2213,11 @@ function renderProjects() {
               ${s.done ? '<span style="color:#0d0f14;font-size:11px;">✓</span>' : ''}
             </div>
             <div class="session-num">#${s.num}</div>
-            <div class="session-desc" style="${s.done ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditSessionModal('${proj.id}','${s.id}')">${s.desc}${delegateTagsHtml(s.delegatedTo)}</div>
+            <div class="session-desc" style="${s.done ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditSessionModal('${proj.id}','${s.id}')">${s.desc}<span id="session-tags-${s.id}">${delegateTagsHtml(s.delegatedTo)}</span></div>
             <div class="session-date">${fmtDate(s.date)}</div>
             <div class="session-hours">${s.hours}h</div>
             <div class="session-row-actions" onclick="event.stopPropagation()">
+              <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}')" title="Assign to person">↗</button>
               <button class="row-edit-btn" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="Edit work item">✏</button>
               <button class="row-edit-btn" onclick="deleteSession('${proj.id}','${s.id}')" title="Delete work item" style="color:var(--danger);">×</button>
             </div>
@@ -3020,6 +3080,74 @@ document.addEventListener('click', e => {
 }, true);
 
 // =============================================
+// ASSIGN DROPDOWN (inline multi-select on session rows)
+// =============================================
+
+let _assignProjId = null;
+let _assignSessionId = null;
+
+function showAssignDropdown(e, projId, sessionId) {
+  e.stopPropagation();
+  _assignProjId = projId;
+  _assignSessionId = sessionId;
+  const menu = document.getElementById('assignDropdown');
+  const rect = e.currentTarget.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  _renderAssignDropdownItems();
+  menu.classList.add('open');
+}
+
+function _renderAssignDropdownItems() {
+  const menu = document.getElementById('assignDropdown');
+  const persons = getPersonsForProject(_assignProjId);
+  const proj = bigProjs.find(p => p.id === _assignProjId);
+  const s = proj && proj.sessions.find(s => s.id === _assignSessionId);
+  const current = normDelegated(s ? s.delegatedTo : null);
+  if (!persons.length) {
+    menu.innerHTML = `<div class="assign-dd-empty">No persons yet. <a href="#" onclick="event.preventDefault();closeAssignDropdown();openManagePersonsModal();">Manage persons</a></div>`;
+    return;
+  }
+  menu.innerHTML = persons.map(name => `
+    <div class="assign-dd-item" onclick="togglePersonAssignment('${name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
+      <span class="assign-dd-check">${current.includes(name) ? '✓' : ''}</span>
+      ${name}
+    </div>
+  `).join('');
+}
+
+function closeAssignDropdown() {
+  document.getElementById('assignDropdown').classList.remove('open');
+  if (_assignProjId) { renderTeam(); }
+  _assignProjId = null;
+  _assignSessionId = null;
+}
+
+function togglePersonAssignment(name) {
+  const proj = bigProjs.find(p => p.id === _assignProjId);
+  if (!proj) return;
+  const s = proj.sessions.find(s => s.id === _assignSessionId);
+  if (!s) return;
+  let current = normDelegated(s.delegatedTo);
+  if (current.includes(name)) {
+    current = current.filter(n => n !== name);
+  } else {
+    current.push(name);
+  }
+  s.delegatedTo = current.length ? current : null;
+  save('wt_bigprojs', bigProjs);
+  // Update delegate tags inline without full re-render
+  const tagsEl = document.getElementById('session-tags-' + s.id);
+  if (tagsEl) tagsEl.innerHTML = delegateTagsHtml(s.delegatedTo);
+  // Update dropdown checkmarks
+  _renderAssignDropdownItems();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#assignDropdown') && !e.target.closest('[data-assign-btn]')) closeAssignDropdown();
+}, true);
+
+// =============================================
 // PRIORITY DROPDOWN
 // =============================================
 
@@ -3167,12 +3295,11 @@ function getSelectedDelegatees() {
 function openAddSessionModal(projId) {
   editingSessionProjId = projId;
   editingSessionId = null;
-  const proj = bigProjs.find(p => p.id === projId);
   document.getElementById('editSessionModalTitle').textContent = 'Add Work Item';
   document.getElementById('editSessionDesc').value = '';
   document.getElementById('editSessionDate').value = today();
   document.getElementById('editSessionHours').value = '1';
-  populateSessionDelegatePills(proj ? proj.members : [], null);
+  populateSessionDelegatePills(getPersonsForProject(projId), null);
   document.getElementById('editSessionModal').classList.add('open');
 }
 
@@ -3186,7 +3313,7 @@ function openEditSessionModal(projId, sessionId) {
   document.getElementById('editSessionDesc').value = s.desc;
   document.getElementById('editSessionDate').value = s.date;
   document.getElementById('editSessionHours').value = s.hours;
-  populateSessionDelegatePills(proj ? proj.members : [], s.delegatedTo || null);
+  populateSessionDelegatePills(getPersonsForProject(projId), s.delegatedTo || null);
   document.getElementById('editSessionModal').classList.add('open');
 }
 
@@ -3350,6 +3477,59 @@ function addNewProjectCode() {
   renderProjectMetaList();
   document.getElementById('newProjLabel').value = '';
   document.getElementById('newProjColor').value = '#60a5fa';
+}
+
+// =============================================
+// MANAGE PERSONS
+// =============================================
+
+function openManagePersonsModal() {
+  renderPersonMetaList();
+  document.getElementById('newPersonName').value = '';
+  document.getElementById('managePersonsModal').classList.add('open');
+}
+
+function closeManagePersonsModal() {
+  document.getElementById('managePersonsModal').classList.remove('open');
+}
+
+function renderPersonMetaList() {
+  const container = document.getElementById('personMetaList');
+  if (!container) return;
+  container.innerHTML = PERSONS.length ? PERSONS.map((name, idx) => `
+    <div class="proj-meta-row" id="pmr-person-${idx}">
+      <input class="proj-meta-input" type="text" value="${name.replace(/"/g,'&quot;')}"
+             onblur="updatePersonName(${idx}, this.value)"
+             onkeydown="if(event.key==='Enter') this.blur()">
+      <button class="row-edit-btn" onclick="deletePerson(${idx})" style="color:var(--danger);" title="Remove person">✕</button>
+    </div>
+  `).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0;">No persons yet. Add one below.</div>';
+}
+
+function addNewPerson() {
+  const input = document.getElementById('newPersonName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (!PERSONS.includes(name)) {
+    PERSONS.push(name);
+    savePersons();
+  }
+  input.value = '';
+  renderPersonMetaList();
+}
+
+function updatePersonName(idx, name) {
+  if (!name.trim() || PERSONS[idx] === undefined) return;
+  PERSONS[idx] = name.trim();
+  savePersons();
+}
+
+function deletePerson(idx) {
+  const name = PERSONS[idx];
+  if (!confirm(`Remove "${name}" from persons list?`)) return;
+  PERSONS.splice(idx, 1);
+  savePersons();
+  renderPersonMetaList();
 }
 
 // =============================================
