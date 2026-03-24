@@ -2771,12 +2771,14 @@ function plannedItems(fromDate, toDate) {
   });
   bigProjs.forEach(proj => {
     proj.sessions.forEach(s => {
-      const isMyWork = !normDelegated(s.delegatedTo).filter(p => p !== 'Me').length;
+      const sDel = normDelegated(s.delegatedTo);
+      const isMyWork = !sDel.length || sDel.includes('Me');
       if (!s.done && isMyWork && s.date && s.date >= fromDate && s.date <= toDate) {
         items.push({ id: s.id, name: s.desc, project: proj.project, date: s.date, hours: s.hours || 0, _planned: true });
       }
       (s.subtasks || []).forEach(st => {
-        const stIsMyWork = !normDelegated(st.delegatedTo).filter(p => p !== 'Me').length;
+        const stDel2 = normDelegated(st.delegatedTo);
+        const stIsMyWork = !stDel2.length || stDel2.includes('Me');
         if (!st.done && stIsMyWork && st.date && st.date >= fromDate && st.date <= toDate) {
           items.push({ id: st.id, name: st.desc, project: proj.project, date: st.date, hours: st.hours || 0, _planned: true });
         }
