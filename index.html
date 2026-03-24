@@ -1065,6 +1065,165 @@
     transition: border-color 0.15s;
   }
   .proj-meta-input:focus { border-color: var(--accent); }
+
+  /* SUB-CODE ROWS IN MANAGE PROJECTS MODAL */
+  .subcodes-section {
+    margin: 0 0 4px 64px;
+    padding: 4px 0 4px 12px;
+    border-left: 2px solid var(--border2);
+  }
+  .subcode-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+  }
+  .subcode-row input.proj-meta-input {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  .subcode-row .sc-code-input { width: 50px; flex: none; font-family: monospace; }
+  .subcode-row .sc-label-input { flex: 1; min-width: 80px; }
+  .subcode-add-btn {
+    background: none; border: 1px dashed var(--border2); color: var(--text3);
+    font-size: 10px; padding: 2px 8px; border-radius: 3px; cursor: pointer;
+    margin-top: 2px;
+  }
+  .subcode-add-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ALLOCATIONS TAB */
+  .alloc-toolbar {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .alloc-container {
+    overflow-x: auto; padding: 0;
+  }
+  .alloc-table {
+    width: 100%; border-collapse: collapse; font-size: 11.5px;
+    min-width: 900px;
+  }
+  .alloc-table th, .alloc-table td {
+    padding: 5px 6px;
+    border: 1px solid var(--border);
+    text-align: center;
+    vertical-align: middle;
+  }
+  .alloc-table th {
+    background: var(--bg3);
+    color: var(--text2);
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .alloc-table th:first-child,
+  .alloc-table td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--bg2);
+    min-width: 180px;
+    max-width: 220px;
+  }
+  .alloc-table th:first-child { z-index: 3; }
+  .alloc-proj-header td {
+    background: var(--bg3) !important;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--text);
+    border-bottom: 2px solid var(--border2);
+  }
+  .alloc-proj-header td:first-child {
+    background: var(--bg3) !important;
+  }
+  .alloc-sc-row td:first-child {
+    padding-left: 18px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .alloc-cell {
+    position: relative;
+    min-width: 70px;
+  }
+  .alloc-cell input {
+    width: 48px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    text-align: center;
+    outline: none;
+  }
+  .alloc-cell input:focus { border-color: var(--accent); }
+  .alloc-cell input.alloc-readonly {
+    background: none;
+    border-color: transparent;
+    color: var(--text2);
+    pointer-events: none;
+    font-weight: 600;
+  }
+  .alloc-actual {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 1px;
+  }
+  .alloc-bar-wrap {
+    height: 4px;
+    background: var(--bg);
+    border-radius: 2px;
+    margin-top: 2px;
+    overflow: hidden;
+  }
+  .alloc-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.2s;
+  }
+  .alloc-bar.green { background: var(--success); }
+  .alloc-bar.yellow { background: var(--warn); }
+  .alloc-bar.red { background: var(--danger); }
+  .alloc-pct {
+    font-size: 9px;
+    font-weight: 600;
+    margin-top: 1px;
+  }
+  .alloc-pct.green { color: var(--success); }
+  .alloc-pct.yellow { color: var(--warn); }
+  .alloc-pct.red { color: var(--danger); }
+  .alloc-total-row td {
+    background: var(--bg3) !important;
+    font-weight: 700;
+    border-top: 2px solid var(--accent);
+    font-size: 12px;
+  }
+  .alloc-total-row td:first-child {
+    background: var(--bg3) !important;
+  }
+  .alloc-ytd-col {
+    background: var(--bg3) !important;
+    font-weight: 600;
+  }
+  .alloc-over-warn {
+    color: var(--danger);
+    font-weight: 700;
+  }
+  .alloc-legend {
+    display: flex; gap: 14px; padding: 8px 14px;
+    font-size: 10px; color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  .alloc-legend-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 2px; margin-right: 4px; vertical-align: middle;
+  }
+
   input[type="color"].color-picker {
     width: 34px;
     height: 28px;
@@ -1106,6 +1265,7 @@
   <div class="tab" data-tab="projects">Big Projects</div>
   <div class="tab" data-tab="team">Team Deliverables</div>
   <div class="tab" data-tab="timesheet">Timesheet</div>
+  <div class="tab" data-tab="allocations">Allocations</div>
 </div>
 
 <div class="main">
@@ -1276,6 +1436,33 @@
     <div id="timesheetList"></div>
   </div>
 
+  <!-- ALLOCATIONS -->
+  <div class="panel" id="panel-allocations">
+    <div class="alloc-toolbar">
+      <span style="font-size:12px;font-weight:600;color:var(--text);">Budget Allocations</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="btn" onclick="allocYearPrev()">‹</button>
+        <span id="allocYearLabel" style="font-size:12px;min-width:50px;text-align:center;color:var(--text2);font-weight:600;"></span>
+        <button class="btn" onclick="allocYearNext()">›</button>
+      </div>
+      <select class="filter-select" id="allocViewMode" onchange="renderAllocations()">
+        <option value="detail">Detail View</option>
+        <option value="summary">Summary Only</option>
+      </select>
+      <button class="btn" onclick="allocCopyForward()" style="font-size:10px;padding:3px 8px;" title="Copy current month allocations to all future empty months">Copy forward →</button>
+      <button class="btn" onclick="openManageProjectsModal()" style="font-size:10px;padding:3px 8px;margin-left:auto;">Manage Sub-Codes</button>
+    </div>
+    <div class="alloc-legend">
+      <span><span class="alloc-legend-dot" style="background:var(--success);"></span> On track (&lt;80%)</span>
+      <span><span class="alloc-legend-dot" style="background:var(--warn);"></span> Nearing limit (80–99%)</span>
+      <span><span class="alloc-legend-dot" style="background:var(--danger);"></span> Over allocation (100%+)</span>
+      <span style="margin-left:auto;font-style:italic;">Top = allocated · Bottom = actual</span>
+    </div>
+    <div class="alloc-container">
+      <div id="allocGrid"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- RESCHEDULE OCCURRENCE MODAL -->
@@ -1316,6 +1503,10 @@
     <div class="modal-row">
       <span class="modal-label">Variance</span>
       <span class="modal-value" id="compVariance">—</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Sub-code</span>
+      <select id="compSubCode" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;padding:4px 8px;border-radius:4px;min-width:160px;"></select>
     </div>
     <div class="modal-row" style="border-bottom:none; margin-top:8px;">
       <span class="modal-label">Billable hours</span>
@@ -1598,7 +1789,11 @@
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Project</label>
-        <select class="edit-input" id="tsEntryProject"></select>
+        <select class="edit-input" id="tsEntryProject" onchange="populateSubCodeSelect('tsEntrySubCode', this.value)"></select>
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Sub-code</label>
+        <select class="edit-input" id="tsEntrySubCode"></select>
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Date</label>
@@ -1799,6 +1994,76 @@ if (!PROJECTS) { PROJECTS = DEFAULT_PROJECTS; save('wt_projects_meta', PROJECTS)
 })();
 
 function saveProjects() { save('wt_projects_meta', PROJECTS); }
+
+// Migration: ensure subCodes array exists on all projects
+Object.keys(PROJECTS).forEach(k => {
+  if (!PROJECTS[k].subCodes) PROJECTS[k].subCodes = [];
+});
+saveProjects();
+
+// Allocations data: { "projKey|scId|YYYY-MM": hours }
+let allocations = load('wt_allocations', {});
+function saveAllocations() { save('wt_allocations', allocations); }
+let allocYear = new Date().getFullYear();
+
+// Sub-code helpers
+function getSubCodes(projKey) {
+  return (PROJECTS[projKey] && PROJECTS[projKey].subCodes) || [];
+}
+
+function getFullCode(projKey, scId) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return '';
+  if (!scId) return proj.billingCode || '';
+  const sc = (proj.subCodes || []).find(s => s.id === scId);
+  if (!sc) return proj.billingCode || '';
+  return (proj.billingCode || '') + sc.code;
+}
+
+function getSubCodeLabel(projKey, scId) {
+  if (!scId) return '';
+  const sc = getSubCodes(projKey).find(s => s.id === scId);
+  return sc ? sc.label : '';
+}
+
+function populateSubCodeSelect(selectId, projKey, currentVal) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  const subs = getSubCodes(projKey);
+  el.innerHTML = '<option value="">' + (subs.length ? '— No sub-code —' : '(none available)') + '</option>';
+  subs.forEach(sc => {
+    const opt = document.createElement('option');
+    opt.value = sc.id;
+    opt.textContent = sc.code + ' ' + sc.label;
+    el.appendChild(opt);
+  });
+  if (currentVal) el.value = currentVal;
+}
+
+function addSubCode(projKey) {
+  if (!PROJECTS[projKey]) return;
+  if (!PROJECTS[projKey].subCodes) PROJECTS[projKey].subCodes = [];
+  const existing = PROJECTS[projKey].subCodes;
+  const nextNum = existing.length + 1;
+  const code = '.' + String(nextNum).padStart(2, '0');
+  existing.push({ id: uid(), code, label: '' });
+  saveProjects();
+  renderProjectMetaList();
+}
+
+function updateSubCode(projKey, scId, field, val) {
+  const sc = getSubCodes(projKey).find(s => s.id === scId);
+  if (!sc) return;
+  sc[field] = val.trim();
+  saveProjects();
+}
+
+function deleteSubCode(projKey, scId) {
+  if (!PROJECTS[projKey]) return;
+  PROJECTS[projKey].subCodes = (PROJECTS[projKey].subCodes || []).filter(s => s.id !== scId);
+  saveProjects();
+  renderProjectMetaList();
+}
 
 let PERSONS = load('wt_persons', []);
 function savePersons() { save('wt_persons', PERSONS); }
@@ -2747,6 +3012,8 @@ function openCompletionModal(taskId) {
     varEl.className = 'modal-value';
   }
 
+  populateSubCodeSelect('compSubCode', task.project, task.subCode || '');
+
   document.getElementById('completionModal').classList.add('open');
 }
 
@@ -2760,10 +3027,13 @@ function confirmComplete() {
   if (!task) return;
   const billable = parseFloat(document.getElementById('compBillable').value) || 0.25;
 
+  const subCode = document.getElementById('compSubCode')?.value || '';
+
   const entry = {
     id: uid(),
     name: task.name,
     project: task.project,
+    subCode: subCode,
     dateCompleted: today(),
     estHours: task.est,
     actualHours: billable,
@@ -3217,6 +3487,7 @@ function allTsEntries() {
     id: c.id,
     name: c.name,
     project: c.project,
+    subCode: c.subCode || '',
     date: c.dateCompleted,
     estHours: c.estHours || 0,
     actualHours: c.actualHours || 0,
@@ -3357,10 +3628,13 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
           </div>
         `;
       } else {
+        const scLabel = item.subCode ? getSubCodeLabel(item.project, item.subCode) : '';
+        const fullCode = item.subCode ? getFullCode(item.project, item.subCode) : projBillingCode(item.project);
         row.innerHTML = `
           <span class="ts-entry-name" onclick="openEditTsEntry('${item.id}')">${item.name}</span>
           <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
-          ${projBillingCode(item.project) ? `<span style="font-size:10px;color:var(--text3);font-family:monospace;">${projBillingCode(item.project)}</span>` : ''}
+          ${fullCode ? `<span style="font-size:10px;color:var(--text3);font-family:monospace;">${fullCode}</span>` : ''}
+          ${scLabel ? `<span style="font-size:10px;color:var(--accent);opacity:0.7;">${scLabel}</span>` : ''}
           <span style="font-size:11px;color:var(--text3);">${item.category || ''}</span>
           <span style="font-size:12px;color:var(--text2);">${item.estHours ? item.estHours + 'h est' : ''}</span>
           <span style="font-size:12px;font-weight:700;">${item.actualHours}h</span>
@@ -3729,7 +4003,7 @@ function renderTimesheet() {
               }
               return `<tr>
                 <td style="cursor:pointer;color:var(--text);" onclick="openEditTsEntry('${item.id}')" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${item.name}</td>
-                <td style="color:var(--text3);font-size:11px;">${projBillingCode(item.project) || '—'}</td>
+                <td style="color:var(--text3);font-size:11px;">${item.subCode ? getFullCode(item.project, item.subCode) : (projBillingCode(item.project) || '—')}</td>
                 <td style="color:var(--text3)">${item.category || '—'}</td>
                 <td style="color:var(--text3)">${fmtDate(item.date)}</td>
                 <td>${item.estHours ? item.estHours + 'h' : '—'}</td>
@@ -3776,6 +4050,8 @@ function openAddTsEntryModal() {
   document.getElementById('tsEntryCategory').value = '';
   document.getElementById('tsEntryDeleteBtn').style.display = 'none';
   populateProjectSelects();
+  const firstProj = Object.keys(PROJECTS)[0] || '';
+  populateSubCodeSelect('tsEntrySubCode', firstProj);
   document.getElementById('tsEntryModal').classList.add('open');
 }
 
@@ -3792,6 +4068,7 @@ function openEditTsEntry(entryId) {
   document.getElementById('tsEntryDeleteBtn').style.display = '';
   populateProjectSelects();
   document.getElementById('tsEntryProject').value = entry.project || 'admin';
+  populateSubCodeSelect('tsEntrySubCode', entry.project || 'admin', entry.subCode || '');
   document.getElementById('tsEntryModal').classList.add('open');
 }
 
@@ -3803,6 +4080,7 @@ function closeTsEntryModal() {
 function saveTsEntry() {
   const name     = document.getElementById('tsEntryName').value.trim();
   const project  = document.getElementById('tsEntryProject').value;
+  const subCode  = document.getElementById('tsEntrySubCode')?.value || '';
   const date     = document.getElementById('tsEntryDate').value;
   const estHours = parseFloat(document.getElementById('tsEntryEst').value) || 0;
   const actual   = parseFloat(document.getElementById('tsEntryActual').value);
@@ -3813,11 +4091,11 @@ function saveTsEntry() {
   if (editingTsEntryId) {
     const entry = completed.find(c => c.id === editingTsEntryId);
     if (entry) {
-      entry.name = name; entry.project = project; entry.dateCompleted = date;
+      entry.name = name; entry.project = project; entry.subCode = subCode; entry.dateCompleted = date;
       entry.estHours = estHours; entry.actualHours = actual; entry.category = category;
     }
   } else {
-    completed.unshift({ id: uid(), name, project, dateCompleted: date, estHours, actualHours: actual, category });
+    completed.unshift({ id: uid(), name, project, subCode, dateCompleted: date, estHours, actualHours: actual, category });
   }
 
   save('wt_completed', completed);
@@ -3833,6 +4111,252 @@ function deleteTsEntry(entryId) {
   save('wt_completed', completed);
   if (!entryId) closeTsEntryModal();
   renderTimesheet();
+}
+
+// =============================================
+// ALLOCATIONS TAB
+// =============================================
+
+function allocYearPrev() { allocYear--; renderAllocations(); }
+function allocYearNext() { allocYear++; renderAllocations(); }
+
+function allocGetActuals(projKey, scId, yearMonth) {
+  // Sum actual hours from completed entries matching project + subCode + month
+  return completed.reduce((sum, c) => {
+    if (c.project !== projKey) return sum;
+    const entrySubCode = c.subCode || '';
+    if (entrySubCode !== (scId || '')) return sum;
+    const entryMonth = (c.dateCompleted || '').slice(0, 7); // "YYYY-MM"
+    if (entryMonth !== yearMonth) return sum;
+    return sum + (c.actualHours || 0);
+  }, 0);
+}
+
+function allocGetAllProjectActuals(projKey, yearMonth) {
+  // Sum ALL actual hours for a project in a month (across all sub-codes)
+  return completed.reduce((sum, c) => {
+    if (c.project !== projKey) return sum;
+    const entryMonth = (c.dateCompleted || '').slice(0, 7);
+    if (entryMonth !== yearMonth) return sum;
+    return sum + (c.actualHours || 0);
+  }, 0);
+}
+
+function allocKey(projKey, scId, ym) {
+  return projKey + '|' + (scId || '') + '|' + ym;
+}
+
+function allocSet(projKey, scId, ym, val) {
+  const key = allocKey(projKey, scId, ym);
+  const hours = parseFloat(val);
+  if (isNaN(hours) || hours <= 0) {
+    delete allocations[key];
+  } else {
+    allocations[key] = hours;
+  }
+  saveAllocations();
+  renderAllocations();
+}
+
+function allocCopyForward() {
+  const now = new Date();
+  const curMonth = now.getFullYear() === allocYear
+    ? String(allocYear) + '-' + String(now.getMonth() + 1).padStart(2, '0')
+    : String(allocYear) + '-01';
+
+  let copied = 0;
+  Object.entries(PROJECTS).forEach(([projKey, proj]) => {
+    const subs = proj.subCodes || [];
+    if (subs.length === 0) return;
+    subs.forEach(sc => {
+      const srcKey = allocKey(projKey, sc.id, curMonth);
+      const srcVal = allocations[srcKey];
+      if (!srcVal) return;
+      for (let m = 1; m <= 12; m++) {
+        const ym = String(allocYear) + '-' + String(m).padStart(2, '0');
+        if (ym <= curMonth) continue;
+        const destKey = allocKey(projKey, sc.id, ym);
+        if (!allocations[destKey]) {
+          allocations[destKey] = srcVal;
+          copied++;
+        }
+      }
+    });
+  });
+
+  if (copied > 0) {
+    saveAllocations();
+    renderAllocations();
+  }
+  alert(copied > 0 ? `Copied allocations to ${copied} empty cells.` : 'No empty future cells to fill.');
+}
+
+function barColor(pct) {
+  if (pct >= 100) return 'red';
+  if (pct >= 80) return 'yellow';
+  return 'green';
+}
+
+function renderAllocations() {
+  const grid = document.getElementById('allocGrid');
+  if (!grid) return;
+
+  const yearLabel = document.getElementById('allocYearLabel');
+  if (yearLabel) yearLabel.textContent = allocYear;
+
+  const viewMode = document.getElementById('allocViewMode')?.value || 'detail';
+  const months = [];
+  for (let m = 1; m <= 12; m++) {
+    months.push({
+      ym: String(allocYear) + '-' + String(m).padStart(2, '0'),
+      label: new Date(allocYear, m - 1, 1).toLocaleString('default', { month: 'short' })
+    });
+  }
+
+  // Collect projects that have sub-codes or billing codes
+  const projEntries = Object.entries(PROJECTS).filter(([k, p]) =>
+    (p.subCodes && p.subCodes.length > 0) || p.billingCode
+  );
+
+  if (projEntries.length === 0) {
+    grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">No sub-codes configured yet. Go to <strong>Manage Sub-Codes</strong> to add sub-codes under your project billing codes, then set monthly hour allocations here.</div>';
+    return;
+  }
+
+  // Build table
+  let html = '<table class="alloc-table"><thead><tr>';
+  html += '<th>Project / Sub-code</th>';
+  months.forEach(m => { html += `<th>${m.label}</th>`; });
+  html += '<th class="alloc-ytd-col">YTD</th>';
+  html += '</tr></thead><tbody>';
+
+  let grandAllocTotals = new Array(12).fill(0);
+  let grandActualTotals = new Array(12).fill(0);
+  let grandAllocYTD = 0, grandActualYTD = 0;
+
+  projEntries.forEach(([projKey, proj]) => {
+    const subs = proj.subCodes || [];
+    const projAllocTotals = new Array(12).fill(0);
+    const projActualTotals = new Array(12).fill(0);
+
+    // Project header row
+    const codeStr = proj.billingCode ? ` (${proj.billingCode})` : '';
+    html += `<tr class="alloc-proj-header"><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${proj.label}${codeStr}</td>`;
+
+    // Project-level summary per month
+    months.forEach((m, mi) => {
+      let projAlloc = 0, projActual = 0;
+      if (subs.length > 0) {
+        subs.forEach(sc => {
+          projAlloc += allocations[allocKey(projKey, sc.id, m.ym)] || 0;
+          projActual += allocGetActuals(projKey, sc.id, m.ym);
+        });
+        // Also include unassigned entries for this project
+        const allProjActual = allocGetAllProjectActuals(projKey, m.ym);
+        const assignedActual = projActual;
+        const unassignedActual = allProjActual - assignedActual;
+        if (unassignedActual > 0) projActual += unassignedActual;
+      } else {
+        projActual = allocGetAllProjectActuals(projKey, m.ym);
+      }
+      projAllocTotals[mi] = projAlloc;
+      projActualTotals[mi] = projActual;
+      grandAllocTotals[mi] += projAlloc;
+      grandActualTotals[mi] += projActual;
+
+      const pct = projAlloc > 0 ? Math.round((projActual / projAlloc) * 100) : (projActual > 0 ? 100 : 0);
+      const clr = projAlloc > 0 ? barColor(pct) : '';
+      html += `<td class="alloc-cell">`;
+      html += `<div style="font-weight:600;font-size:11px;">${projAlloc > 0 ? projAlloc + 'h' : '—'}</div>`;
+      if (projActual > 0 || projAlloc > 0) {
+        html += `<div class="alloc-actual">${projActual.toFixed(1)}h used</div>`;
+        if (projAlloc > 0) {
+          html += `<div class="alloc-bar-wrap"><div class="alloc-bar ${clr}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+          html += `<div class="alloc-pct ${clr}">${pct}%</div>`;
+        }
+      }
+      html += `</td>`;
+    });
+
+    // YTD for project
+    const projAllocYTD = projAllocTotals.reduce((a, b) => a + b, 0);
+    const projActualYTD = projActualTotals.reduce((a, b) => a + b, 0);
+    grandAllocYTD += projAllocYTD;
+    grandActualYTD += projActualYTD;
+    const ytdPct = projAllocYTD > 0 ? Math.round((projActualYTD / projAllocYTD) * 100) : 0;
+    const ytdClr = projAllocYTD > 0 ? barColor(ytdPct) : '';
+    html += `<td class="alloc-cell alloc-ytd-col">`;
+    html += `<div style="font-weight:600;">${projAllocYTD > 0 ? projAllocYTD + 'h' : '—'}</div>`;
+    if (projActualYTD > 0) html += `<div class="alloc-actual">${projActualYTD.toFixed(1)}h</div>`;
+    if (projAllocYTD > 0) html += `<div class="alloc-pct ${ytdClr}">${ytdPct}%</div>`;
+    html += `</td></tr>`;
+
+    // Sub-code rows (detail view only)
+    if (viewMode === 'detail' && subs.length > 0) {
+      subs.forEach(sc => {
+        const fullCode = (proj.billingCode || '') + sc.code;
+        html += `<tr class="alloc-sc-row"><td>${fullCode} ${sc.label}</td>`;
+        let scAllocYTD = 0, scActualYTD = 0;
+        months.forEach((m, mi) => {
+          const aKey = allocKey(projKey, sc.id, m.ym);
+          const allocated = allocations[aKey] || 0;
+          const actual = allocGetActuals(projKey, sc.id, m.ym);
+          scAllocYTD += allocated;
+          scActualYTD += actual;
+          const pct = allocated > 0 ? Math.round((actual / allocated) * 100) : (actual > 0 ? 100 : 0);
+          const clr = allocated > 0 ? barColor(pct) : '';
+
+          html += `<td class="alloc-cell">`;
+          html += `<input type="number" min="0" step="1" value="${allocated || ''}" placeholder="—"
+                    onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)"
+                    title="Allocated hours for ${fullCode} in ${m.label}">`;
+          if (actual > 0) {
+            html += `<div class="alloc-actual">${actual.toFixed(1)}h</div>`;
+          }
+          if (allocated > 0 && (actual > 0 || allocated > 0)) {
+            html += `<div class="alloc-bar-wrap"><div class="alloc-bar ${clr}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+            html += `<div class="alloc-pct ${clr}">${pct}%</div>`;
+          }
+          html += `</td>`;
+        });
+        // YTD
+        const scYtdPct = scAllocYTD > 0 ? Math.round((scActualYTD / scAllocYTD) * 100) : 0;
+        const scYtdClr = scAllocYTD > 0 ? barColor(scYtdPct) : '';
+        html += `<td class="alloc-cell alloc-ytd-col">`;
+        html += `<div style="font-size:11px;">${scAllocYTD > 0 ? scAllocYTD + 'h' : '—'}</div>`;
+        if (scActualYTD > 0) html += `<div class="alloc-actual">${scActualYTD.toFixed(1)}h</div>`;
+        if (scAllocYTD > 0) html += `<div class="alloc-pct ${scYtdClr}">${scYtdPct}%</div>`;
+        html += `</td></tr>`;
+      });
+    }
+  });
+
+  // Grand total row
+  html += '<tr class="alloc-total-row"><td>TOTAL</td>';
+  months.forEach((m, mi) => {
+    const alloc = grandAllocTotals[mi];
+    const actual = grandActualTotals[mi];
+    const pct = alloc > 0 ? Math.round((actual / alloc) * 100) : 0;
+    const clr = alloc > 0 ? barColor(pct) : '';
+    html += `<td class="alloc-cell">`;
+    html += `<div>${alloc > 0 ? alloc + 'h' : '—'}</div>`;
+    if (actual > 0) html += `<div class="alloc-actual">${actual.toFixed(1)}h</div>`;
+    if (alloc > 0) {
+      html += `<div class="alloc-bar-wrap"><div class="alloc-bar ${clr}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+      html += `<div class="alloc-pct ${clr}">${pct}%</div>`;
+    }
+    html += `</td>`;
+  });
+  // Grand YTD
+  const gPct = grandAllocYTD > 0 ? Math.round((grandActualYTD / grandAllocYTD) * 100) : 0;
+  const gClr = grandAllocYTD > 0 ? barColor(gPct) : '';
+  html += `<td class="alloc-cell alloc-ytd-col"><div>${grandAllocYTD > 0 ? grandAllocYTD + 'h' : '—'}</div>`;
+  if (grandActualYTD > 0) html += `<div class="alloc-actual">${grandActualYTD.toFixed(1)}h</div>`;
+  if (grandAllocYTD > 0) html += `<div class="alloc-pct ${gClr}">${gPct}%</div>`;
+  html += `</td></tr>`;
+
+  html += '</tbody></table>';
+  grid.innerHTML = html;
 }
 
 // =============================================
@@ -3900,6 +4424,7 @@ renderTeam();
 const _capInput = document.getElementById('tsCapacityInput');
 if (_capInput) _capInput.value = tsCapacity;
 renderTimesheet();
+renderAllocations();
 updateHeaderMeta();
 
 // Resume timer if page was reloaded mid-session
@@ -4413,12 +4938,28 @@ function closeManageProjectsModal() {
   renderTeam();
   renderProjects();
   renderTimesheet();
+  renderAllocations();
 }
 
 function renderProjectMetaList() {
   const container = document.getElementById('projectMetaList');
   if (!container) return;
-  container.innerHTML = Object.entries(PROJECTS).map(([key, proj]) => `
+  container.innerHTML = Object.entries(PROJECTS).map(([key, proj]) => {
+    const subs = (proj.subCodes || []);
+    const subRows = subs.map(sc => `
+      <div class="subcode-row">
+        <input class="proj-meta-input sc-code-input" type="text" value="${sc.code}"
+               onblur="updateSubCode('${key}','${sc.id}','code',this.value)"
+               onkeydown="if(event.key==='Enter') this.blur()"
+               placeholder=".01">
+        <input class="proj-meta-input sc-label-input" type="text" value="${sc.label}"
+               onblur="updateSubCode('${key}','${sc.id}','label',this.value)"
+               onkeydown="if(event.key==='Enter') this.blur()"
+               placeholder="Sub-code description">
+        <button class="row-edit-btn" onclick="deleteSubCode('${key}','${sc.id}')" style="color:var(--danger);font-size:10px;" title="Delete sub-code">✕</button>
+      </div>
+    `).join('');
+    return `
     <div class="proj-meta-row" id="pmr-${key}">
       <span class="proj-meta-key">${key}</span>
       <input type="color" class="color-picker" value="${proj.color}"
@@ -4433,7 +4974,11 @@ function renderProjectMetaList() {
              onkeydown="if(event.key==='Enter') this.blur()">
       <button class="row-edit-btn" onclick="deleteProjectCode('${key}')" style="color:var(--danger);" title="Delete project code">✕</button>
     </div>
-  `).join('');
+    <div class="subcodes-section" id="scs-${key}">
+      ${subRows}
+      <button class="subcode-add-btn" onclick="addSubCode('${key}')">+ Add sub-code</button>
+    </div>`;
+  }).join('');
 }
 
 function updateProjectColor(key, color) {
