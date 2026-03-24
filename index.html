@@ -512,6 +512,8 @@
   .session-desc:hover { color: var(--accent); }
   .delegate-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; vertical-align: middle; border: 1px solid transparent; }
   .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); vertical-align: middle; }
+  .recur-occurrence-actions { display: none; gap: 3px; }
+  .task-row:hover .recur-occurrence-actions { display: flex; }
   .day-toggle { cursor:pointer; user-select:none; }
   .day-toggle input { display:none; }
   .day-toggle span { display:inline-block; padding:3px 9px; border-radius:20px; background:var(--bg3); border:1px solid var(--border); font-size:11px; transition:all 0.12s; color:var(--text2); }
@@ -1307,21 +1309,7 @@
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Due Date</label>
-        <input class="edit-input" type="date" id="editDue" oninput="onEditDueChange()">
-      </div>
-      <div id="recurActionWrap" style="display:none;" class="edit-form-group full">
-        <label class="edit-label">Apply change to</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
-            <input type="radio" name="recurAction" value="all" checked> All occurrences
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
-            <input type="radio" name="recurAction" value="skip"> Skip this occurrence
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
-            <input type="radio" name="recurAction" value="one"> Reschedule this one only
-          </label>
-        </div>
+        <input class="edit-input" type="date" id="editDue">
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Est. Hours</label>
@@ -2218,6 +2206,10 @@ function renderTasks() {
           <div style="display:flex;align-items:center;gap:6px;">
             <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
             <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
+            ${task.recurrence ? `<span class="recur-occurrence-actions">
+              <button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
+              <button class="row-edit-btn" onclick="event.stopPropagation();rescheduleRecurOccurrence('${task.id}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
+            </span>` : ''}
           </div>`;
 
       } else if (item._type === 'session') {
@@ -2395,22 +2387,7 @@ function openEditModal(taskId) {
   document.getElementById('editRecurMonthWeekday').value= normDows(r)[0] !== undefined ? normDows(r)[0] : 1;
   document.getElementById('editRecurEndDate').value     = r.endDate || '';
   onRecurTypeChange();
-  // Reset recurrence action picker
-  document.getElementById('recurActionWrap').style.display = 'none';
-  const radioAll = document.querySelector('[name="recurAction"][value="all"]');
-  if (radioAll) radioAll.checked = true;
   document.getElementById('editTaskModal').classList.add('open');
-}
-
-function onEditDueChange() {
-  const task = tasks.find(t => t.id === editingTaskId);
-  const wrap = document.getElementById('recurActionWrap');
-  if (task && task.recurrence && task.due) {
-    const newVal = document.getElementById('editDue').value;
-    wrap.style.display = (newVal && newVal !== task.due) ? '' : 'none';
-  } else {
-    wrap.style.display = 'none';
-  }
 }
 
 function closeEditModal() {
@@ -2421,14 +2398,11 @@ function closeEditModal() {
 function saveEditTask() {
   const task = tasks.find(t => t.id === editingTaskId);
   if (!task) return;
-  const originalDue = task.due;
-  const newDue      = document.getElementById('editDue').value;
-  const recurAction = document.querySelector('[name="recurAction"]:checked')?.value || 'all';
-  const dateChanged = task.recurrence && originalDue && newDue && newDue !== originalDue;
 
   task.name     = document.getElementById('editName').value.trim() || task.name;
   task.project  = document.getElementById('editProject').value;
   task.priority = document.getElementById('editPriority').value;
+  task.due      = document.getElementById('editDue').value;
   task.est      = parseFloat(document.getElementById('editEst').value) || 0;
   task.category = document.getElementById('editCategory').value.trim();
   task.waiting  = document.getElementById('editWaiting').value.trim();
@@ -2457,26 +2431,29 @@ function saveEditTask() {
     task.recurrence = null;
   }
 
-  // Handle due date change for recurring tasks
-  if (dateChanged && task.recurrence) {
-    if (recurAction === 'all') {
-      // Move entire chain — just update due
-      task.due = newDue;
-    } else if (recurAction === 'skip') {
-      // Skip the original occurrence; advance to the next one after it
-      task.recurrence.skips = [...(task.recurrence.skips || []), originalDue];
-      task.due = nextRecurrenceAfter(task, originalDue) || originalDue;
-    } else if (recurAction === 'one') {
-      // Override just this occurrence with the new date; keep task.due unchanged
-      task.recurrence.overrides = { ...(task.recurrence.overrides || {}), [originalDue]: newDue };
-      task.due = originalDue; // chain anchor stays the same
-    }
-  } else {
-    task.due = newDue;
-  }
-
   save('wt_tasks', tasks);
   closeEditModal();
+  renderTasks();
+}
+
+function skipRecurOccurrence(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.recurrence || !task.due) return;
+  const orig = task.due;
+  task.recurrence.skips = [...(task.recurrence.skips || []), orig];
+  task.due = nextRecurrenceAfter(task, orig) || orig;
+  save('wt_tasks', tasks);
+  renderTasks();
+}
+
+function rescheduleRecurOccurrence(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.recurrence || !task.due) return;
+  const orig = task.due;
+  const newDate = prompt('New date for this occurrence only (YYYY-MM-DD):', orig);
+  if (!newDate || newDate === orig || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
+  task.recurrence.overrides = { ...(task.recurrence.overrides || {}), [orig]: newDate };
+  save('wt_tasks', tasks);
   renderTasks();
 }
 
