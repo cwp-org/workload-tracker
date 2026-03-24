@@ -1216,6 +1216,13 @@
         <input type="number" id="tsCapacityInput" min="1" max="168" step="1" style="width:46px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);font-size:12px;" onchange="saveTsCapacity(this.value)">
         <span style="font-size:11px;color:var(--text3);">h/wk</span>
       </div>
+      <select id="tsPlannedHorizon" class="filter-select" style="display:none;" onchange="renderTimesheet()">
+        <option value="4">Next 4 weeks</option>
+        <option value="8">Next 8 weeks</option>
+        <option value="13" selected>Next 3 months</option>
+        <option value="26">Next 6 months</option>
+        <option value="52">Next 12 months</option>
+      </select>
       <button class="btn primary" onclick="openAddTsEntryModal()" style="font-size:11px;padding:4px 10px;">+ Log time</button>
     </div>
     <div id="tsCapacityBar" style="padding:10px 14px;border-bottom:1px solid var(--border);display:none;"></div>
@@ -2806,6 +2813,7 @@ function setTsView(v) {
     document.getElementById('tsView' + x.charAt(0).toUpperCase() + x.slice(1))?.classList.toggle('active', x === v);
   });
   document.getElementById('tsPeriodNav').style.display = (v === 'all' || v === 'planned') ? 'none' : 'flex';
+  document.getElementById('tsPlannedHorizon').style.display = v === 'planned' ? '' : 'none';
   renderTimesheet();
 }
 
@@ -3081,32 +3089,39 @@ function renderTimesheet() {
     if (!hasAny) container.innerHTML = '<div class="empty-state">No data this month.</div>';
 
   } else if (tsView === 'planned') {
-    // PLANNED view — upcoming tasks + undelegated project sessions grouped by week
+    // PLANNED view — upcoming tasks (including all recurring occurrences) + project sessions grouped by week
     document.getElementById('tsCapacityBar').style.display = 'none';
 
-    // Collect all planned items with a date on or after today
     const todayStr = today();
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-    const plannedAll = [];
+    // Horizon: N weeks forward from today
+    const horizonWeeks = parseInt(document.getElementById('tsPlannedHorizon')?.value || '13');
+    const futureDate = addDays(todayStr, horizonWeeks * 7);
 
-    // Active tasks with a due date
-    tasks.forEach(t => {
-      if (t.due && t.due >= todayStr && (fProj === 'all' || t.project === fProj)) {
-        plannedAll.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, type: 'task', _taskId: t.id });
-      }
-    });
-
-    // Undone, undelegated big project sessions
-    bigProjs.forEach(proj => {
-      if (fProj !== 'all' && proj.project !== fProj) return;
-      proj.sessions.forEach(s => {
-        if (!s.done && !normDelegated(s.delegatedTo).length && s.date && s.date >= todayStr) {
-          plannedAll.push({ id: s.id, name: s.desc, project: proj.project, date: s.date, hours: s.hours || 0, type: 'session', _projId: proj.id, _projName: proj.name });
+    // Use plannedItems() to expand all recurring tasks into individual occurrences
+    const plannedAll = plannedItems(todayStr, futureDate)
+      .filter(p => fProj === 'all' || p.project === fProj)
+      .map(p => {
+        // Determine item type for display
+        const baseId = p.id.includes('_') ? p.id.split('_').slice(0, -1).join('_') : p.id;
+        const isTask = tasks.some(t => t.id === baseId || t.id === p.id);
+        if (isTask) {
+          const t = tasks.find(t => t.id === baseId || t.id === p.id);
+          return { ...p, type: 'task', _taskId: t ? t.id : null };
         }
+        // Session
+        for (const proj of bigProjs) {
+          const s = proj.sessions.find(s => s.id === p.id);
+          if (s) return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
+          for (const s2 of proj.sessions) {
+            const st = (s2.subtasks || []).find(st => st.id === p.id);
+            if (st) return { ...p, type: 'session', _projId: proj.id, _projName: proj.name };
+          }
+        }
+        return { ...p, type: 'task' };
       });
-    });
 
     if (!plannedAll.length) {
       container.innerHTML = '<div class="empty-state">No upcoming planned work.</div>';
@@ -3125,8 +3140,10 @@ function renderTimesheet() {
       const totalH = plannedAll.reduce((a, i) => a + i.hours, 0);
       const summaryEl = document.createElement('div');
       summaryEl.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);display:flex;gap:16px;';
+      const recurCount = plannedAll.filter(i => i._recur).length;
       summaryEl.innerHTML = `
         <span>📋 <strong style="color:var(--text)">${plannedAll.length}</strong> items planned</span>
+        ${recurCount ? `<span>↻ <strong style="color:var(--text)">${recurCount}</strong> recurring occurrences</span>` : ''}
         <span>⏱ <strong style="color:var(--text)">${totalH.toFixed(1)}h</strong> total estimated</span>
         <span>📅 <strong style="color:var(--text)">${Object.keys(byWeek).length}</strong> weeks</span>
       `;
@@ -3167,17 +3184,20 @@ function renderTimesheet() {
           const dayLabel = `${dayNames[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
           const row = document.createElement('div');
           row.className = 'ts-entry-row';
-          const editFn = item.type === 'task'
+          const editFn = item._taskId
             ? `openEditModal('${item._taskId}')`
-            : `openEditSessionModal('${item._projId}','${item.id}')`;
+            : item._projId ? `openEditSessionModal('${item._projId}','${item.id}')` : '';
+          const typeLabel = item.type === 'session' ? `project` : item._recur ? 'recurring' : 'task';
+          const subLabel = item._projName ? ` <span style="font-size:10px;color:var(--text3);">· ${item._projName}</span>` : '';
+          const recurBadge = item._recur ? `<span class="recur-badge">↻</span>` : '';
           row.innerHTML = `
-            <span class="ts-entry-name" onclick="${editFn}" title="${item.type === 'session' ? 'From: ' + item._projName : 'Task'}">${item.name}${item.type === 'session' ? ` <span style="font-size:10px;color:var(--text3);">· ${item._projName}</span>` : ''}</span>
+            <span class="ts-entry-name" ${editFn ? `onclick="${editFn}"` : ''} title="${item.type === 'session' ? 'From: ' + (item._projName || '') : ''}">${item.name}${recurBadge}${subLabel}</span>
             <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
             <span style="font-size:11px;color:var(--text3);">${dayLabel}</span>
-            <span style="font-size:11px;color:var(--text3);">${item.type === 'task' ? 'task' : 'project'}</span>
+            <span style="font-size:11px;color:var(--text3);">${typeLabel}</span>
             <span style="font-size:12px;font-weight:700;">${item.hours}h</span>
             <div class="ts-entry-actions" style="opacity:1;">
-              <button class="row-edit-btn" onclick="${editFn}" title="Edit">✏</button>
+              ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit">✏</button>` : ''}
             </div>
           `;
           container.appendChild(row);
