@@ -3163,7 +3163,7 @@ function renderTimesheet() {
           </div>
           <span style="font-size:10px;color:var(--text3);">${wUsed.toFixed(1)}h logged${wPlannedH > 0 ? ' + ' + wPlannedH.toFixed(1) + 'h planned' : ''} / ${tsCapacity}h</span>
         </div>
-        <span class="ts-month-hours" style="color:${wCls === 'over' ? 'var(--danger)' : wCls === 'warn' ? 'var(--warn)' : 'var(--success)'};">${wTotal.toFixed(1)}h</span>
+        <span class="ts-month-hours" style="color:${wCls === 'over' ? 'var(--danger)' : wCls === 'warn' ? 'var(--warn)' : 'var(--success)'};">${wCls === 'over' ? '+' + (wTotal - tsCapacity).toFixed(1) : (tsCapacity - wTotal).toFixed(1)}h left</span>
         <span class="ts-month-chevron${isOpen ? ' open' : ''}">›</span>
       `;
       container.appendChild(row);
@@ -3222,7 +3222,7 @@ function renderTimesheet() {
           </div>
           <span style="font-size:10px;color:var(--text3);">${mUsed.toFixed(1)}h logged${mPlannedH > 0 ? ' + ' + mPlannedH.toFixed(1) + 'h planned' : ''} / ${mCap.toFixed(0)}h</span>
         </div>
-        <span class="ts-month-row-hours" style="color:${mCls === 'over' ? 'var(--danger)' : mCls === 'warn' ? 'var(--warn)' : (mTotal > 0 ? 'var(--success)' : 'var(--text3)')}">${mTotal > 0 ? mTotal.toFixed(1) + 'h' : '—'}</span>
+        <span class="ts-month-row-hours" style="color:${mCls === 'over' ? 'var(--danger)' : mCls === 'warn' ? 'var(--warn)' : 'var(--success)'}">${mCls === 'over' ? '+' + (mTotal - mCap).toFixed(1) + 'h over' : (mCap - mTotal).toFixed(1) + 'h left'}</span>
         <span class="ts-month-chevron${isMonthOpen ? ' open' : ''}">›</span>
       `;
       container.appendChild(mRow);
@@ -3269,7 +3269,7 @@ function renderTimesheet() {
               </div>
               <span style="font-size:10px;color:var(--text3);">${wUsed.toFixed(1)}h logged${wPlannedH > 0 ? ' + ' + wPlannedH.toFixed(1) + 'h planned' : ''} / ${tsCapacity}h</span>
             </div>
-            <span class="ts-month-hours" style="color:${wCls === 'over' ? 'var(--danger)' : wCls === 'warn' ? 'var(--warn)' : 'var(--success)'};">${wTotal.toFixed(1)}h</span>
+            <span class="ts-month-hours" style="color:${wCls === 'over' ? 'var(--danger)' : wCls === 'warn' ? 'var(--warn)' : 'var(--success)'};">${wCls === 'over' ? '+' + (wTotal - tsCapacity).toFixed(1) : (tsCapacity - wTotal).toFixed(1)}h left</span>
             <span class="ts-month-chevron${isWeekOpen ? ' open' : ''}">›</span>
           `;
           wrapEl.appendChild(wRow);
