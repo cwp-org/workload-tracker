@@ -1124,7 +1124,8 @@
     border-bottom: 1px solid var(--border); flex-wrap: wrap;
   }
   .alloc-container {
-    overflow-x: auto; padding: 0;
+    overflow: auto; padding: 0;
+    max-height: calc(100vh - 180px);
   }
   .alloc-table {
     width: 100%; border-collapse: collapse; font-size: 11.5px;
@@ -1168,6 +1169,18 @@
   .alloc-proj-header td:first-child {
     background: var(--bg3) !important;
   }
+  .alloc-collapse-btn {
+    display: inline-block;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text3);
+    margin-right: 4px;
+    transition: transform 0.15s;
+    user-select: none;
+  }
+  .alloc-collapse-btn.open { transform: rotate(90deg); }
+  .alloc-collapse-btn:hover { color: var(--text); }
   .alloc-sc-row td:first-child {
     padding-left: 18px;
     font-size: 11px;
@@ -1330,7 +1343,8 @@
     <div class="add-form" id="addForm">
       <div class="form-row">
         <input class="form-input flex-1" type="text" id="newTaskName" placeholder="Task name">
-        <select class="form-input filter-select" id="newTaskProject"></select>
+        <select class="form-input filter-select" id="newTaskProject" onchange="populateSubCodeSelect('newTaskSubCode', this.value)"></select>
+        <select class="form-input filter-select" id="newTaskSubCode" style="max-width:160px;"></select>
         <select class="form-input filter-select" id="newTaskPriority">
           <option value="urgent">Urgent</option>
           <option value="high">High</option>
@@ -1558,7 +1572,11 @@
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Project</label>
-        <select class="edit-input" id="editProject"></select>
+        <select class="edit-input" id="editProject" onchange="populateSubCodeSelect('editSubCode', this.value)"></select>
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Sub-Code</label>
+        <select class="edit-input" id="editSubCode"></select>
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Priority</label>
@@ -2043,6 +2061,9 @@ function saveProjOrder() { save('wt_project_order', projOrder); }
 // Collapse state for project rows in Manage Projects modal (session-only)
 const collapsedProjMeta = new Set();
 
+// Collapse state for project sub-code rows in Allocations grid
+const collapsedAllocProjs = new Set();
+
 // Allocations data: { "projKey|scId|YYYY-MM": hours }
 let allocations = load('wt_allocations', {});
 function saveAllocations() { save('wt_allocations', allocations); }
@@ -2499,6 +2520,9 @@ function populateProjectSelects() {
       el.appendChild(opt);
     });
   });
+  // Initialize sub-code dropdowns for add/edit task forms
+  const newProjEl = document.getElementById('newTaskProject');
+  if (newProjEl) populateSubCodeSelect('newTaskSubCode', newProjEl.value);
 }
 
 // =============================================
@@ -2789,6 +2813,7 @@ function addTask() {
     id: uid(),
     name,
     project: document.getElementById('newTaskProject').value || 'admin',
+    subCode: document.getElementById('newTaskSubCode').value || '',
     priority: document.getElementById('newTaskPriority').value || 'med',
     due: document.getElementById('newTaskDue').value || '',
     est: parseFloat(document.getElementById('newTaskEst').value) || 0,
@@ -2867,6 +2892,7 @@ function openEditModal(taskId) {
   if (!task) return;
   document.getElementById('editName').value = task.name;
   document.getElementById('editProject').value = task.project;
+  populateSubCodeSelect('editSubCode', task.project, task.subCode || '');
   document.getElementById('editPriority').value = task.priority;
   document.getElementById('editDue').value = task.due || '';
   document.getElementById('editEst').value = task.est || '';
@@ -2897,6 +2923,7 @@ function saveEditTask() {
 
   task.name     = document.getElementById('editName').value.trim() || task.name;
   task.project  = document.getElementById('editProject').value;
+  task.subCode  = document.getElementById('editSubCode').value;
   task.priority = document.getElementById('editPriority').value;
   task.due      = document.getElementById('editDue').value;
   task.est      = parseFloat(document.getElementById('editEst').value) || 0;
@@ -4254,6 +4281,12 @@ function barColor(pct) {
   return 'green';
 }
 
+function toggleAllocProjCollapse(projKey) {
+  if (collapsedAllocProjs.has(projKey)) collapsedAllocProjs.delete(projKey);
+  else collapsedAllocProjs.add(projKey);
+  renderAllocations();
+}
+
 function renderAllocations() {
   const grid = document.getElementById('allocGrid');
   if (!grid) return;
@@ -4298,7 +4331,9 @@ function renderAllocations() {
 
     // Project header row
     const codeStr = proj.billingCode ? ` (${proj.billingCode})` : '';
-    html += `<tr class="alloc-proj-header"><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${proj.label}${codeStr}</td>`;
+    const allocCollapsed = collapsedAllocProjs.has(projKey);
+    const chevron = subs.length > 0 ? `<span class="alloc-collapse-btn ${allocCollapsed ? '' : 'open'}" onclick="toggleAllocProjCollapse('${projKey}')" title="${allocCollapsed ? 'Expand' : 'Collapse'} sub-codes">›</span>` : '';
+    html += `<tr class="alloc-proj-header"><td>${chevron}<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${proj.label}${codeStr}</td>`;
 
     // Project-level summary per month
     const noSubs = subs.length === 0;
@@ -4358,11 +4393,11 @@ function renderAllocations() {
     if (projAllocYTD > 0) html += `<div class="alloc-pct ${ytdClr}">${ytdPct}%</div>`;
     html += `</td></tr>`;
 
-    // Sub-code rows (detail view only)
-    if (viewMode === 'detail' && subs.length > 0) {
+    // Sub-code rows (detail view only, respects per-project collapse)
+    if (viewMode === 'detail' && subs.length > 0 && !collapsedAllocProjs.has(projKey)) {
       subs.forEach(sc => {
         const fullCode = (proj.billingCode || '') + sc.code;
-        html += `<tr class="alloc-sc-row"><td>${fullCode} ${sc.label}</td>`;
+        html += `<tr class="alloc-sc-row"><td>${sc.code} ${sc.label}</td>`;
         let scAllocYTD = 0, scActualYTD = 0;
         months.forEach((m, mi) => {
           const aKey = allocKey(projKey, sc.id, m.ym);
@@ -4992,6 +5027,7 @@ function deleteTeamItem() {
 // =============================================
 
 function openManageProjectsModal() {
+  projOrder.forEach(k => collapsedProjMeta.add(k));
   renderProjectMetaList();
   document.getElementById('newProjLabel').value = '';
   document.getElementById('newProjColor').value = '#60a5fa';
@@ -5137,9 +5173,14 @@ function deleteProjectCode(key) {
   if (!confirm(msg)) return;
   delete PROJECTS[key];
   projOrder = projOrder.filter(k => k !== key);
+  // Clean up orphaned allocation data for this project
+  Object.keys(allocations).filter(k => k.startsWith(key + '|')).forEach(k => delete allocations[k]);
+  saveAllocations();
+  collapsedAllocProjs.delete(key);
   saveProjects();
   saveProjOrder();
   renderProjectMetaList();
+  renderAllocations();
 }
 
 function addNewProjectCode() {
