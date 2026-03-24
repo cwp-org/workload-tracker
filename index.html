@@ -2282,7 +2282,7 @@ function renderTasks() {
       row.innerHTML = `
         <div class="task-check" onclick="openCompletionModal('${task.id}')" title="Complete task"></div>
         <div class="project-dot" style="background:${projColor(task.project)};" title="${projLabel(task.project)}"></div>
-        <div class="task-name" onclick="openEditModal('${task.id}')" title="${task.notes || ''}"><span class="task-name-text">${task.name}</span>${task.recurrence ? `<span class="recur-badge" style="flex-shrink:0;">${recurLabel(task)}</span><span class="recur-inline-actions"><button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" style="font-size:10px;padding:2px 5px;">Skip</button><button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${task.id}')" style="font-size:10px;padding:2px 5px;">Reschedule</button></span>` : ''}</div>
+        <div class="task-name" onclick="openEditModal('${task.id}')" title="${task.notes ? 'Double-click to expand notes' : ''}"><span class="task-name-text">${task.name}</span>${task.notes ? '<span style="margin-left:4px;font-size:10px;color:var(--text3);flex-shrink:0;" title="Has notes (double-click row to expand)">📝</span>' : ''}${task.recurrence ? `<span class="recur-badge" style="flex-shrink:0;">${recurLabel(task)}</span><span class="recur-inline-actions"><button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" style="font-size:10px;padding:2px 5px;">Skip</button><button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${task.id}')" style="font-size:10px;padding:2px 5px;">Reschedule</button></span>` : ''}</div>
         ${task.category ? `<span class="task-category">${task.category}</span>` : '<span></span>'}
         ${task.waiting ? `<span class="task-waiting" title="Waiting on: ${task.waiting}">⏳ ${task.waiting}</span>` : '<span></span>'}
         <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
@@ -2292,6 +2292,18 @@ function renderTasks() {
           <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
           <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
         </div>`;
+      if (task.notes) {
+        const notesRow = document.createElement('div');
+        notesRow.className = 'task-notes-row';
+        notesRow.id = `notes-${task.id}`;
+        notesRow.textContent = task.notes;
+        row.style.cursor = 'pointer';
+        row.addEventListener('dblclick', (e) => {
+          if (e.target.closest('.task-check,.timer-btn,.row-edit-btn,.task-due')) return;
+          notesRow.classList.toggle('open');
+        });
+        row._notesRow = notesRow;
+      }
     } else if (item._type === 'session') {
       const { s, proj } = item;
       const dc = dueCls(s.date);
@@ -2350,7 +2362,11 @@ function renderTasks() {
         </div>`;
     }
     section.innerHTML = `<div class="task-group-header${isToday ? ' today-header' : ''}">${label} <span class="group-count">${items.length}</span></div>${capHtml}`;
-    items.forEach(item => section.appendChild(buildRow(item)));
+    items.forEach(item => {
+      const row = buildRow(item);
+      section.appendChild(row);
+      if (row._notesRow) section.appendChild(row._notesRow);
+    });
     container.appendChild(section);
   }
 
@@ -3100,15 +3116,15 @@ function tsMonthStart(anchor) {
 
 function tsPeriodPrev() {
   const d = new Date(tsAnchor + 'T00:00:00');
-  if (tsView === 'week') d.setMonth(d.getMonth() - 1);
-  else d.setFullYear(d.getFullYear() - 1);
+  if (tsView === 'week') d.setDate(d.getDate() - 7);
+  else d.setMonth(d.getMonth() - 1);
   tsAnchor = localDateStr(d);
   renderTimesheet();
 }
 
 function tsPeriodNext() {
   const d = new Date(tsAnchor + 'T00:00:00');
-  if (tsView === 'week') d.setMonth(d.getMonth() + 1);
+  if (tsView === 'week') d.setDate(d.getDate() + 7);
   else d.setMonth(d.getMonth() + 1);
   tsAnchor = localDateStr(d);
   renderTimesheet();
@@ -3775,7 +3791,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 // =============================================
 
 ['completionModal','editTaskModal','addTeamModal','addProjectModal','brainDumpModal','reviewModal',
- 'settingsModal','editBigProjModal','editTeamModal','manageProjectsModal'].forEach(id => {
+ 'settingsModal','editBigProjModal','editTeamModal','manageProjectsModal','editSessionModal','tsEntryModal'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
@@ -3814,10 +3830,14 @@ updateHeaderMeta();
 
 // Resume timer if page was reloaded mid-session
 tasks.forEach(t => {
-  if (t.timerStart) {
+  if (t.timerStart && !activeTimerId) {
     activeTimerId = t.id;
     timerInterval = setInterval(tickTimers, 1000);
     updateActiveStrip();
+  } else if (t.timerStart && activeTimerId) {
+    // Stale timer — stop it to prevent multiple active timers
+    t.timer += Math.floor((Date.now() - t.timerStart) / 1000);
+    t.timerStart = null;
   }
 });
 
@@ -4566,7 +4586,11 @@ ${text}`;
     } catch (_) {
       const m = rawText.match(/\{[\s\S]*\}/);
       if (!m) throw new Error('Response was not valid JSON. Try again.');
-      diff = JSON.parse(m[0]);
+      try {
+        diff = JSON.parse(m[0]);
+      } catch (_2) {
+        throw new Error('Response was not valid JSON. Try again.');
+      }
     }
 
     closeBrainDumpModal();
