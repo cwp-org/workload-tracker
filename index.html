@@ -2175,7 +2175,11 @@ function renderTasks() {
 
   // ── build a flat list of all items (tasks + sessions + subtasks) ──
   const allItems = [];
-  visible.forEach(t => allItems.push({ _type: 'task', task: t, _date: t.due || null }));
+  visible.forEach(t => {
+    // Use the overridden date if this occurrence has been rescheduled
+    const effectiveDate = (t.recurrence?.overrides?.[t.due]) || t.due || null;
+    allItems.push({ _type: 'task', task: t, _date: effectiveDate });
+  });
   bigProjs.forEach(proj => {
     if (fProj !== 'all' && proj.project !== fProj) return;
     proj.sessions.forEach(s => {
@@ -2614,6 +2618,9 @@ function confirmReschedule() {
   if (newDate === orig) { closeRescheduleModal(); return; }
   pushRecurUndo(`Rescheduled occurrence from ${orig} → ${newDate}`, _rescheduleTaskId, task.due, task.recurrence);
   task.recurrence.overrides = { ...(task.recurrence.overrides || {}), [orig]: newDate };
+  // If we rescheduled the anchor occurrence, advance the chain anchor to the next scheduled date
+  // so future occurrences continue from the original schedule (not the rescheduled date)
+  if (orig === task.due) task.due = nextRecurrenceAfter(task, orig) || orig;
   save('wt_tasks', tasks);
   closeRescheduleModal();
   renderTasks(); renderTimesheet();
