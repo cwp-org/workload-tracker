@@ -516,9 +516,9 @@
   .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); vertical-align: middle; }
   .recur-occurrence-actions {
     display: none; gap: 3px;
-    position: absolute; right: 68px; top: 50%; transform: translateY(-50%);
+    position: absolute; right: calc(100% + 4px); top: 50%; transform: translateY(-50%);
     background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
-    padding: 2px 4px; z-index: 10; white-space: nowrap;
+    padding: 2px 4px; z-index: 20; white-space: nowrap;
   }
   .task-row:hover .recur-occurrence-actions,
   .ts-entry-row:hover .recur-occurrence-actions { display: flex; }
@@ -1269,6 +1269,28 @@
     <div id="timesheetList"></div>
   </div>
 
+</div>
+
+<!-- RESCHEDULE OCCURRENCE MODAL -->
+<div class="modal-overlay" id="rescheduleModal" style="display:none;" onclick="if(event.target===this)closeRescheduleModal()">
+  <div class="modal" style="max-width:320px;">
+    <div class="modal-title">Reschedule this occurrence</div>
+    <div class="modal-subtitle">All other occurrences stay on their original schedule.</div>
+    <div class="modal-row" style="margin-top:12px;">
+      <span class="modal-label">New date</span>
+      <input type="date" id="rescheduleInput" class="edit-input" style="width:auto;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRescheduleModal()">Cancel</button>
+      <button class="btn primary" onclick="confirmReschedule()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- UNDO TOAST -->
+<div id="undoToast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 16px;display:none;align-items:center;gap:10px;z-index:9999;font-size:12px;color:var(--text2);box-shadow:0 4px 12px #0006;">
+  <span id="undoToastMsg"></span>
+  <button class="btn" onclick="undoRecurAction()" style="padding:3px 10px;font-size:11px;">↩ Undo</button>
 </div>
 
 <!-- COMPLETION MODAL -->
@@ -2253,14 +2275,14 @@ function renderTasks() {
         <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
         <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(task.due)}</div>
         <div class="task-est">${task.est ? task.est + 'h' : '—'}</div>
-        <div style="display:flex;align-items:center;gap:6px;">
+        <div style="position:relative;display:flex;align-items:center;gap:6px;">
           <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
           <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
-        </div>
-        ${task.recurrence ? `<span class="recur-occurrence-actions">
-          <button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
-          <button class="row-edit-btn" onclick="event.stopPropagation();rescheduleRecurOccurrence('${task.id}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
-        </span>` : ''}`;
+          ${task.recurrence ? `<span class="recur-occurrence-actions">
+            <button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" style="font-size:10px;padding:2px 5px;">Skip</button>
+            <button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${task.id}')" style="font-size:10px;padding:2px 5px;">Reschedule</button>
+          </span>` : ''}
+        </div>`;
     } else if (item._type === 'session') {
       const { s, proj } = item;
       const dc = dueCls(s.date);
@@ -2532,28 +2554,73 @@ function saveEditTask() {
   renderTasks();
 }
 
+// ── undo stack ──
+const recurUndoStack = [];
+
+function pushRecurUndo(label, taskId, prevDue, prevRecurrence) {
+  recurUndoStack.push({ label, taskId, prevDue, prevRecurrence: JSON.parse(JSON.stringify(prevRecurrence || null)) });
+  showUndoToast(label);
+}
+
+function showUndoToast(label) {
+  const toast = document.getElementById('undoToast');
+  document.getElementById('undoToastMsg').textContent = label;
+  toast.style.display = 'flex';
+  clearTimeout(showUndoToast._t);
+  showUndoToast._t = setTimeout(() => { toast.style.display = 'none'; }, 6000);
+}
+
+function undoRecurAction() {
+  const action = recurUndoStack.pop();
+  if (!action) return;
+  const task = tasks.find(t => t.id === action.taskId);
+  if (task) { task.due = action.prevDue; task.recurrence = action.prevRecurrence; }
+  save('wt_tasks', tasks);
+  renderTasks(); renderTimesheet();
+  if (recurUndoStack.length) showUndoToast(recurUndoStack[recurUndoStack.length - 1].label);
+  else document.getElementById('undoToast').style.display = 'none';
+}
+
 function skipRecurOccurrence(taskId, occurrenceDate) {
   const task = tasks.find(t => t.id === taskId);
   if (!task || !task.recurrence || !task.due) return;
   const orig = occurrenceDate || task.due;
+  pushRecurUndo(`Skipped occurrence on ${orig}`, taskId, task.due, task.recurrence);
   task.recurrence.skips = [...(task.recurrence.skips || []), orig];
-  // Only advance task.due if we're skipping the anchor occurrence
   if (orig === task.due) task.due = nextRecurrenceAfter(task, orig) || orig;
   save('wt_tasks', tasks);
-  renderTasks();
-  renderTimesheet();
+  renderTasks(); renderTimesheet();
 }
 
-function rescheduleRecurOccurrence(taskId, occurrenceDate) {
+// reschedule modal state
+let _rescheduleTaskId = null, _rescheduleOccDate = null;
+
+function openRescheduleModal(taskId, occurrenceDate) {
   const task = tasks.find(t => t.id === taskId);
-  if (!task || !task.recurrence || !task.due) return;
-  const orig = occurrenceDate || task.due;
-  const newDate = prompt('New date for this occurrence only (YYYY-MM-DD):', orig);
-  if (!newDate || newDate === orig || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
+  if (!task || !task.recurrence) return;
+  _rescheduleTaskId  = taskId;
+  _rescheduleOccDate = occurrenceDate || task.due;
+  document.getElementById('rescheduleInput').value = _rescheduleOccDate;
+  document.getElementById('rescheduleModal').style.display = 'flex';
+}
+
+function closeRescheduleModal() {
+  document.getElementById('rescheduleModal').style.display = 'none';
+  _rescheduleTaskId = null; _rescheduleOccDate = null;
+}
+
+function confirmReschedule() {
+  const newDate = document.getElementById('rescheduleInput').value;
+  if (!newDate || !_rescheduleTaskId) return;
+  const task = tasks.find(t => t.id === _rescheduleTaskId);
+  if (!task || !task.recurrence) return;
+  const orig = _rescheduleOccDate;
+  if (newDate === orig) { closeRescheduleModal(); return; }
+  pushRecurUndo(`Rescheduled occurrence from ${orig} → ${newDate}`, _rescheduleTaskId, task.due, task.recurrence);
   task.recurrence.overrides = { ...(task.recurrence.overrides || {}), [orig]: newDate };
   save('wt_tasks', tasks);
-  renderTasks();
-  renderTimesheet();
+  closeRescheduleModal();
+  renderTasks(); renderTimesheet();
 }
 
 function deleteEditTask() {
@@ -3156,13 +3223,13 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
           <span style="font-size:11px;color:var(--text3);">planned</span>
           <span style="font-size:12px;color:var(--text3);">${item.hours}h</span>
           <span></span>
-          <div class="ts-entry-actions" style="opacity:1;">
+          <div class="ts-entry-actions" style="opacity:1;position:relative;">
             ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit task">✏</button>` : ''}
+            ${taskObj && taskObj.recurrence ? (() => { const occDate = item.id.includes('_') ? item.id.slice(taskObj.id.length + 1) : (taskObj.due || ''); return `<span class="recur-occurrence-actions">
+              <button class="row-edit-btn" onclick="skipRecurOccurrence('${taskObj.id}','${occDate}')" style="font-size:10px;padding:2px 5px;">Skip</button>
+              <button class="row-edit-btn" onclick="openRescheduleModal('${taskObj.id}','${occDate}')" style="font-size:10px;padding:2px 5px;">Reschedule</button>
+            </span>`; })() : ''}
           </div>
-          ${taskObj && taskObj.recurrence ? (() => { const occDate = item.id.includes('_') ? item.id.slice(taskObj.id.length + 1) : taskObj.id; return `<span class="recur-occurrence-actions">
-            <button class="row-edit-btn" onclick="skipRecurOccurrence('${taskObj.id}','${occDate}')" title="Skip this occurrence" style="font-size:10px;padding:2px 5px;">Skip</button>
-            <button class="row-edit-btn" onclick="rescheduleRecurOccurrence('${taskObj.id}','${occDate}')" title="Reschedule this occurrence" style="font-size:10px;padding:2px 5px;">Reschedule</button>
-          </span>`; })() : ''}
         `;
       } else {
         row.innerHTML = `
