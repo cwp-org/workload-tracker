@@ -2952,7 +2952,7 @@ function renderTeam() {
           owner: person,
           project: proj.project,
           due: s.date,
-          status: s.done ? 'complete' : 'not-started',
+          status: s.status || (s.done ? 'complete' : 'not-started'),
           notes: `From project: ${proj.name}`,
           _delegated: true,
           _projId: proj.id,
