@@ -697,13 +697,15 @@
 
   .ts-day-header {
     display: flex; align-items: center; gap: 8px;
-    padding: 7px 14px; background: var(--bg3);
-    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-    font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em;
-    margin-top: 4px;
+    padding: 8px 14px; background: var(--bg4);
+    border-top: 2px solid var(--border2); border-bottom: 1px solid var(--border2);
+    font-size: 11px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.06em;
+    cursor: pointer; user-select: none;
   }
-  .ts-day-header:first-child { margin-top: 0; border-top: none; }
-  .ts-day-total { margin-left: auto; font-weight: 700; color: var(--text); }
+  .ts-day-header:first-child { border-top: none; }
+  .ts-day-total { margin-left: auto; font-weight: 700; color: var(--accent); font-size: 11px; }
+  .ts-day-chevron { color: var(--text3); font-size: 11px; transition: transform 0.15s; margin-right: 4px; }
+  .ts-day-chevron.open { transform: rotate(90deg); }
 
   .ts-entry-row {
     display: grid;
@@ -3829,6 +3831,8 @@ let tsAnchor = today(); // week or month anchor date
 let tsCapacity = parseFloat(load('wt_ts_capacity', 8)) || 8;
 let tsExpandedWeeks = new Set();   // week-start strings that are expanded in week view
 let tsExpandedMonths = new Set();  // 'YYYY-MM' strings expanded in month view
+let tsCollapsedDays = new Set();   // date strings of collapsed day sections
+let _tsCurrentWeekAutoExpanded = false; // track if we've auto-expanded current week
 let tsMonthExpandedWeeks = new Set(); // week-start strings expanded inside month view
 
 function setTsView(v) {
@@ -4051,12 +4055,20 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
     const d = new Date(date + 'T00:00:00');
     const dayLabel = `${dayNames[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
     const dayTotal = rawItems.filter(i => i._isLogged).reduce((a, i) => a + i.actualHours, 0);
+    const isDayCollapsed = tsCollapsedDays.has(date);
 
     const hdr = document.createElement('div');
     hdr.className = 'ts-day-header';
     hdr.style.paddingLeft = '32px';
-    hdr.innerHTML = `<span>${dayLabel}</span><span class="ts-day-total">${dayTotal > 0 ? dayTotal.toFixed(1) + 'h logged' : ''}</span>`;
+    hdr.innerHTML = `<span class="ts-day-chevron${isDayCollapsed ? '' : ' open'}">›</span><span>${dayLabel}</span><span style="font-size:10px;font-weight:500;color:var(--text3);margin-left:4px;">${rawItems.length} item${rawItems.length !== 1 ? 's' : ''}</span><span class="ts-day-total">${dayTotal > 0 ? dayTotal.toFixed(1) + 'h logged' : ''}</span>`;
+    hdr.onclick = () => {
+      if (tsCollapsedDays.has(date)) tsCollapsedDays.delete(date);
+      else tsCollapsedDays.add(date);
+      renderTimesheet();
+    };
     wrap.appendChild(hdr);
+
+    if (isDayCollapsed) return;
 
     const items = _sortTsItems(rawItems);
     items.forEach(item => {
@@ -4129,6 +4141,13 @@ function renderTimesheet() {
     const monthPlannedH = monthPlanned.reduce((a, p) => a + p.hours, 0);
     renderTsCapacityBar(monthUsed, monthPlannedH, workingDays(ms, me) * tsCapacity, monthLabel);
 
+    // Auto-expand the current week on first render
+    if (!_tsCurrentWeekAutoExpanded) {
+      const curWeekStart = tsWeekStart(today());
+      tsExpandedWeeks.add(curWeekStart);
+      _tsCurrentWeekAutoExpanded = true;
+    }
+
     let weekCursor = new Date(ms + 'T00:00:00');
     weekCursor.setDate(weekCursor.getDate() - weekCursor.getDay());
     let hasAny = false;
@@ -4190,6 +4209,15 @@ function renderTimesheet() {
     document.getElementById('tsCapacityBar').style.display = 'none';
 
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Auto-expand current month and current week in month view
+    if (!_tsCurrentWeekAutoExpanded) {
+      const curMonth = today().slice(0, 7);
+      const curWeekStart = tsWeekStart(today());
+      tsExpandedMonths.add(curMonth);
+      tsExpandedWeeks.add(curWeekStart);
+      _tsCurrentWeekAutoExpanded = true;
+    }
 
     for (let mi = 0; mi < 12; mi++) {
       const ms = `${year}-${String(mi+1).padStart(2,'0')}-01`;
