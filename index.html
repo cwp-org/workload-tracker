@@ -707,16 +707,33 @@
 
   .ts-entry-row {
     display: grid;
-    grid-template-columns: 1fr auto auto auto auto auto;
+    grid-template-columns: 90px 100px 1fr 50px 36px;
     gap: 8px; align-items: center;
-    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    padding: 6px 14px; border-bottom: 1px solid var(--border);
     font-size: 12px; position: relative;
   }
   .ts-entry-row:hover { background: var(--bg3); }
   .ts-entry-row:hover .ts-entry-actions { opacity: 1; }
-  .ts-entry-name { font-size: 12px; color: var(--text); }
+  .ts-entry-name { font-size: 12px; color: var(--text); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ts-entry-name:hover { color: var(--accent); }
   .ts-entry-planned { color: var(--text3); font-style: italic; }
+  .ts-entry-code { font-size: 10px; font-family: monospace; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ts-entry-subcode { font-size: 10px; color: var(--accent); opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ts-entry-hours { font-size: 12px; font-weight: 700; text-align: right; }
   .ts-entry-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
+
+  .ts-entries-header {
+    display: grid;
+    grid-template-columns: 90px 100px 1fr 50px 36px;
+    gap: 8px; align-items: center;
+    padding: 3px 14px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text3); background: var(--bg2); border-bottom: 1px solid var(--border);
+    user-select: none;
+  }
+  .ts-entries-header span { cursor: pointer; }
+  .ts-entries-header span:hover { color: var(--text2); }
+  .ts-entries-header .sort-active { color: var(--accent); }
 
   .ts-month-week-row {
     display: grid; grid-template-columns: 160px 1fr 60px;
@@ -2035,12 +2052,12 @@
 
 <!-- ADD / EDIT TIMESHEET ENTRY MODAL -->
 <div class="modal-overlay" id="tsEntryModal">
-  <div class="modal">
+  <div class="modal" style="width:400px;">
     <div class="modal-title" id="tsEntryModalTitle">Log Time</div>
-    <div style="margin-bottom:14px;"></div>
-    <div class="edit-form-grid">
-      <div class="edit-form-group full">
-        <label class="edit-label">Task / Description</label>
+    <div style="margin-bottom:12px;"></div>
+    <div class="edit-form-grid" style="grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="edit-form-group" style="grid-column:1/-1;">
+        <label class="edit-label">Task</label>
         <input class="edit-input" id="tsEntryName" placeholder="What did you work on?">
       </div>
       <div class="edit-form-group">
@@ -2056,15 +2073,12 @@
         <input class="edit-input" type="date" id="tsEntryDate">
       </div>
       <div class="edit-form-group">
-        <label class="edit-label">Estimated hours</label>
-        <input class="edit-input" type="number" id="tsEntryEst" min="0" step="0.25" placeholder="0">
-      </div>
-      <div class="edit-form-group">
-        <label class="edit-label">Actual hours</label>
+        <label class="edit-label">Hours</label>
         <input class="edit-input" type="number" id="tsEntryActual" min="0.25" step="0.25" placeholder="1">
       </div>
     </div>
-    <div class="modal-actions">
+    <input type="hidden" id="tsEntryEst" value="0">
+    <div class="modal-actions" style="margin-top:14px;">
       <button class="btn" id="tsEntryDeleteBtn" style="margin-right:auto;color:var(--danger);border-color:var(--danger);display:none;" onclick="deleteTsEntry()">Delete</button>
       <button class="btn" onclick="closeTsEntryModal()">Cancel</button>
       <button class="btn primary" onclick="saveTsEntry()">Save</button>
@@ -3966,6 +3980,54 @@ function renderTsCapacityBar(usedH, plannedH, capacityH, label) {
   `;
 }
 
+// Timesheet sort state
+let _tsSortKey = 'project'; // default: group by project
+let _tsSortDir = 'asc';
+function _toggleTsSort(key) {
+  if (_tsSortKey === key) {
+    _tsSortDir = _tsSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _tsSortKey = key; _tsSortDir = 'asc';
+  }
+  renderTimesheet();
+}
+
+function _sortTsItems(items) {
+  const sorted = [...items];
+  sorted.sort((a, b) => {
+    let va, vb;
+    if (_tsSortKey === 'project') {
+      va = projLabel(a.project) + (a.subCode || '');
+      vb = projLabel(b.project) + (b.subCode || '');
+    } else if (_tsSortKey === 'subcode') {
+      va = (a.subCode ? getFullCode(a.project, a.subCode) : projBillingCode(a.project)) || 'zzz';
+      vb = (b.subCode ? getFullCode(b.project, b.subCode) : projBillingCode(b.project)) || 'zzz';
+    } else if (_tsSortKey === 'task') {
+      va = (a.name || a.desc || '').toLowerCase();
+      vb = (b.name || b.desc || '').toLowerCase();
+    } else if (_tsSortKey === 'hours') {
+      va = a._isPlanned ? (a.hours || 0) : (a.actualHours || 0);
+      vb = b._isPlanned ? (b.hours || 0) : (b.actualHours || 0);
+    } else { return 0; }
+    if (va < vb) return _tsSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return _tsSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return sorted;
+}
+
+function _tsColHdr() {
+  function arrow(k) { return _tsSortKey === k ? (_tsSortDir === 'asc' ? ' ▲' : ' ▼') : ''; }
+  function cls(k) { return _tsSortKey === k ? ' sort-active' : ''; }
+  return `<div class="ts-entries-header" style="padding-left:32px;">
+    <span class="${cls('project')}" onclick="_toggleTsSort('project')">Project${arrow('project')}</span>
+    <span class="${cls('subcode')}" onclick="_toggleTsSort('subcode')">Sub-code${arrow('subcode')}</span>
+    <span class="${cls('task')}" onclick="_toggleTsSort('task')">Task${arrow('task')}</span>
+    <span class="${cls('hours')}" onclick="_toggleTsSort('hours')">Hours${arrow('hours')}</span>
+    <span></span>
+  </div>`;
+}
+
 function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -3980,12 +4042,15 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
   wrap.className = 'ts-week-entries';
   let hasAny = false;
 
-  Object.entries(byDay).forEach(([date, items]) => {
-    if (!items.length) return;
+  // Add column header once
+  wrap.innerHTML = _tsColHdr();
+
+  Object.entries(byDay).forEach(([date, rawItems]) => {
+    if (!rawItems.length) return;
     hasAny = true;
     const d = new Date(date + 'T00:00:00');
     const dayLabel = `${dayNames[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
-    const dayTotal = items.filter(i => i._isLogged).reduce((a, i) => a + i.actualHours, 0);
+    const dayTotal = rawItems.filter(i => i._isLogged).reduce((a, i) => a + i.actualHours, 0);
 
     const hdr = document.createElement('div');
     hdr.className = 'ts-day-header';
@@ -3993,34 +4058,32 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
     hdr.innerHTML = `<span>${dayLabel}</span><span class="ts-day-total">${dayTotal > 0 ? dayTotal.toFixed(1) + 'h logged' : ''}</span>`;
     wrap.appendChild(hdr);
 
+    const items = _sortTsItems(rawItems);
     items.forEach(item => {
       const row = document.createElement('div');
       row.className = 'ts-entry-row';
       row.style.paddingLeft = '32px';
+      const parentCode = projBillingCode(item.project) || projLabel(item.project);
+      const scLabel = item.subCode ? getSubCodeLabel(item.project, item.subCode) : '';
+      const fullCode = item.subCode ? getFullCode(item.project, item.subCode) : '';
       if (item._isPlanned) {
         const taskObj = tasks.find(t => t.id === item.id || (item.id || '').startsWith(t.id + '_'));
         const editFn = taskObj ? `openEditModal('${taskObj.id}')` : '';
         row.innerHTML = `
-          <span class="ts-entry-name ts-entry-planned" ${editFn ? `onclick="${editFn}" style="cursor:pointer;"` : ''}>${item.name}${item._recur ? ` <span class="recur-badge">↻</span>${(() => { const occDate = item.id.includes('_') ? item.id.slice(taskObj.id.length + 1) : (taskObj.due || ''); return `<span class="recur-inline-actions"><button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${taskObj.id}','${occDate}')" style="font-size:10px;padding:2px 5px;">Skip</button><button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${taskObj.id}','${occDate}')" style="font-size:10px;padding:2px 5px;">Reschedule</button></span>`; })()}` : ''}</span>
-          <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
-          ${projBillingCode(item.project) ? `<span style="font-size:10px;color:var(--text3);font-family:monospace;">${projBillingCode(item.project)}</span>` : ''}
-          <span style="font-size:11px;color:var(--text3);">planned</span>
-          <span style="font-size:12px;color:var(--text3);">${item.hours}h</span>
-          <span></span>
+          <span class="ts-entry-code" title="${projLabel(item.project)}">${parentCode}</span>
+          <span class="ts-entry-subcode">${scLabel || '—'}</span>
+          <span class="ts-entry-name ts-entry-planned" ${editFn ? `onclick="${editFn}"` : ''}>${item.name}${item._recur ? ' <span class="recur-badge">↻</span>' : ''}</span>
+          <span class="ts-entry-hours" style="color:var(--text3);">${item.hours}h</span>
           <div class="ts-entry-actions" style="opacity:1;">
             ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit task">✏</button>` : ''}
           </div>
         `;
       } else {
-        const scLabel = item.subCode ? getSubCodeLabel(item.project, item.subCode) : '';
-        const fullCode = item.subCode ? getFullCode(item.project, item.subCode) : projBillingCode(item.project);
         row.innerHTML = `
+          <span class="ts-entry-code" title="${projLabel(item.project)}">${parentCode}</span>
+          <span class="ts-entry-subcode">${fullCode ? fullCode.replace(parentCode + '-', '') : '—'}${scLabel ? ' ' + scLabel : ''}</span>
           <span class="ts-entry-name" onclick="openEditTsEntry('${item.id}')">${item.name}</span>
-          <div class="project-dot" style="background:${projColor(item.project)};" title="${projLabel(item.project)}"></div>
-          ${fullCode ? `<span style="font-size:10px;color:var(--text3);font-family:monospace;">${fullCode}</span>` : ''}
-          ${scLabel ? `<span style="font-size:10px;color:var(--accent);opacity:0.7;">${scLabel}</span>` : ''}
-          <span style="font-size:12px;color:var(--text2);">${item.estHours ? item.estHours + 'h est' : ''}</span>
-          <span style="font-size:12px;font-weight:700;">${item.actualHours}h</span>
+          <span class="ts-entry-hours">${item.actualHours}h</span>
           <div class="ts-entry-actions">
             <button class="row-edit-btn" onclick="openEditTsEntry('${item.id}')" title="Edit">✏</button>
             <button class="row-edit-btn" onclick="deleteTsEntry('${item.id}')" title="Delete" style="color:var(--danger);">×</button>
@@ -4362,29 +4425,20 @@ function renderTimesheet() {
           <div class="project-dot" style="background:${projColor(projKey)};width:9px;height:9px;border-radius:50%;"></div>
           <div class="ts-project-name">${projLabel(projKey)}</div>
           <span style="font-size:11px;color:var(--text3);margin-right:8px;">${items.length} entries</span>
-          <span style="font-size:11px;color:var(--text2);margin-right:8px;">Est: ${projEst.toFixed(2)}h</span>
-          <span style="font-size:11px;color:var(--text2);margin-right:12px;">Logged: ${projActual.toFixed(2)}h</span>
-          ${projAcc !== null ? `<span class="ts-accuracy ${accCls}">${projAcc}% accuracy</span>` : ''}
+          <span style="font-size:11px;font-weight:700;color:var(--text);margin-right:12px;">${projActual.toFixed(1)}h logged</span>
         </div>
         <table class="ts-table">
-          <thead><tr><th>Task</th><th>Code</th><th>Date</th><th>Est</th><th>Logged</th><th>Variance</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Sub-code</th><th>Task</th><th>Date</th><th style="text-align:right;">Hours</th><th></th></tr></thead>
           <tbody>
             ${items.map(item => {
-              const varH = item.estHours ? (item.actualHours - item.estHours) : null;
-              const varPct = item.estHours ? ((item.actualHours - item.estHours) / item.estHours * 100) : null;
-              let varCls = '', varStr = '—';
-              if (varH !== null) {
-                const sign = varH >= 0 ? '+' : '';
-                varStr = `${sign}${varH.toFixed(2)}h (${sign}${varPct.toFixed(0)}%)`;
-                varCls = Math.abs(varPct) <= 5 ? 'good' : varH > 0 ? 'over' : 'under';
-              }
+              const code = projBillingCode(item.project) || projLabel(item.project);
+              const sc = item.subCode ? getSubCodeLabel(item.project, item.subCode) : '—';
               return `<tr>
+                <td style="color:var(--text3);font-size:11px;font-family:monospace;">${code}</td>
+                <td style="color:var(--accent);font-size:11px;opacity:0.8;">${sc}</td>
                 <td style="cursor:pointer;color:var(--text);" onclick="openEditTsEntry('${item.id}')" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${item.name}</td>
-                <td style="color:var(--text3);font-size:11px;">${item.subCode ? getFullCode(item.project, item.subCode) : (projBillingCode(item.project) || '—')}</td>
                 <td style="color:var(--text3)">${fmtDate(item.date)}</td>
-                <td>${item.estHours ? item.estHours + 'h' : '—'}</td>
-                <td style="font-weight:600;">${item.actualHours}h</td>
-                <td class="ts-var ${varCls}">${varStr}</td>
+                <td style="font-weight:600;text-align:right;">${item.actualHours}h</td>
                 <td style="white-space:nowrap;">
                   <button class="row-edit-btn" onclick="openEditTsEntry('${item.id}')" title="Edit">✏</button>
                   <button class="row-edit-btn" onclick="deleteTsEntry('${item.id}')" title="Delete" style="color:var(--danger);">×</button>
@@ -4393,9 +4447,7 @@ function renderTimesheet() {
             }).join('')}
             <tr class="ts-summary-row">
               <td colspan="4">Total</td>
-              <td>${projEst.toFixed(2)}h</td>
-              <td>${projActual.toFixed(2)}h</td>
-              <td class="ts-var ${accCls}">${projAcc !== null ? projAcc + '% acc.' : '—'}</td>
+              <td style="text-align:right;">${projActual.toFixed(1)}h</td>
               <td></td>
             </tr>
           </tbody>
