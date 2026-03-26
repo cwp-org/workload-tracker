@@ -13,10 +13,10 @@
     --bg3: #181c26;
     --bg4: #1e2330;
     --border: #252a38;
-    --border2: #2e3448;
+    --border2: #3a4258;
     --text: #e2e8f0;
-    --text2: #8892a4;
-    --text3: #5a6478;
+    --text2: #9ca3b4;
+    --text3: #7a8499;
     --accent: #4f9cf9;
     --accent2: #3b82f6;
     --success: #34d399;
@@ -168,69 +168,102 @@
   .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
 
   /* TASK LIST */
-  .task-group { margin-bottom: 20px; }
+  .task-group {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg);
+  }
 
   .task-group-header {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text3);
-    padding: 6px 0 6px 4px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 6px;
+    color: var(--text2);
+    padding: 8px 8px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     gap: 8px;
+    background: var(--bg2);
+    border-radius: 6px 6px 0 0;
   }
   .task-group-header.today-header { color: var(--accent); border-bottom-color: var(--accent); }
+  .task-group-header.overdue-header { color: var(--danger); border-bottom-color: var(--danger); }
 
   .group-count {
     background: var(--bg4);
-    color: var(--text3);
+    color: var(--text2);
     border-radius: 10px;
     padding: 1px 7px;
     font-size: 10px;
+    font-weight: 600;
   }
+
+  .task-table-header {
+    display: grid;
+    grid-template-columns: 20px 8px 1fr auto auto auto auto auto auto;
+    gap: 8px;
+    padding: 4px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+  }
+  .task-table-header span { cursor: pointer; display: flex; align-items: center; gap: 2px; }
+  .task-table-header span:hover { color: var(--text2); }
+  .task-table-header .sort-active { color: var(--accent); }
 
   .task-row {
     display: grid;
-    grid-template-columns: 20px 8px auto 1fr auto auto auto auto auto;
+    grid-template-columns: 20px 8px 1fr auto auto auto auto auto auto;
     gap: 8px;
     align-items: center;
     padding: 7px 8px;
-    border-radius: 5px;
-    border: 1px solid transparent;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border);
     position: relative;
-    margin-bottom: 3px;
-    transition: all 0.12s;
-    background: var(--bg2);
+    margin-bottom: 0;
+    transition: background 0.12s;
+    background: var(--bg);
     cursor: default;
   }
+  .task-row:last-child { border-bottom: none; }
 
-  .task-row:hover { background: var(--bg3); border-color: var(--border); }
+  .task-row:hover { background: var(--bg3); }
   .task-row.running { border-color: var(--accent) !important; background: #0d1929 !important; }
 
   .task-check {
-    width: 16px;
-    height: 16px;
-    border: 1.5px solid var(--border2);
-    border-radius: 3px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border2);
+    border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.12s;
     flex-shrink: 0;
+    background: var(--bg);
   }
 
-  .task-check:hover { border-color: var(--success); }
+  .task-check:hover { border-color: var(--success); background: rgba(52, 211, 153, 0.1); }
+  .task-check.done { border-color: var(--success); background: var(--success); }
 
   .project-dot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
   }
 
   .task-name {
@@ -255,17 +288,19 @@
 
   .task-category {
     font-size: 10px;
-    color: var(--text3);
+    color: var(--text2);
     background: var(--bg3);
-    padding: 1px 6px;
+    padding: 2px 8px;
     border-radius: 3px;
     white-space: nowrap;
+    border: 1px solid var(--border);
   }
 
   .task-waiting {
     font-size: 10px;
     color: var(--warn);
     white-space: nowrap;
+    font-weight: 500;
   }
 
   .priority-badge {
@@ -289,28 +324,30 @@
 
   .task-due {
     font-size: 11px;
-    color: var(--text3);
+    color: var(--text2);
     cursor: pointer;
     white-space: nowrap;
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: 3px;
     transition: all 0.12s;
+    border: 1px solid transparent;
   }
 
-  .task-due:hover { background: var(--bg4); color: var(--text2); }
-  .task-due.overdue { color: var(--danger); }
-  .task-due.today { color: var(--warn); }
+  .task-due:hover { background: var(--bg4); color: var(--text); border-color: var(--border); }
+  .task-due.overdue { color: var(--danger); font-weight: 600; }
+  .task-due.today { color: var(--warn); font-weight: 600; }
 
   .task-est {
     font-size: 11px;
-    color: var(--text3);
+    color: var(--text2);
     white-space: nowrap;
+    font-weight: 500;
   }
 
   .timer-display {
     font-size: 12px;
     font-weight: 600;
-    color: var(--text3);
+    color: var(--text2);
     min-width: 52px;
     text-align: right;
     white-space: nowrap;
@@ -319,10 +356,10 @@
   .timer-display.running { color: var(--accent); }
 
   .timer-btn {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     border-radius: 4px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border2);
     background: var(--bg3);
     cursor: pointer;
     display: flex;
@@ -330,10 +367,11 @@
     justify-content: center;
     transition: all 0.12s;
     flex-shrink: 0;
-    font-size: 9px;
+    font-size: 10px;
+    color: var(--text2);
   }
 
-  .timer-btn:hover { border-color: var(--accent); background: var(--bg4); }
+  .timer-btn:hover { border-color: var(--accent); background: var(--bg4); color: var(--accent); }
   .timer-btn.running { border-color: var(--danger); }
   .timer-btn.running:hover { background: #3d1515; }
 
@@ -531,7 +569,7 @@
   .session-desc { cursor: pointer; }
   .session-desc:hover { color: var(--accent); }
   .delegate-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; vertical-align: middle; border: 1px solid transparent; }
-  .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); vertical-align: middle; }
+  .recur-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); vertical-align: middle; }
   .recur-inline-actions { display: none; gap: 3px; flex-shrink: 0; margin-left: auto; }
   .task-row:hover .recur-inline-actions,
   .ts-entry-row:hover .recur-inline-actions { display: flex; }
@@ -755,11 +793,12 @@
 
   /* NOTES EXPAND */
   .task-notes-row {
-    grid-column: 1 / -1;
     padding: 4px 10px 8px 36px;
     font-size: 11px;
-    color: var(--text3);
+    color: var(--text2);
     display: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
   }
 
   .task-notes-row.open { display: block; }
@@ -1015,12 +1054,12 @@
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    color: var(--text3);
+    color: var(--text2);
     transition: all 0.12s;
     flex-shrink: 0;
     line-height: 1;
   }
-  .row-edit-btn:hover { border-color: var(--border); background: var(--bg4); color: var(--text2); }
+  .row-edit-btn:hover { border-color: var(--border2); background: var(--bg4); color: var(--text); }
 
   /* TEAM ROW: add 7th col for edit btn */
   .team-row {
@@ -1349,6 +1388,13 @@
       gap: 6px;
       padding: 8px;
     }
+    .task-table-header {
+      grid-template-columns: 20px 8px 1fr auto auto auto !important;
+      gap: 6px;
+    }
+    .task-table-header span:nth-child(4),
+    .task-table-header span:nth-child(5),
+    .task-table-header span:nth-child(8) { display: none !important; }
     .task-category { display: none !important; }
     .task-waiting { display: none !important; }
     .task-est { display: none !important; }
@@ -2675,6 +2721,19 @@ function populateProjectSelects() {
 // TASKS RENDER
 // =============================================
 
+// Section sort state: { sectionId: { key, dir } }
+const _sectionSorts = {};
+function _toggleSectionSort(sectionId, key) {
+  const cur = _sectionSorts[sectionId];
+  if (cur && cur.key === key) {
+    if (cur.dir === 'asc') { _sectionSorts[sectionId] = { key, dir: 'desc' }; }
+    else { delete _sectionSorts[sectionId]; } // third click clears
+  } else {
+    _sectionSorts[sectionId] = { key, dir: 'asc' };
+  }
+  renderTasks();
+}
+
 function priorityBadge(p) {
   const map = { urgent: ['Urgent', 'p-urgent'], high: ['High', 'p-high'], med: ['Med', 'p-med'], low: ['Low', 'p-low'] };
   const [label, cls] = map[p] || ['Med', 'p-med'];
@@ -2766,7 +2825,7 @@ function renderTasks() {
   }
 
   // ── bucket items ──
-  // overdue → clamp to today's bucket
+  const overdueBucket = [];  // strictly before today
   const dayBuckets = {};   // YYYY-MM-DD → items (current week days only)
   currentWeekDays.forEach(d => { dayBuckets[d] = []; });
 
@@ -2776,7 +2835,8 @@ function renderTasks() {
   allItems.forEach(item => {
     const d = item._date;
     if (!d) { unscheduled.push(item); return; }
-    if (d <= todayStr) { (dayBuckets[todayStr] || (dayBuckets[todayStr] = [])).push(item); return; }
+    if (d < todayStr) { overdueBucket.push(item); return; }
+    if (d === todayStr) { (dayBuckets[todayStr] || (dayBuckets[todayStr] = [])).push(item); return; }
     if (currentWeekDays.includes(d)) { dayBuckets[d].push(item); return; }
     if (d > wkEnd) {
       // find Mon of that week
@@ -2867,11 +2927,39 @@ function renderTasks() {
     return row;
   }
 
-  function renderSection(label, items, isToday, dayCap) {
+  function sortItems(items, sortKey, sortDir) {
+    const sorted = [...items];
+    sorted.sort((a, b) => {
+      let va, vb;
+      if (sortKey === 'priority') {
+        va = a._type === 'task' ? priorityOrder[a.task.priority] : a._type === 'session' ? (priorityOrder[a.s.priority] ?? 2) : (priorityOrder[a.st.priority] ?? 2);
+        vb = b._type === 'task' ? priorityOrder[b.task.priority] : b._type === 'session' ? (priorityOrder[b.s.priority] ?? 2) : (priorityOrder[b.st.priority] ?? 2);
+      } else if (sortKey === 'project') {
+        va = a._type === 'task' ? (a.task.project || '') : (a.proj?.project || '');
+        vb = b._type === 'task' ? (b.task.project || '') : (b.proj?.project || '');
+      } else if (sortKey === 'est') {
+        va = a._type === 'task' ? (a.task.est || 0) : a._type === 'session' ? (a.s.hours || 0) : (a.st.hours || 0);
+        vb = b._type === 'task' ? (b.task.est || 0) : b._type === 'session' ? (b.s.hours || 0) : (b.st.hours || 0);
+      } else if (sortKey === 'name') {
+        va = (a._type === 'task' ? a.task.name : a._type === 'session' ? a.s.desc : a.st.desc).toLowerCase();
+        vb = (b._type === 'task' ? b.task.name : b._type === 'session' ? b.s.desc : b.st.desc).toLowerCase();
+      } else {
+        return 0;
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }
+
+  function renderSection(label, items, headerCls, dayCap) {
     if (!items.length && !dayCap) return;
     hasAny = true;
     const section = document.createElement('div');
     section.className = 'task-group';
+    const sectionId = 'tg_' + label.replace(/[^a-zA-Z0-9]/g, '_');
+    section.id = sectionId;
     const est = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
     let capHtml = '';
     if (dayCap) {
@@ -2880,19 +2968,46 @@ function renderTasks() {
       const left = est > dayCap ? `+${(est - dayCap).toFixed(1)}h over` : `${(dayCap - est).toFixed(1)}h free`;
       const leftCol = cls === 'over' ? 'var(--danger)' : cls === 'warn' ? 'var(--warn)' : 'var(--success)';
       capHtml = `
-        <div style="margin:4px 0 6px;display:flex;align-items:center;gap:8px;">
+        <div style="padding:4px 8px;display:flex;align-items:center;gap:8px;background:var(--bg2);">
           <div class="ts-cap-bar-wrap" style="flex:1;"><div class="ts-cap-bar-fill ${cls}" style="width:${pct}%;"></div></div>
           <span style="font-size:10px;color:${leftCol};white-space:nowrap;font-weight:600;">${left}</span>
           <span style="font-size:10px;color:var(--text3);white-space:nowrap;">${est.toFixed(1)}/${dayCap.toFixed(0)}h</span>
         </div>`;
     }
-    section.innerHTML = `<div class="task-group-header${isToday ? ' today-header' : ''}">${label} <span class="group-count">${items.length}</span></div>${capHtml}`;
-    items.forEach(item => {
+
+    // Column header with sort
+    const curSort = _sectionSorts[sectionId] || { key: null, dir: 'asc' };
+    function sortArrow(key) {
+      if (curSort.key === key) return curSort.dir === 'asc' ? ' ▲' : ' ▼';
+      return '';
+    }
+    function activeClass(key) { return curSort.key === key ? ' sort-active' : ''; }
+
+    const colHeader = `<div class="task-table-header">
+      <span></span><span></span>
+      <span class="${activeClass('name')}" onclick="_toggleSectionSort('${sectionId}','name')">Task${sortArrow('name')}</span>
+      <span class="${activeClass('project')}" onclick="_toggleSectionSort('${sectionId}','project')">Project${sortArrow('project')}</span>
+      <span></span>
+      <span class="${activeClass('priority')}" onclick="_toggleSectionSort('${sectionId}','priority')">Priority${sortArrow('priority')}</span>
+      <span>Due</span>
+      <span class="${activeClass('est')}" onclick="_toggleSectionSort('${sectionId}','est')">Est${sortArrow('est')}</span>
+      <span>Timer</span>
+    </div>`;
+
+    section.innerHTML = `<div class="task-group-header${headerCls ? ' ' + headerCls : ''}">${label} <span class="group-count">${items.length}</span></div>${capHtml}${colHeader}`;
+
+    const displayItems = curSort.key ? sortItems(items, curSort.key, curSort.dir) : items;
+    displayItems.forEach(item => {
       const row = buildRow(item);
       section.appendChild(row);
       if (row._notesRow) section.appendChild(row._notesRow);
     });
     container.appendChild(section);
+  }
+
+  // ── overdue (above today) ──
+  if (overdueBucket.length) {
+    renderSection('Overdue', overdueBucket, 'overdue-header');
   }
 
   // ── current week: one section per day ──
@@ -2906,7 +3021,7 @@ function renderTasks() {
     // hide past days with no items; always show today and future days
     if (isPast && !isToday && !items.length) return;
     const label = isToday ? `Today — ${dayName} ${mo} ${dt.getDate()}` : `${dayName} ${mo} ${dt.getDate()}`;
-    renderSection(label, items, isToday, tsCapacity);
+    renderSection(label, items, isToday ? 'today-header' : '', tsCapacity);
   });
 
   // ── future weeks ──
@@ -2915,11 +3030,11 @@ function renderTasks() {
     const dt = new Date(wk + 'T00:00:00');
     const wkCapF = workingDays(wk, addDays(wk, 6)) * tsCapacity;
     const label = `Week of ${months[dt.getMonth()]} ${dt.getDate()}`;
-    renderSection(label, items, false, wkCapF);
+    renderSection(label, items, '', wkCapF);
   });
 
   // ── unscheduled ──
-  renderSection('Unscheduled', unscheduled, false);
+  renderSection('Unscheduled', unscheduled, '');
 
   if (!hasAny) {
     container.innerHTML = '<div class="empty-state">No tasks match your filters.</div>';
