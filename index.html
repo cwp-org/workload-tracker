@@ -696,12 +696,12 @@
 
   .status-badge:hover { opacity: 0.75; }
 
-  .s-not-started { background: #1e2330; color: var(--text3); border: 1px solid var(--border2); }
-  .s-pending     { background: #2a2a10; color: #e2c662; border: 1px solid #e2c662; }
-  .s-in-progress { background: #0d1929; color: #60a5fa; border: 1px solid #60a5fa; }
-  .s-in-review   { background: #1a1a3d; color: #a78bfa; border: 1px solid #a78bfa; }
-  .s-complete    { background: #0d2a1a; color: #34d399; border: 1px solid #34d399; }
-  .s-blocked     { background: #3d1515; color: #f87171; border: 1px solid #f87171; }
+  .s-need-delegate { background: #2a2a10; color: #e2c662; border: 1px solid #e2c662; }
+  .s-in-progress   { background: #0d1929; color: #60a5fa; border: 1px solid #60a5fa; }
+  .s-ready-review  { background: #1a2a3d; color: #38bdf8; border: 1px solid #38bdf8; }
+  .s-in-review     { background: #1a1a3d; color: #a78bfa; border: 1px solid #a78bfa; }
+  .s-blocked       { background: #3d1515; color: #f87171; border: 1px solid #f87171; }
+  .s-complete      { background: #0d2a1a; color: #34d399; border: 1px solid #34d399; }
 
   .team-due { font-size: 11px; color: var(--text3); white-space: nowrap; }
   .team-notes { font-size: 11px; color: var(--text3); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1669,12 +1669,12 @@
       </select>
       <select class="filter-select" id="teamFilterStatus">
         <option value="all">All statuses</option>
-        <option value="not-started">Not Started</option>
-        <option value="pending">Pending</option>
+        <option value="need-delegate">Need to Delegate</option>
         <option value="in-progress">In Progress</option>
+        <option value="ready-review">Ready for Review</option>
         <option value="in-review">In Review</option>
-        <option value="complete">Complete</option>
         <option value="blocked">Blocked</option>
+        <option value="complete">Complete</option>
       </select>
       <button class="btn" onclick="openManagePersonsModal()">+ Add Team Member</button>
       <button class="btn primary" onclick="openAddTeamModal()">+ Add Deliverable</button>
@@ -1937,12 +1937,12 @@
       <div class="edit-form-group">
         <label class="edit-label">Status</label>
         <select class="edit-input" id="teamAddStatus">
-          <option value="not-started">Not Started</option>
-          <option value="pending">Pending</option>
+          <option value="need-delegate">Need to Delegate</option>
           <option value="in-progress">In Progress</option>
+          <option value="ready-review">Ready for Review</option>
           <option value="in-review">In Review</option>
-          <option value="complete">Complete</option>
           <option value="blocked">Blocked</option>
+          <option value="complete">Complete</option>
         </select>
       </div>
       <div class="edit-form-group full">
@@ -2145,12 +2145,12 @@
       <div class="edit-form-group">
         <label class="edit-label">Status</label>
         <select class="edit-input" id="editTeamStatus">
-          <option value="not-started">Not Started</option>
-          <option value="pending">Pending</option>
+          <option value="need-delegate">Need to Delegate</option>
           <option value="in-progress">In Progress</option>
+          <option value="ready-review">Ready for Review</option>
           <option value="in-review">In Review</option>
-          <option value="complete">Complete</option>
           <option value="blocked">Blocked</option>
+          <option value="complete">Complete</option>
         </select>
       </div>
       <div class="edit-form-group full">
@@ -3986,22 +3986,28 @@ function confirmAddProject() {
 // TEAM RENDER
 // =============================================
 
-const STATUS_CYCLE = ['not-started', 'pending', 'in-progress', 'in-review', 'complete', 'blocked'];
+const STATUS_CYCLE = ['need-delegate', 'in-progress', 'ready-review', 'in-review', 'blocked', 'complete'];
 const STATUS_LABELS = {
-  'not-started': 'Not Started',
-  'pending': 'Pending',
+  'need-delegate': 'Need to Delegate',
   'in-progress': 'In Progress',
+  'ready-review': 'Ready for Review',
   'in-review': 'In Review',
+  'blocked': 'Blocked',
   'complete': 'Complete',
-  'blocked': 'Blocked'
+  // Legacy mappings
+  'not-started': 'Need to Delegate',
+  'pending': 'In Progress'
 };
 const STATUS_CLS = {
-  'not-started': 's-not-started',
-  'pending': 's-pending',
+  'need-delegate': 's-need-delegate',
   'in-progress': 's-in-progress',
+  'ready-review': 's-ready-review',
   'in-review': 's-in-review',
+  'blocked': 's-blocked',
   'complete': 's-complete',
-  'blocked': 's-blocked'
+  // Legacy mappings
+  'not-started': 's-need-delegate',
+  'pending': 's-in-progress'
 };
 
 
@@ -4076,29 +4082,36 @@ function renderTeam() {
     return;
   }
 
+  // Split active vs completed
+  const active = visible.filter(i => i.status !== 'complete');
+  const completed_items = visible.filter(i => i.status === 'complete');
+
   // Column header with sort
   function arrow(k) { return _teamSortKey === k ? (_teamSortDir === 'asc' ? ' ▲' : ' ▼') : ''; }
   function cls(k) { return _teamSortKey === k ? ' sort-active' : ''; }
-  const hdr = document.createElement('div');
-  hdr.className = 'team-table-header';
-  hdr.innerHTML = `
-    <span class="${cls('name')}" onclick="_toggleTeamSort('name')">Deliverable${arrow('name')}</span>
-    <span class="${cls('person')}" onclick="_toggleTeamSort('person')">Person${arrow('person')}</span>
-    <span class="${cls('project')}" onclick="_toggleTeamSort('project')">Project${arrow('project')}</span>
-    <span></span>
-    <span class="${cls('due')}" onclick="_toggleTeamSort('due')">Due${arrow('due')}</span>
-    <span class="${cls('status')}" onclick="_toggleTeamSort('status')">Status${arrow('status')}</span>
-    <span></span>`;
-  container.appendChild(hdr);
+  function colHdrHtml() {
+    return `<div class="team-table-header">
+      <span class="${cls('name')}" onclick="_toggleTeamSort('name')">Deliverable${arrow('name')}</span>
+      <span class="${cls('person')}" onclick="_toggleTeamSort('person')">Person${arrow('person')}</span>
+      <span class="${cls('project')}" onclick="_toggleTeamSort('project')">Project${arrow('project')}</span>
+      <span></span>
+      <span class="${cls('due')}" onclick="_toggleTeamSort('due')">Due${arrow('due')}</span>
+      <span class="${cls('status')}" onclick="_toggleTeamSort('status')">Status${arrow('status')}</span>
+      <span></span>
+    </div>`;
+  }
 
-  visible.forEach(item => {
+  function buildTeamRow(item, isCompleted) {
     const row = document.createElement('div');
     row.className = 'team-row';
+    if (isCompleted) row.style.opacity = '0.5';
     const dc = dueCls(item.due);
+    const pc = personColor(item.owner || '—');
+    const ownerHtml = `<span class="team-owner" style="color:${pc.text};">${item.owner}</span>`;
     if (item._delegated) {
       row.innerHTML = `
         <div class="team-task-name" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')">${item.name} <span class="delegate-tag">↗</span></div>
-        <span class="team-owner">${item.owner}</span>
+        ${ownerHtml}
         <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')">${fmtDate(item.due)}</span>
@@ -4107,15 +4120,32 @@ function renderTeam() {
     } else {
       row.innerHTML = `
         <div class="team-task-name" onclick="openEditTeamModal('${item.id}')">${item.name}</div>
-        <span class="team-owner">${item.owner}</span>
+        ${ownerHtml}
         <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openTeamDueDatePicker(this,'${item.id}')">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showStatusDropdown(event,'${item.id}')" style="cursor:pointer;">${STATUS_LABELS[item.status]}</span>
         <button class="row-edit-btn" onclick="openEditTeamModal('${item.id}')" title="Edit">✏</button>`;
     }
-    container.appendChild(row);
-  });
+    return row;
+  }
+
+  // Active section
+  container.innerHTML = colHdrHtml();
+  if (active.length) {
+    active.forEach(item => container.appendChild(buildTeamRow(item, false)));
+  } else {
+    container.innerHTML += '<div style="padding:12px;font-size:12px;color:var(--text3);">All tasks complete.</div>';
+  }
+
+  // Completed section
+  if (completed_items.length) {
+    const divider = document.createElement('div');
+    divider.style.cssText = 'padding:8px 10px;margin-top:16px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);';
+    divider.textContent = `Completed (${completed_items.length})`;
+    container.appendChild(divider);
+    completed_items.forEach(item => container.appendChild(buildTeamRow(item, true)));
+  }
 }
 
 function toggleTeamNotes(id) {
@@ -4164,7 +4194,7 @@ function confirmAddTeam() {
     owner: document.getElementById('teamAddOwner').value.trim(),
     project: document.getElementById('teamAddProject').value || 'admin',
     due: document.getElementById('teamAddDue').value || '',
-    status: document.getElementById('teamAddStatus').value || 'not-started',
+    status: document.getElementById('teamAddStatus').value || 'need-delegate',
     waiting: document.getElementById('teamAddWaiting').value.trim(),
     notes: document.getElementById('teamAddNotes').value.trim()
   };
@@ -5783,7 +5813,7 @@ function openEditTeamModal(itemId) {
   document.getElementById('editTeamOwner').value   = item.owner || '';
   document.getElementById('editTeamProject').value = item.project || 'admin';
   document.getElementById('editTeamDue').value     = item.due || '';
-  document.getElementById('editTeamStatus').value  = item.status || 'not-started';
+  document.getElementById('editTeamStatus').value  = item.status || 'need-delegate';
   document.getElementById('editTeamWaiting').value = item.waiting || '';
   document.getElementById('editTeamNotes').value   = item.notes || '';
   document.getElementById('editTeamModal').classList.add('open');
