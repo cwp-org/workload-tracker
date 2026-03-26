@@ -3959,7 +3959,7 @@ function plannedItems(fromDate, toDate) {
   tasks.forEach(t => {
     if (!t.recurrence) {
       if (t.due && t.due >= fromDate && t.due <= toDate) {
-        items.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, _planned: true });
+        items.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, subCode: t.subCode || '', _planned: true, _src: 'task' });
       }
     } else {
       // Expand recurring task into all occurrences in period, capped at end date
@@ -3973,7 +3973,7 @@ function plannedItems(fromDate, toDate) {
         if (recurEnd && d > recurEnd) break;
         if (!skips.includes(d)) {
           const displayDate = overrides[d] || d;
-          items.push({ id: t.id + '_' + d, name: t.name, project: t.project, date: displayDate, hours: t.est || 0, _planned: true, _recur: true, _overridden: !!overrides[d] });
+          items.push({ id: t.id + '_' + d, name: t.name, project: t.project, date: displayDate, hours: t.est || 0, subCode: t.subCode || '', _planned: true, _recur: true, _overridden: !!overrides[d], _src: 'task' });
         }
         d = nextRecurrenceAfter(t, d);
       }
@@ -3984,13 +3984,13 @@ function plannedItems(fromDate, toDate) {
       const sDel = normDelegated(s.delegatedTo);
       const isMyWork = !sDel.length || sDel.includes('Me');
       if (!s.done && isMyWork && s.date && s.date >= fromDate && s.date <= toDate) {
-        items.push({ id: s.id, name: s.desc, project: proj.project, date: s.date, hours: s.hours || 0, _planned: true });
+        items.push({ id: s.id, name: s.desc, project: proj.project, date: s.date, hours: s.hours || 0, subCode: s.subCode || '', _planned: true, _src: 'session', _projId: proj.id });
       }
       (s.subtasks || []).forEach(st => {
         const stDel2 = normDelegated(st.delegatedTo);
         const stIsMyWork = !stDel2.length || stDel2.includes('Me');
         if (!st.done && stIsMyWork && st.date && st.date >= fromDate && st.date <= toDate) {
-          items.push({ id: st.id, name: st.desc, project: proj.project, date: st.date, hours: st.hours || 0, _planned: true });
+          items.push({ id: st.id, name: st.desc, project: proj.project, date: st.date, hours: st.hours || 0, subCode: st.subCode || '', _planned: true, _src: 'subtask', _projId: proj.id, _sessionId: s.id });
         }
       });
     });
@@ -4136,12 +4136,22 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
       if (item._isPlanned) {
         const taskObj = tasks.find(t => t.id === item.id || (item.id || '').startsWith(t.id + '_'));
         const editFn = taskObj ? `openEditModal('${taskObj.id}')` : '';
+        // Build mark-done button based on source type
+        let doneFn = '';
+        if (item._src === 'task' && taskObj) {
+          doneFn = `openCompletionModal('${taskObj.id}')`;
+        } else if (item._src === 'session') {
+          doneFn = `toggleSession('${item._projId}','${item.id}');renderTimesheet()`;
+        } else if (item._src === 'subtask') {
+          doneFn = `toggleSubtask('${item._projId}','${item._sessionId}','${item.id}');renderTimesheet()`;
+        }
         row.innerHTML = `
           <span class="ts-entry-code" title="${projLabel(item.project)}">${parentCode}</span>
           <span class="ts-entry-subcode">${scLabel || '—'}</span>
           <span class="ts-entry-name ts-entry-planned" ${editFn ? `onclick="${editFn}"` : ''}>${item.name}${item._recur ? ' <span class="recur-badge">↻</span>' : ''}</span>
           <span class="ts-entry-hours" style="color:var(--text3);">${item.hours}h</span>
           <div class="ts-entry-actions" style="opacity:1;">
+            ${doneFn ? `<button class="row-edit-btn" onclick="event.stopPropagation();${doneFn}" title="Mark as done" style="color:var(--success);font-size:13px;">✓</button>` : ''}
             ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit task">✏</button>` : ''}
           </div>
         `;
@@ -4462,6 +4472,13 @@ function renderTimesheet() {
           const editFn = item._taskId
             ? `openEditModal('${item._taskId}')`
             : item._projId ? `openEditSessionModal('${item._projId}','${item.id}')` : '';
+          // Mark-done handler
+          let doneFn = '';
+          if (item._taskId) {
+            doneFn = `openCompletionModal('${item._taskId}')`;
+          } else if (item._projId) {
+            doneFn = `toggleSession('${item._projId}','${item.id}');renderTimesheet()`;
+          }
           const typeLabel = item.type === 'session' ? 'project' : item._recur ? 'recurring' : 'task';
           const subLabel = item._projName ? ` <span style="font-size:10px;color:var(--text3);">· ${item._projName}</span>` : '';
           const recurBadge = item._recur ? `<span class="recur-badge">↻</span>` : '';
@@ -4473,6 +4490,7 @@ function renderTimesheet() {
             <span style="font-size:11px;color:var(--text3);">${typeLabel}</span>
             <span style="font-size:12px;font-weight:700;">${item.hours}h</span>
             <div class="ts-entry-actions" style="opacity:1;">
+              ${doneFn ? `<button class="row-edit-btn" onclick="event.stopPropagation();${doneFn}" title="Mark as done" style="color:var(--success);font-size:13px;">✓</button>` : ''}
               ${editFn ? `<button class="row-edit-btn" onclick="${editFn}" title="Edit">✏</button>` : ''}
             </div>
           `;
