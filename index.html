@@ -579,7 +579,7 @@
 
   .session-row {
     display: grid;
-    grid-template-columns: 20px 1fr 56px auto auto auto;
+    grid-template-columns: 20px 1fr 56px 70px 40px 90px;
     gap: 8px;
     align-items: center;
     padding: 8px 14px;
@@ -607,7 +607,7 @@
   .member-chip button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
   .member-chip button:hover { color: var(--danger); }
   .delegate-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; color: var(--text2); cursor: pointer; transition: background 0.12s, border-color 0.12s, color 0.12s; user-select: none; }
-  .subtask-row { display: grid; grid-template-columns: 20px 1fr 56px auto auto auto; gap: 8px; align-items: center; padding: 5px 14px 5px 44px; border-bottom: 1px solid var(--border); font-size: 11px; background: var(--bg); }
+  .subtask-row { display: grid; grid-template-columns: 20px 1fr 56px 70px 40px 90px; gap: 8px; align-items: center; padding: 5px 14px 5px 44px; border-bottom: 1px solid var(--border); font-size: 11px; background: var(--bg); }
   .subtask-row:hover { background: var(--bg3); }
   .subtask-row:hover .session-row-actions { opacity: 1; }
   .delegate-pill.selected { background: #7c3aed22; border-color: var(--accent, #7c3aed); color: var(--accent, #7c3aed); font-weight: 600; }
@@ -1478,7 +1478,7 @@
 
     /* Session rows — fewer columns */
     .session-row {
-      grid-template-columns: 20px 1fr auto auto !important;
+      grid-template-columns: 20px 1fr 56px 70px 40px 80px !important;
       gap: 6px;
     }
 
