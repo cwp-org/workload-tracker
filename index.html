@@ -3161,8 +3161,8 @@ function renderTasks() {
   const capBar = document.getElementById('tasksCapBar');
   if (capBar) {
     capBar.style.display = '';
-    document.getElementById('tasksCapLabel').textContent = `This week — ${wkEst.toFixed(1)}h estimated / ${wkCap.toFixed(0)}h capacity`;
-    document.getElementById('tasksCapDetail').textContent = wkEst > wkCap ? `+${(wkEst - wkCap).toFixed(1)}h over` : `${(wkCap - wkEst).toFixed(1)}h left`;
+    document.getElementById('tasksCapLabel').textContent = `This week — ${fmtQ(wkEst)}h estimated / ${wkCap.toFixed(0)}h capacity`;
+    document.getElementById('tasksCapDetail').textContent = wkEst > wkCap ? `+${fmtQ(wkEst - wkCap)}h over` : `${fmtQ(wkCap - wkEst)}h left`;
     document.getElementById('tasksCapDetail').style.color = wkCls === 'over' ? 'var(--danger)' : wkCls === 'warn' ? 'var(--warn)' : 'var(--success)';
     const fill = document.getElementById('tasksCapFill');
     fill.style.width = wkPct + '%';
@@ -3325,19 +3325,19 @@ function renderTasks() {
       // Status text
       let statusText, statusCol;
       if (logged === 0) {
-        const left = est > dayCap ? `+${(est - dayCap).toFixed(1)}h over capacity` : `${(dayCap - est).toFixed(1)}h free`;
+        const left = est > dayCap ? `+${fmtQ(est - dayCap)}h over capacity` : `${fmtQ(dayCap - est)}h free`;
         statusCol = capCls === 'over' ? 'var(--danger)' : capCls === 'warn' ? 'var(--warn)' : 'var(--success)';
         statusText = left;
       } else {
         const variance = logged - est;
         if (remaining > 0) {
-          statusText = `${remaining.toFixed(1)}h remaining`;
+          statusText = `${fmtQ(remaining)}h remaining`;
           statusCol = 'var(--text2)';
         } else if (Math.abs(variance) < 0.1) {
           statusText = 'Complete — on target';
           statusCol = 'var(--success)';
         } else {
-          statusText = `Complete — ${variance > 0 ? '+' : ''}${variance.toFixed(1)}h vs planned`;
+          statusText = `Complete — ${variance > 0 ? '+' : ''}${fmtQ(variance)}h vs planned`;
           statusCol = variance > 0 ? 'var(--warn)' : 'var(--success)';
         }
       }
@@ -3350,7 +3350,7 @@ function renderTasks() {
           </div>
           <span style="font-size:10px;color:var(--text);white-space:nowrap;font-weight:700;">${logged > 0 ? fmtQ(logged) + 'h logged' : ''}</span>
           <span style="font-size:10px;color:${statusCol};white-space:nowrap;font-weight:600;">${statusText}</span>
-          <span style="font-size:10px;color:var(--text3);white-space:nowrap;">${est.toFixed(1)}h planned / ${dayCap.toFixed(0)}h cap</span>
+          <span style="font-size:10px;color:var(--text3);white-space:nowrap;">${fmtQ(est)}h planned / ${dayCap.toFixed(0)}h cap</span>
         </div>`;
     }
 
@@ -4321,7 +4321,7 @@ function renderTsCapacityBar(usedH, plannedH, capacityH, label) {
         <span style="color:var(--text);font-weight:600;">${fmtQ(usedH)}h</span> logged
         ${plannedH > 0 ? ` + <span style="color:var(--text3);">${fmtQ(plannedH)}h</span> planned` : ''}
         &nbsp;/&nbsp;${capacityH}h capacity
-        &nbsp;·&nbsp;<span style="color:${remaining > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${remaining > 0 ? remaining.toFixed(1) + 'h free' : 'over capacity'}</span>
+        &nbsp;·&nbsp;<span style="color:${remaining > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${remaining > 0 ? fmtQ(remaining) + 'h free' : 'over capacity'}</span>
       </span>
     </div>
     <div class="ts-cap-bar-wrap">
@@ -4722,7 +4722,7 @@ function renderTimesheet() {
       summaryEl.innerHTML = `
         <span>📋 <strong style="color:var(--text)">${plannedAll.length}</strong> items planned</span>
         ${recurCount ? `<span>↻ <strong style="color:var(--text)">${recurCount}</strong> recurring occurrences</span>` : ''}
-        <span>⏱ <strong style="color:var(--text)">${totalH.toFixed(1)}h</strong> total estimated</span>
+        <span>⏱ <strong style="color:var(--text)">${fmtQ(totalH)}h</strong> total estimated</span>
         <span>📅 <strong style="color:var(--text)">${Object.keys(byWeek).length}</strong> weeks</span>
       `;
       container.appendChild(summaryEl);
@@ -4746,9 +4746,9 @@ function renderTimesheet() {
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
             <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;">${wLabel}</span>
             <span style="font-size:11px;color:var(--text3);">
-              <strong style="color:${cls === 'over' ? 'var(--danger)' : cls === 'warn' ? 'var(--warn)' : 'var(--success)'}">${wHours.toFixed(1)}h</strong> planned
+              <strong style="color:${cls === 'over' ? 'var(--danger)' : cls === 'warn' ? 'var(--warn)' : 'var(--success)'}">${fmtQ(wHours)}h</strong> planned
               / ${wCap.toFixed(0)}h capacity
-              · <span style="color:${remaining > 0 ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">${remaining > 0 ? remaining.toFixed(1) + 'h free' : 'over capacity'}</span>
+              · <span style="color:${remaining > 0 ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">${remaining > 0 ? fmtQ(remaining) + 'h free' : 'over capacity'}</span>
             </span>
           </div>
           <div class="ts-cap-bar-wrap">
@@ -5121,7 +5121,7 @@ function renderAllocations() {
         html += `<div style="font-weight:600;font-size:11px;">${projAlloc > 0 ? projAlloc + 'h' : '—'}</div>`;
       }
       if (projActual > 0 || projAlloc > 0) {
-        html += `<div class="alloc-actual">${projActual.toFixed(1)}h used</div>`;
+        html += `<div class="alloc-actual">${fmtQ(projActual)}h used</div>`;
         if (projAlloc > 0) {
           html += `<div class="alloc-bar-wrap"><div class="alloc-bar ${clr}" style="width:${Math.min(pct, 100)}%"></div></div>`;
           html += `<div class="alloc-pct ${clr}">${pct}%</div>`;
@@ -5139,7 +5139,7 @@ function renderAllocations() {
     const ytdClr = projAllocYTD > 0 ? barColor(ytdPct) : '';
     html += `<td class="alloc-cell alloc-ytd-col">`;
     html += `<div style="font-weight:600;">${projAllocYTD > 0 ? projAllocYTD + 'h' : '—'}</div>`;
-    if (projActualYTD > 0) html += `<div class="alloc-actual">${projActualYTD.toFixed(1)}h</div>`;
+    if (projActualYTD > 0) html += `<div class="alloc-actual">${fmtQ(projActualYTD)}h</div>`;
     if (projAllocYTD > 0) html += `<div class="alloc-pct ${ytdClr}">${ytdPct}%</div>`;
     html += `</td></tr>`;
 
@@ -5163,7 +5163,7 @@ function renderAllocations() {
                     onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)"
                     title="Allocated hours for ${fullCode} in ${m.label}">`;
           if (actual > 0) {
-            html += `<div class="alloc-actual">${actual.toFixed(1)}h</div>`;
+            html += `<div class="alloc-actual">${fmtQ(actual)}h</div>`;
           }
           if (allocated > 0 && (actual > 0 || allocated > 0)) {
             html += `<div class="alloc-bar-wrap"><div class="alloc-bar ${clr}" style="width:${Math.min(pct, 100)}%"></div></div>`;
@@ -5176,7 +5176,7 @@ function renderAllocations() {
         const scYtdClr = scAllocYTD > 0 ? barColor(scYtdPct) : '';
         html += `<td class="alloc-cell alloc-ytd-col">`;
         html += `<div style="font-size:11px;">${scAllocYTD > 0 ? scAllocYTD + 'h' : '—'}</div>`;
-        if (scActualYTD > 0) html += `<div class="alloc-actual">${scActualYTD.toFixed(1)}h</div>`;
+        if (scActualYTD > 0) html += `<div class="alloc-actual">${fmtQ(scActualYTD)}h</div>`;
         if (scAllocYTD > 0) html += `<div class="alloc-pct ${scYtdClr}">${scYtdPct}%</div>`;
         html += `</td></tr>`;
       });
@@ -5192,7 +5192,7 @@ function renderAllocations() {
     const clr = alloc > 0 ? barColor(pct) : '';
     html += `<td class="alloc-cell">`;
     html += `<div>${alloc > 0 ? alloc + 'h' : '—'}</div>`;
-    if (actual > 0) html += `<div class="alloc-actual">${actual.toFixed(1)}h</div>`;
+    if (actual > 0) html += `<div class="alloc-actual">${fmtQ(actual)}h</div>`;
     if (alloc > 0) {
       html += `<div class="alloc-bar-wrap"><div class="alloc-bar ${clr}" style="width:${Math.min(pct, 100)}%"></div></div>`;
       html += `<div class="alloc-pct ${clr}">${pct}%</div>`;
@@ -5203,7 +5203,7 @@ function renderAllocations() {
   const gPct = grandAllocYTD > 0 ? Math.round((grandActualYTD / grandAllocYTD) * 100) : 0;
   const gClr = grandAllocYTD > 0 ? barColor(gPct) : '';
   html += `<td class="alloc-cell alloc-ytd-col"><div>${grandAllocYTD > 0 ? grandAllocYTD + 'h' : '—'}</div>`;
-  if (grandActualYTD > 0) html += `<div class="alloc-actual">${grandActualYTD.toFixed(1)}h</div>`;
+  if (grandActualYTD > 0) html += `<div class="alloc-actual">${fmtQ(grandActualYTD)}h</div>`;
   if (grandAllocYTD > 0) html += `<div class="alloc-pct ${gClr}">${gPct}%</div>`;
   html += `</td></tr>`;
 
