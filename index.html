@@ -2307,6 +2307,300 @@ const collapsedAllocProjs = new Set();
 // Allocations data: { "projKey|scId|YYYY-MM": hours }
 let allocations = load('wt_allocations', {});
 function saveAllocations() { save('wt_allocations', allocations); }
+
+// ── Excel workload allocation import (one-time migration) ──
+(function migrateXlsxAllocations() {
+  if (localStorage.getItem('wt_xlsx_alloc_imported')) return;
+
+  // ── 1. Define new project entries ──
+  const newProjects = {
+    kc:        { label: 'Kansas City Water Workforce',   color: '#0ea5e9', billingCode: 'T-23-007', subCodes: [] },
+    doee_ta:   { label: 'DOEE Technical Assistance',     color: '#f97316', billingCode: 'W-22-026', subCodes: [] },
+    carroll:   { label: 'Carroll County Watershed',      color: '#16a34a', billingCode: 'W-24-022', subCodes: [] },
+    src_pa:    { label: 'SRC Purchase Agreement',        color: '#dc2626', billingCode: 'W-24-038', subCodes: [] },
+    carrie:    { label: 'Carrie Murray Nature Center',   color: '#84cc16', billingCode: 'W-24-054', subCodes: [] },
+    gaithwp:   { label: 'Gaithersburg Watershed Plans',  color: '#14b8a6', billingCode: 'W-24-058', subCodes: [] },
+    campbell:  { label: 'Campbell Foundation CWC',        color: '#8b5cf6', billingCode: 'W-25-003', subCodes: [] },
+    somerset:  { label: 'Somerset County Coordinator',   color: '#e879f9', billingCode: 'W-25-009', subCodes: [] },
+    wpt:       { label: 'Watershed Planning Training',   color: '#06b6d4', billingCode: 'T-26-002', subCodes: [] },
+    biomain:   { label: 'Bioretention Maintenance',      color: '#65a30d', billingCode: 'R-26-001', subCodes: [] },
+    coastal_pl:{ label: 'Coastal Resilience Peer Learning', color: '#d946ef', billingCode: 'T-26-004', subCodes: [] },
+    cwc_pas:   { label: 'CWC Delivery Pasadena',         color: '#10b981', billingCode: 'T-26-005', subCodes: [] },
+    wicomico:  { label: 'Wicomico County MS4',            color: '#f59e0b', billingCode: 'W-22-029b', subCodes: [] },
+    coastal_sw:{ label: 'Coastal Stormwater Center',      color: '#ef4444', billingCode: 'R-24-001', subCodes: [] },
+    trainprop: { label: 'Training Proposal',              color: '#eab308', billingCode: 'T-15-999', subCodes: [] }
+  };
+
+  // Add new projects to PROJECTS (skip if key already exists)
+  Object.entries(newProjects).forEach(function(entry) {
+    var k = entry[0], v = entry[1];
+    if (!PROJECTS[k]) {
+      PROJECTS[k] = v;
+    }
+  });
+
+  // Also add them to DEFAULT_PROJECTS reference so future migrations pick them up
+  Object.entries(newProjects).forEach(function(entry) {
+    var k = entry[0], v = entry[1];
+    if (!DEFAULT_PROJECTS[k]) {
+      DEFAULT_PROJECTS[k] = { label: v.label, color: v.color, billingCode: v.billingCode };
+    }
+  });
+
+  // Ensure subCodes array exists on every project
+  Object.keys(PROJECTS).forEach(function(k) {
+    if (!PROJECTS[k].subCodes) PROJECTS[k].subCodes = [];
+  });
+
+  // Update projOrder with new keys
+  var allKeys = Object.keys(PROJECTS);
+  var orderSet = new Set(projOrder);
+  allKeys.forEach(function(k) { if (!orderSet.has(k)) projOrder.push(k); });
+  save('wt_project_order', projOrder);
+
+  // ── 2. Helper: add sub-code if it doesn't exist, return its id ──
+  function ensureSC(projKey, code, label) {
+    var scs = PROJECTS[projKey].subCodes;
+    var found = scs.find(function(s) { return s.code === code && s.label === label; });
+    if (found) return found.id;
+    var id = '_' + Math.random().toString(36).slice(2, 11);
+    scs.push({ id: id, code: code, label: label });
+    return id;
+  }
+
+  // ── 3. Helper: set allocation ──
+  function aSet(projKey, scId, ym, hours) {
+    var key = projKey + '|' + (scId || '') + '|' + ym;
+    if (hours > 0) allocations[key] = hours;
+  }
+
+  // ── 4. Build sub-codes and allocations ──
+  var sc;
+
+  // Row 3: O-09-018 Staff Meetings → meetings project
+  sc = ensureSC('meetings', '1', 'Staff Meetings');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('meetings', sc, m, 1); });
+
+  // Row 4: O-09-019 Supervision
+  sc = ensureSC('supervision', '1', 'Supervision');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('supervision', sc, m, 2); });
+
+  // Row 5: O-09-022A Combined Leave
+  sc = ensureSC('leave', '1', 'Combined Leave');
+  aSet('leave', sc, '2026-06', 16);
+  aSet('leave', sc, '2026-08', 24);
+  aSet('leave', sc, '2026-12', 16);
+
+  // Row 7: O-14-002 Conference Attendance
+  sc = ensureSC('conference', '1', 'Conference Attendance');
+  aSet('conference', sc, '2026-04', 40);
+
+  // Row 8: T-09-999 Training Overhead
+  sc = ensureSC('overhead', '1', 'Training Overhead');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('overhead', sc, m, 8); });
+
+  // Row 9: T-15-999 Training Proposal
+  sc = ensureSC('trainprop', '1', 'Training Proposal');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('trainprop', sc, m, 8); });
+
+  // Row 10: O-09-022E Holiday
+  sc = ensureSC('holiday', '1', 'Holiday');
+  aSet('holiday', sc, '2026-05', 8);
+  aSet('holiday', sc, '2026-07', 8);
+  aSet('holiday', sc, '2026-09', 8);
+  aSet('holiday', sc, '2026-11', 16);
+  aSet('holiday', sc, '2026-12', 16);
+  aSet('holiday', sc, '2027-01', 16);
+
+  // Rows 11-19: T-21-010 CWC sub-codes
+  // Row 11: Outreach and marketing
+  sc = ensureSC('cwc', '1', 'Outreach and marketing');
+  aSet('cwc', sc, '2026-03', 4); aSet('cwc', sc, '2026-04', 6.5); aSet('cwc', sc, '2026-05', 6);
+  ['2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('cwc', sc, m, 4); });
+
+  // Row 12: ANSI
+  sc = ensureSC('cwc', '2', 'ANSI');
+  aSet('cwc', sc, '2026-03', 15); aSet('cwc', sc, '2026-04', 13); aSet('cwc', sc, '2026-05', 5);
+  aSet('cwc', sc, '2026-06', 8); aSet('cwc', sc, '2026-08', 2); aSet('cwc', sc, '2026-09', 4); aSet('cwc', sc, '2026-10', 2);
+
+  // Row 13: Instructor Engagement
+  sc = ensureSC('cwc', '3', 'Instructor Engagement');
+  aSet('cwc', sc, '2026-03', 5); aSet('cwc', sc, '2026-04', 3.5); aSet('cwc', sc, '2026-05', 7);
+  aSet('cwc', sc, '2026-06', 3.5); aSet('cwc', sc, '2026-07', 2); aSet('cwc', sc, '2026-08', 0.5);
+  aSet('cwc', sc, '2026-09', 3); aSet('cwc', sc, '2026-10', 3); aSet('cwc', sc, '2026-11', 2); aSet('cwc', sc, '2026-12', 2);
+
+  // Row 14: Miscellaneous CWC
+  sc = ensureSC('cwc', '4', 'Miscellaneous CWC');
+  aSet('cwc', sc, '2026-03', 18); aSet('cwc', sc, '2026-04', 6); aSet('cwc', sc, '2026-06', 5);
+  aSet('cwc', sc, '2026-10', 5); aSet('cwc', sc, '2026-11', 5);
+
+  // Row 15: PM and meetings
+  sc = ensureSC('cwc', '5', 'PM and meetings');
+  aSet('cwc', sc, '2026-03', 28); aSet('cwc', sc, '2026-04', 13); aSet('cwc', sc, '2026-05', 11);
+  aSet('cwc', sc, '2026-06', 8); aSet('cwc', sc, '2026-07', 8); aSet('cwc', sc, '2026-08', 10);
+  aSet('cwc', sc, '2026-09', 6); aSet('cwc', sc, '2026-10', 14); aSet('cwc', sc, '2026-11', 10); aSet('cwc', sc, '2026-12', 8);
+
+  // Row 16: Oversight Committee
+  sc = ensureSC('cwc', '6', 'Oversight Committee');
+  aSet('cwc', sc, '2026-03', 5); aSet('cwc', sc, '2026-04', 2); aSet('cwc', sc, '2026-10', 3); aSet('cwc', sc, '2026-11', 2);
+
+  // Row 17: IPP Onboarding & Enrollment
+  sc = ensureSC('cwc', '7', 'IPP Onboarding & Enrollment');
+  aSet('cwc', sc, '2026-03', 4); aSet('cwc', sc, '2026-04', 3);
+  ['2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('cwc', sc, m, 2); });
+
+  // Row 18: Instructor Cohorts
+  sc = ensureSC('cwc', '8', 'Instructor Cohorts');
+  aSet('cwc', sc, '2026-03', 2); aSet('cwc', sc, '2026-04', 2); aSet('cwc', sc, '2026-05', 2);
+  aSet('cwc', sc, '2026-06', 2); aSet('cwc', sc, '2026-07', 5); aSet('cwc', sc, '2026-08', 2);
+  aSet('cwc', sc, '2026-09', 2); aSet('cwc', sc, '2026-10', 5); aSet('cwc', sc, '2026-11', 2); aSet('cwc', sc, '2026-12', 5);
+
+  // Row 19: Materials Updates
+  sc = ensureSC('cwc', '9', 'Materials Updates');
+  aSet('cwc', sc, '2026-03', 21); aSet('cwc', sc, '2026-04', 17); aSet('cwc', sc, '2026-05', 8);
+  ['2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('cwc', sc, m, 1); });
+
+  // Row 20: W-22-026 DOEE TA - Meeting with DOEE Staff
+  sc = ensureSC('doee_ta', '1', 'Meeting with DOEE Staff');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09'].forEach(function(m) { aSet('doee_ta', sc, m, 1.5); });
+
+  // Rows 21-24: T-23-007 Kansas City
+  // Row 21: Task 1 PM and Meetings
+  sc = ensureSC('kc', '1', 'Task 1: PM and Meetings');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12',
+   '2027-01','2027-02','2027-03','2027-04','2027-05','2027-06','2027-07'].forEach(function(m) { aSet('kc', sc, m, 3); });
+  aSet('kc', sc, '2027-08', 4);
+
+  // Row 22: Task 2 Outreach
+  sc = ensureSC('kc', '2', 'Task 2 - Outreach');
+  aSet('kc', sc, '2026-03', 2); aSet('kc', sc, '2026-04', 9); aSet('kc', sc, '2026-05', 9);
+  aSet('kc', sc, '2026-06', 1); aSet('kc', sc, '2026-07', 6); aSet('kc', sc, '2026-08', 6);
+  aSet('kc', sc, '2026-09', 6); aSet('kc', sc, '2026-10', 6); aSet('kc', sc, '2026-11', 6); aSet('kc', sc, '2026-12', 6);
+  aSet('kc', sc, '2027-01', 10); aSet('kc', sc, '2027-02', 2); aSet('kc', sc, '2027-03', 4);
+  aSet('kc', sc, '2027-04', 38); aSet('kc', sc, '2027-05', 2); aSet('kc', sc, '2027-06', 2);
+  aSet('kc', sc, '2027-07', 2); aSet('kc', sc, '2027-08', 2);
+
+  // Row 23: Task 3 Mid America GSI Trainings
+  sc = ensureSC('kc', '3', 'Task 3 - Mid America GSI Trainings');
+  aSet('kc', sc, '2026-03', 30); aSet('kc', sc, '2026-04', 2); aSet('kc', sc, '2026-05', 44);
+  aSet('kc', sc, '2026-06', 28); aSet('kc', sc, '2026-07', 9); aSet('kc', sc, '2026-08', 40);
+  aSet('kc', sc, '2026-09', 20); aSet('kc', sc, '2026-10', 5); aSet('kc', sc, '2026-11', 4); aSet('kc', sc, '2026-12', 4);
+  aSet('kc', sc, '2027-01', 1); aSet('kc', sc, '2027-04', 3); aSet('kc', sc, '2027-05', 2);
+  aSet('kc', sc, '2027-07', 1); aSet('kc', sc, '2027-08', 2);
+
+  // Row 24: Task 4 WFD
+  sc = ensureSC('kc', '4', 'Task 4 - WFD');
+  aSet('kc', sc, '2026-03', 4); aSet('kc', sc, '2026-04', 32); aSet('kc', sc, '2026-05', 4);
+  aSet('kc', sc, '2026-06', 36); aSet('kc', sc, '2026-07', 6); aSet('kc', sc, '2026-08', 6);
+  aSet('kc', sc, '2026-09', 6); aSet('kc', sc, '2026-10', 6); aSet('kc', sc, '2026-11', 6); aSet('kc', sc, '2026-12', 6);
+  ['2027-01','2027-02','2027-03','2027-04','2027-05','2027-06'].forEach(function(m) { aSet('kc', sc, m, 6); });
+  aSet('kc', sc, '2027-07', 2); aSet('kc', sc, '2027-08', 2);
+
+  // Rows 25-29: W-24-022 Carroll County
+  sc = ensureSC('carroll', '1', 'Final report');
+  ['2026-04','2026-05','2026-06','2026-07'].forEach(function(m) { aSet('carroll', sc, m, 10); });
+
+  sc = ensureSC('carroll', '2', 'Post processing');
+  aSet('carroll', sc, '2026-03', 8);
+
+  sc = ensureSC('carroll', '3', 'Project meetings');
+  aSet('carroll', sc, '2026-05', 1);
+
+  sc = ensureSC('carroll', '4', 'Create outreach materials');
+  aSet('carroll', sc, '2026-03', 40);
+
+  sc = ensureSC('carroll', '5', 'Project prioritization');
+  aSet('carroll', sc, '2026-04', 8);
+
+  // Rows 30-32: R-24-001 Coastal Stormwater Center
+  sc = ensureSC('coastal_sw', '1', 'Project meetings');
+  aSet('coastal_sw', sc, '2026-04', 1); aSet('coastal_sw', sc, '2026-06', 1);
+  aSet('coastal_sw', sc, '2026-07', 1); aSet('coastal_sw', sc, '2026-08', 1);
+
+  sc = ensureSC('coastal_sw', '2', 'Virtual design forum');
+  ['2026-05','2026-06','2026-07','2026-08'].forEach(function(m) { aSet('coastal_sw', sc, m, 5); });
+
+  sc = ensureSC('coastal_sw', '3', 'Develop outreach materials');
+  aSet('coastal_sw', sc, '2026-04', 6); aSet('coastal_sw', sc, '2026-08', 6);
+  aSet('coastal_sw', sc, '2026-12', 6); aSet('coastal_sw', sc, '2027-04', 6);
+
+  // Rows 33-34: W-24-038 SRC Purchase Agreement
+  sc = ensureSC('src_pa', '1', 'Startup Grant admin');
+  ['2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('src_pa', sc, m, 8); });
+
+  sc = ensureSC('src_pa', '2', 'Access to Capital Admin');
+  ['2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'].forEach(function(m) { aSet('src_pa', sc, m, 2); });
+
+  // Rows 35-37: W-24-054 Carrie Murray Nature Center
+  sc = ensureSC('carrie', '1', 'Coordination');
+  aSet('carrie', sc, '2026-04', 1); aSet('carrie', sc, '2026-07', 1); aSet('carrie', sc, '2026-10', 1);
+
+  sc = ensureSC('carrie', '2', 'Charette meeting and prep');
+  aSet('carrie', sc, '2026-07', 5); aSet('carrie', sc, '2026-08', 5);
+
+  sc = ensureSC('carrie', '3', 'Design nature playspace');
+  aSet('carrie', sc, '2026-06', 8); aSet('carrie', sc, '2026-07', 8);
+
+  // Rows 38-40: W-24-058 Gaithersburg Watershed Plans
+  sc = ensureSC('gaithwp', '1', 'Project meetings');
+  aSet('gaithwp', sc, '2026-03', 1);
+
+  sc = ensureSC('gaithwp', '2', 'Draft watershed plan');
+  ['2026-03','2026-04','2026-05'].forEach(function(m) { aSet('gaithwp', sc, m, 24); });
+
+  sc = ensureSC('gaithwp', '3', 'Final watershed plan');
+  ['2026-06','2026-07','2026-08'].forEach(function(m) { aSet('gaithwp', sc, m, 8); });
+
+  // Row 41: W-25-003 Campbell Foundation CWC
+  sc = ensureSC('campbell', '1', 'Clean Water Certificate Program');
+  aSet('campbell', sc, '2026-05', 16);
+
+  // Row 42: W-25-009 Somerset County Regional Coordinator
+  sc = ensureSC('somerset', '1', 'Coordination');
+  ['2026-07','2026-08','2026-09','2026-10','2026-11','2026-12','2027-01','2027-02','2027-03','2027-04'].forEach(function(m) { aSet('somerset', sc, m, 2); });
+
+  // Rows 43-47: T-26-002 Watershed Planning Training
+  sc = ensureSC('wpt', '1', 'Assist with local trainings');
+  aSet('wpt', sc, '2027-04', 20); aSet('wpt', sc, '2027-05', 20);
+
+  sc = ensureSC('wpt', '2', 'Disseminate curriculum');
+  aSet('wpt', sc, '2027-03', 8);
+
+  sc = ensureSC('wpt', '3', 'Create training activities');
+  aSet('wpt', sc, '2027-01', 40);
+
+  sc = ensureSC('wpt', '4', 'Create PPTs and notes');
+  ['2026-07','2026-08','2026-09','2026-10'].forEach(function(m) { aSet('wpt', sc, m, 12); });
+
+  sc = ensureSC('wpt', '5', 'Project meetings');
+  ['2026-07','2026-08','2026-09','2026-10','2026-11','2026-12','2027-01','2027-02','2027-03','2027-04','2027-05','2027-06'].forEach(function(m) { aSet('wpt', sc, m, 1); });
+
+  // Row 48: R-26-001 Bioretention Maintenance
+  sc = ensureSC('biomain', '1', 'Tasks');
+  ['2026-08','2026-09','2026-10','2026-11','2026-12','2027-01','2027-02','2027-03','2027-04','2027-05','2027-06','2027-07','2027-08'].forEach(function(m) { aSet('biomain', sc, m, 2); });
+
+  // Row 49: T-26-004 Coastal Resilience Peer Learning
+  sc = ensureSC('coastal_pl', '1', 'Project work');
+  ['2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12',
+   '2027-01','2027-02','2027-03','2027-04','2027-05','2027-06','2027-07','2027-08'].forEach(function(m) { aSet('coastal_pl', sc, m, 33); });
+
+  // Row 50: T-26-005 CWC Delivery Pasadena
+  sc = ensureSC('cwc_pas', '1', 'Project work');
+  ['2026-05','2026-06','2026-07','2026-08'].forEach(function(m) { aSet('cwc_pas', sc, m, 21); });
+
+  // Row 51: W-22-029b Wicomico County MS4
+  sc = ensureSC('wicomico', '1', 'Work');
+  ['2026-06','2026-07','2026-08','2026-09'].forEach(function(m) { aSet('wicomico', sc, m, 5); });
+
+  // ── 5. Persist everything ──
+  saveProjects();
+  saveAllocations();
+
+  // Set migration guard
+  localStorage.setItem('wt_xlsx_alloc_imported', '1');
+  console.log('[Migration] Excel workload allocations imported successfully.');
+})();
+
 let allocYear = new Date().getFullYear();
 
 // Sub-code helpers
