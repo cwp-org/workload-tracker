@@ -3895,6 +3895,7 @@ function renderProjects() {
               <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}')" title="Assign">↗</button>
               <button class="row-edit-btn" onclick="openEditSessionModal('${proj.id}','${s.id}')" title="Edit">✏</button>
               <button class="row-edit-btn" onclick="deleteSession('${proj.id}','${s.id}')" title="Delete" style="color:var(--danger);">×</button>
+              <button class="row-edit-btn" onclick="event.stopPropagation();openAddSubtaskModal('${proj.id}','${s.id}')" title="Add subtask" style="color:var(--accent);font-size:14px;font-weight:700;">+</button>
             </div>
           </div>
           ${(s.subtasks||[]).map(st=>`
@@ -3919,13 +3920,6 @@ function renderProjects() {
               </div>
             </div>
           `).join('')}
-          <div style="padding:3px 14px 4px 46px;border-bottom:1px solid var(--border);">
-            <button onclick="event.stopPropagation();openAddSubtaskModal('${proj.id}','${s.id}')"
-              style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;"
-              onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">
-              <span style="font-size:13px;line-height:1;">+</span> add subtask
-            </button>
-          </div>
         `).join('')}
         <div style="padding:8px 14px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
           <button class="btn" style="font-size:11px;padding:3px 10px;" onclick="event.stopPropagation();openAddSessionModal('${proj.id}')">+ Add work item</button>
