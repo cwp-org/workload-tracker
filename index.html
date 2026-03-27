@@ -4254,7 +4254,7 @@ function renderProjects() {
       <div class="session-list" id="sessions-${proj.id}" style="${isCollapsed ? 'display:none;' : ''}">
         ${[...proj.sessions].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')).map(s => `
           <div class="session-row">
-            <div class="session-check${s.done ? ' done' : ''}" onclick="toggleSession('${proj.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
+            <div class="session-check${s.done ? ' done' : ''}" onclick="openSessionCompletionModal('${proj.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
               ${s.done ? '<span style="color:#0d0f14;font-size:11px;">✓</span>' : ''}
             </div>
             <div class="session-desc" style="${s.done ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditSessionModal('${proj.id}','${s.id}')">
@@ -4275,7 +4275,7 @@ function renderProjects() {
           </div>
           ${(s.subtasks||[]).map(st=>`
             <div class="subtask-row">
-              <div class="session-check${st.done?' done':''}" onclick="toggleSubtask('${proj.id}','${s.id}','${st.id}')" title="${st.done?'Mark incomplete':'Mark complete'}" style="cursor:pointer;">
+              <div class="session-check${st.done?' done':''}" onclick="openSubtaskCompletionModal('${proj.id}','${s.id}','${st.id}')" title="${st.done?'Mark incomplete':'Mark complete'}" style="cursor:pointer;">
                 ${st.done?'<span style="color:#0d0f14;font-size:10px;">✓</span>':''}
               </div>
               <div class="session-desc" style="${st.done?'text-decoration:line-through;color:var(--text3);':''}" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')">
