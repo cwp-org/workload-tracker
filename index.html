@@ -2955,55 +2955,43 @@ if (!completed) { completed = SEED_COMPLETED; save('wt_completed', completed); }
 // TIMER STATE
 // =============================================
 
-let activeTimerId = null;
-let _activeTimerType = null; // 'task' | 'session' | 'subtask'
-let _activeTimerProjId = null;
-let _activeTimerSessionId = null;
 let timerInterval = null;
+let _runningTimerCount = 0;
 
-function _findTimerTarget(type, id, projId, sessionId) {
-  if (type === 'task') return tasks.find(t => t.id === id);
-  if (type === 'session') {
-    const proj = bigProjs.find(p => p.id === projId);
-    return proj ? proj.sessions.find(s => s.id === id) : null;
-  }
-  if (type === 'subtask') {
-    const proj = bigProjs.find(p => p.id === projId);
-    if (!proj) return null;
-    const s = proj.sessions.find(s => s.id === sessionId);
-    return s ? (s.subtasks || []).find(st => st.id === id) : null;
-  }
-  return null;
+function _allRunningTimers() {
+  const running = [];
+  tasks.forEach(t => {
+    if (t.timerStart) running.push({ type: 'task', id: t.id, target: t });
+  });
+  bigProjs.forEach(proj => {
+    proj.sessions.forEach(s => {
+      if (s.timerStart) running.push({ type: 'session', id: s.id, target: s, projId: proj.id });
+      (s.subtasks || []).forEach(st => {
+        if (st.timerStart) running.push({ type: 'subtask', id: st.id, target: st, projId: proj.id, sessionId: s.id });
+      });
+    });
+  });
+  return running;
 }
 
-function _stopActiveTimer() {
-  if (!activeTimerId) return;
-  const target = _findTimerTarget(_activeTimerType, activeTimerId, _activeTimerProjId, _activeTimerSessionId);
-  if (target && target.timerStart) {
-    target.timer = (target.timer || 0) + Math.floor((Date.now() - target.timerStart) / 1000);
-    target.timerStart = null;
+function _ensureTickerRunning() {
+  const running = _allRunningTimers();
+  _runningTimerCount = running.length;
+  if (running.length > 0 && !timerInterval) {
+    timerInterval = setInterval(tickTimers, 1000);
+  } else if (running.length === 0 && timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
   }
-  if (_activeTimerType === 'task') save('wt_tasks', tasks);
-  else save('wt_bigprojs', bigProjs);
-  activeTimerId = null;
-  _activeTimerType = null;
-  _activeTimerProjId = null;
-  _activeTimerSessionId = null;
-  clearInterval(timerInterval);
 }
 
 function startTimer(taskId) {
-  if (activeTimerId) _stopActiveTimer();
   const task = tasks.find(t => t.id === taskId);
-  if (!task) return;
+  if (!task || task.timerStart) return;
   task.timerStart = Date.now();
   if (!task.timer) task.timer = 0;
-  activeTimerId = taskId;
-  _activeTimerType = 'task';
-  _activeTimerProjId = null;
-  _activeTimerSessionId = null;
   save('wt_tasks', tasks);
-  timerInterval = setInterval(tickTimers, 1000);
+  _ensureTickerRunning();
   renderTasks();
   renderProjects();
   updateActiveStrip();
@@ -3014,31 +3002,22 @@ function stopTimer(taskId) {
   if (!task || !task.timerStart) return;
   task.timer += Math.floor((Date.now() - task.timerStart) / 1000);
   task.timerStart = null;
-  if (activeTimerId === taskId) {
-    activeTimerId = null;
-    _activeTimerType = null;
-    clearInterval(timerInterval);
-  }
   save('wt_tasks', tasks);
+  _ensureTickerRunning();
   renderTasks();
   renderProjects();
   updateActiveStrip();
 }
 
 function startSessionTimer(projId, sessionId) {
-  if (activeTimerId) _stopActiveTimer();
   const proj = bigProjs.find(p => p.id === projId);
   if (!proj) return;
   const s = proj.sessions.find(s => s.id === sessionId);
-  if (!s) return;
+  if (!s || s.timerStart) return;
   s.timerStart = Date.now();
   if (!s.timer) s.timer = 0;
-  activeTimerId = sessionId;
-  _activeTimerType = 'session';
-  _activeTimerProjId = projId;
-  _activeTimerSessionId = null;
   save('wt_bigprojs', bigProjs);
-  timerInterval = setInterval(tickTimers, 1000);
+  _ensureTickerRunning();
   renderTasks();
   renderProjects();
   updateActiveStrip();
@@ -3051,33 +3030,24 @@ function stopSessionTimer(projId, sessionId) {
   if (!s || !s.timerStart) return;
   s.timer = (s.timer || 0) + Math.floor((Date.now() - s.timerStart) / 1000);
   s.timerStart = null;
-  if (activeTimerId === sessionId) {
-    activeTimerId = null;
-    _activeTimerType = null;
-    clearInterval(timerInterval);
-  }
   save('wt_bigprojs', bigProjs);
+  _ensureTickerRunning();
   renderTasks();
   renderProjects();
   updateActiveStrip();
 }
 
 function startSubtaskTimer(projId, sessionId, subtaskId) {
-  if (activeTimerId) _stopActiveTimer();
   const proj = bigProjs.find(p => p.id === projId);
   if (!proj) return;
   const s = proj.sessions.find(s => s.id === sessionId);
   if (!s) return;
   const st = (s.subtasks || []).find(st => st.id === subtaskId);
-  if (!st) return;
+  if (!st || st.timerStart) return;
   st.timerStart = Date.now();
   if (!st.timer) st.timer = 0;
-  activeTimerId = subtaskId;
-  _activeTimerType = 'subtask';
-  _activeTimerProjId = projId;
-  _activeTimerSessionId = sessionId;
   save('wt_bigprojs', bigProjs);
-  timerInterval = setInterval(tickTimers, 1000);
+  _ensureTickerRunning();
   renderTasks();
   renderProjects();
   updateActiveStrip();
@@ -3092,26 +3062,22 @@ function stopSubtaskTimer(projId, sessionId, subtaskId) {
   if (!st || !st.timerStart) return;
   st.timer = (st.timer || 0) + Math.floor((Date.now() - st.timerStart) / 1000);
   st.timerStart = null;
-  if (activeTimerId === subtaskId) {
-    activeTimerId = null;
-    _activeTimerType = null;
-    clearInterval(timerInterval);
-  }
   save('wt_bigprojs', bigProjs);
+  _ensureTickerRunning();
   renderTasks();
   renderProjects();
   updateActiveStrip();
 }
 
 function tickTimers() {
-  if (!activeTimerId) return;
-  const target = _findTimerTarget(_activeTimerType, activeTimerId, _activeTimerProjId, _activeTimerSessionId);
-  if (target && target.timerStart) {
-    const secs = (target.timer || 0) + Math.floor((Date.now() - target.timerStart) / 1000);
-    document.querySelectorAll(`.timer-display[data-id="${activeTimerId}"]`).forEach(el => {
+  const running = _allRunningTimers();
+  if (!running.length) { clearInterval(timerInterval); timerInterval = null; return; }
+  running.forEach(r => {
+    const secs = (r.target.timer || 0) + Math.floor((Date.now() - r.target.timerStart) / 1000);
+    document.querySelectorAll(`.timer-display[data-id="${r.id}"]`).forEach(el => {
       el.textContent = fmtSecs(secs);
     });
-  }
+  });
   updateActiveStrip();
 }
 
@@ -3139,14 +3105,18 @@ function fmtQ(h) { const v = Math.round(h / 0.25) * 0.25; return v % 1 === 0 ? v
 function updateActiveStrip() {
   const strip = document.getElementById('activeStrip');
   const text = document.getElementById('activeStripText');
-  if (activeTimerId) {
-    const target = _findTimerTarget(_activeTimerType, activeTimerId, _activeTimerProjId, _activeTimerSessionId);
-    if (target) {
-      const secs = (target.timer || 0) + (target.timerStart ? Math.floor((Date.now() - target.timerStart) / 1000) : 0);
-      const name = target.name || target.desc || 'Session';
+  const running = _allRunningTimers();
+  if (running.length > 0) {
+    if (running.length === 1) {
+      const r = running[0];
+      const secs = (r.target.timer || 0) + Math.floor((Date.now() - r.target.timerStart) / 1000);
+      const name = r.target.name || r.target.desc || 'Session';
       text.textContent = `Timer running — ${name} — ${fmtSecs(secs)}`;
-      strip.classList.add('visible');
+    } else {
+      const totalSecs = running.reduce((a, r) => a + (r.target.timer || 0) + Math.floor((Date.now() - r.target.timerStart) / 1000), 0);
+      text.textContent = `${running.length} timers running — ${fmtSecs(totalSecs)} total`;
     }
+    strip.classList.add('visible');
   } else {
     strip.classList.remove('visible');
   }
@@ -6218,46 +6188,9 @@ renderTimesheet();
 renderAllocations();
 updateHeaderMeta();
 
-// Resume timer if page was reloaded mid-session
-tasks.forEach(t => {
-  if (t.timerStart && !activeTimerId) {
-    activeTimerId = t.id;
-    _activeTimerType = 'task';
-    timerInterval = setInterval(tickTimers, 1000);
-    updateActiveStrip();
-  } else if (t.timerStart && activeTimerId) {
-    t.timer += Math.floor((Date.now() - t.timerStart) / 1000);
-    t.timerStart = null;
-  }
-});
-// Resume session/subtask timers
-bigProjs.forEach(proj => {
-  proj.sessions.forEach(s => {
-    if (s.timerStart && !activeTimerId) {
-      activeTimerId = s.id;
-      _activeTimerType = 'session';
-      _activeTimerProjId = proj.id;
-      timerInterval = setInterval(tickTimers, 1000);
-      updateActiveStrip();
-    } else if (s.timerStart && activeTimerId) {
-      s.timer = (s.timer || 0) + Math.floor((Date.now() - s.timerStart) / 1000);
-      s.timerStart = null;
-    }
-    (s.subtasks || []).forEach(st => {
-      if (st.timerStart && !activeTimerId) {
-        activeTimerId = st.id;
-        _activeTimerType = 'subtask';
-        _activeTimerProjId = proj.id;
-        _activeTimerSessionId = s.id;
-        timerInterval = setInterval(tickTimers, 1000);
-        updateActiveStrip();
-      } else if (st.timerStart && activeTimerId) {
-        st.timer = (st.timer || 0) + Math.floor((Date.now() - st.timerStart) / 1000);
-        st.timerStart = null;
-      }
-    });
-  });
-});
+// Resume all running timers on page reload
+_ensureTickerRunning();
+updateActiveStrip();
 
 // Update header meta periodically
 setInterval(updateHeaderMeta, 5000);
