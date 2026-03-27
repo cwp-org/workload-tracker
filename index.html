@@ -5742,11 +5742,15 @@ function allocGetPlanned(projKey, scId, yearMonth) {
     if (proj.project !== projKey) return;
     proj.sessions.forEach(s => {
       if (s.done) return;
+      const sDel = normDelegated(s.delegatedTo);
+      if (sDel.length && !sDel.includes('Me')) return;
       if ((s.subCode || '') === (scId || '') && (s.date || '').slice(0, 7) === yearMonth) {
         sum += s.hours || 0;
       }
       (s.subtasks || []).forEach(st => {
         if (st.done) return;
+        const stDel = normDelegated(st.delegatedTo);
+        if (stDel.length && !stDel.includes('Me')) return;
         if ((st.subCode || '') === (scId || '') && (st.date || '').slice(0, 7) === yearMonth) {
           sum += st.hours || 0;
         }
@@ -5766,9 +5770,13 @@ function allocGetAllProjectPlanned(projKey, yearMonth) {
   bigProjs.forEach(proj => {
     if (proj.project !== projKey) return;
     proj.sessions.forEach(s => {
-      if (!s.done && (s.date || '').slice(0, 7) === yearMonth) sum += s.hours || 0;
+      const sDel = normDelegated(s.delegatedTo);
+      const isMyWork = !sDel.length || sDel.includes('Me');
+      if (!s.done && isMyWork && (s.date || '').slice(0, 7) === yearMonth) sum += s.hours || 0;
       (s.subtasks || []).forEach(st => {
-        if (!st.done && (st.date || '').slice(0, 7) === yearMonth) sum += st.hours || 0;
+        const stDel = normDelegated(st.delegatedTo);
+        const stIsMyWork = !stDel.length || stDel.includes('Me');
+        if (!st.done && stIsMyWork && (st.date || '').slice(0, 7) === yearMonth) sum += st.hours || 0;
       });
     });
   });
@@ -5951,6 +5959,8 @@ function openAllocDrill(projKey, scId, yearMonth) {
     if (bp.project !== projKey) return;
     bp.sessions.forEach(s => {
       if (s.done) return;
+      const sDel = normDelegated(s.delegatedTo);
+      if (sDel.length && !sDel.includes('Me')) return;
       const ssc = s.subCode || '';
       if ((s.date || '').slice(0, 7) === yearMonth) {
         const item = { name: `${bp.name}: ${s.desc || s.title || 'Session'}`, hours: s.hours || 0, subCode: ssc };
@@ -5962,6 +5972,8 @@ function openAllocDrill(projKey, scId, yearMonth) {
       }
       (s.subtasks || []).forEach(st => {
         if (st.done) return;
+        const stDel = normDelegated(st.delegatedTo);
+        if (stDel.length && !stDel.includes('Me')) return;
         const stsc = st.subCode || '';
         if ((st.date || '').slice(0, 7) === yearMonth) {
           const item = { name: `${bp.name}: ${st.desc || st.title || 'Subtask'}`, hours: st.hours || 0, subCode: stsc };
