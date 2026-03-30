@@ -1342,6 +1342,28 @@
   }
   .subcode-add-btn:hover { color: var(--accent); border-color: var(--accent); }
 
+  .proj-tags-row {
+    display: flex; align-items: center; gap: 6px; padding: 4px 8px; margin-bottom: 2px;
+  }
+  .proj-tags-wrap {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1;
+  }
+  .proj-tag-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600;
+    background: #7c3aed22; border: 1px solid #7c3aed55; color: var(--accent, #7c3aed);
+  }
+  .proj-tag-chip button {
+    background: none; border: none; color: inherit; cursor: pointer; font-size: 11px;
+    padding: 0 1px; line-height: 1; opacity: 0.6;
+  }
+  .proj-tag-chip button:hover { opacity: 1; }
+  .proj-tag-input {
+    background: transparent; border: none; border-bottom: 1px dashed var(--border2);
+    color: var(--text2); font-size: 10px; padding: 2px 4px; width: 70px; outline: none;
+  }
+  .proj-tag-input:focus { border-bottom-color: var(--accent); }
+
   /* PROJECT META GROUP — collapse & drag */
   .proj-meta-group {
     border-bottom: 1px solid var(--border);
@@ -2641,9 +2663,10 @@ if (!PROJECTS) { PROJECTS = DEFAULT_PROJECTS; save('wt_projects_meta', PROJECTS)
 
 function saveProjects() { save('wt_projects_meta', PROJECTS); }
 
-// Migration: ensure subCodes array exists on all projects
+// Migration: ensure subCodes and tags arrays exist on all projects
 Object.keys(PROJECTS).forEach(k => {
   if (!PROJECTS[k].subCodes) PROJECTS[k].subCodes = [];
+  if (!PROJECTS[k].tags) PROJECTS[k].tags = [];
 });
 saveProjects();
 
@@ -3019,6 +3042,27 @@ function updateSubCode(projKey, scId, field, val) {
 function deleteSubCode(projKey, scId) {
   if (!PROJECTS[projKey]) return;
   PROJECTS[projKey].subCodes = (PROJECTS[projKey].subCodes || []).filter(s => s.id !== scId);
+  saveProjects();
+  renderProjectMetaList();
+}
+
+// Project tag helpers (abbreviations for brain dump matching)
+function addProjTag(projKey) {
+  const input = document.getElementById('projTagInput-' + projKey);
+  if (!input) return;
+  const tag = input.value.trim().toUpperCase();
+  if (!tag) return;
+  if (!PROJECTS[projKey].tags) PROJECTS[projKey].tags = [];
+  if (PROJECTS[projKey].tags.includes(tag)) { input.value = ''; return; }
+  PROJECTS[projKey].tags.push(tag);
+  saveProjects();
+  input.value = '';
+  renderProjectMetaList();
+}
+
+function removeProjTag(projKey, tag) {
+  if (!PROJECTS[projKey] || !PROJECTS[projKey].tags) return;
+  PROJECTS[projKey].tags = PROJECTS[projKey].tags.filter(t => t !== tag);
   saveProjects();
   renderProjectMetaList();
 }
@@ -7426,6 +7470,14 @@ function renderProjectMetaList() {
       <button class="row-edit-btn" onclick="deleteProjectCode('${key}')" style="color:var(--danger);" title="Delete project code">✕</button>
     </div>
     <div class="subcodes-section" id="scs-${key}" style="${isCollapsed ? 'display:none;' : ''}">
+      <div class="proj-tags-row">
+        <span style="font-size:10px;color:var(--text3);font-weight:600;min-width:60px;">Tags:</span>
+        <div class="proj-tags-wrap" id="projTags-${key}">
+          ${(proj.tags || []).map(tag => `<span class="proj-tag-chip">${tag}<button onclick="removeProjTag('${key}','${tag.replace(/'/g,"\\'")}')" title="Remove">×</button></span>`).join('')}
+          <input class="proj-tag-input" type="text" placeholder="+ add tag" id="projTagInput-${key}"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addProjTag('${key}');}">
+        </div>
+      </div>
       ${subRows}
       <button class="subcode-add-btn" onclick="addSubCode('${key}')">+ Add sub-code</button>
     </div>`;
@@ -7640,7 +7692,10 @@ Return ONLY a single valid JSON object — no preamble, no markdown, no code fen
 }
 
 Definitions:
-- new_tasks: Array of full task objects for items that don't match anything existing. Fields: name (string), project (must be one of: ${Object.keys(PROJECTS).join(', ')} — choose the best fit; use "admin" if unclear), priority ("urgent" | "high" | "med" | "low"), due ("YYYY-MM-DD" or ""), est (number of hours or 0), category (string), waiting (string), notes (string).
+- new_tasks: Array of full task objects for items that don't match anything existing. Fields: name (string), project (must be one of the project codes listed below — choose the best fit; use "admin" if unclear), priority ("urgent" | "high" | "med" | "low"), due ("YYYY-MM-DD" or ""), est (number of hours or 0), category (string), waiting (string), notes (string).
+
+Project codes and their tags/abbreviations (use these to match shorthand in the brain dump):
+${Object.keys(PROJECTS).map(k => { const p = PROJECTS[k]; const tags = (p.tags || []).length ? ' [tags: ' + p.tags.join(', ') + ']' : ''; return k + ' = "' + p.label + '"' + tags; }).join('\n')}
 - updates: Array of change objects. Each must include id (matching an existing task's id) plus ONLY the fields that should change (omit unchanged fields).
 - duplicates: Array of {name: string, note: string} for items that clearly already exist in the task list unchanged.
 
