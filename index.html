@@ -850,6 +850,21 @@
     user-select: none;
   }
   .team-table-header span { cursor: pointer; }
+
+  .team-person-group { margin-bottom: 12px; }
+  .team-person-header {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 6px 6px 0 0;
+    cursor: pointer; user-select: none; transition: background 0.12s;
+  }
+  .team-person-header:hover { background: var(--bg3); }
+  .team-person-chevron { font-size: 10px; transition: transform 0.15s; display: inline-block; }
+  .team-person-chevron.open { transform: rotate(90deg); }
+  .team-person-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .team-person-count { font-size: 10px; color: var(--text3); margin-left: auto; }
+  .team-person-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+  .team-coassignee-tags { display: inline-flex; gap: 3px; margin-left: 6px; }
+  .team-group-btn-active { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
   .team-table-header span:hover { color: var(--text2); }
   .team-table-header .sort-active { color: var(--accent); }
 
@@ -2014,6 +2029,7 @@
       </select>
       <button class="btn" onclick="openManagePersonsModal()">+ Add Team Member</button>
       <button class="btn primary" onclick="openAddTeamModal()">+ Add Deliverable</button>
+      <button class="btn" id="teamGroupBtn" onclick="toggleTeamGroupByPerson()" style="margin-left:auto;font-size:10px;padding:3px 10px;">👤 Group by Person</button>
     </div>
     <div id="teamList"></div>
   </div>
@@ -5159,9 +5175,17 @@ const STATUS_CLS = {
 };
 
 
-// Team sort state
+// Team sort & group state
 let _teamSortKey = 'person';
 let _teamSortDir = 'asc';
+let _teamGroupByPerson = load('wt_team_group_person', false);
+const _collapsedTeamPersons = new Set();
+
+function toggleTeamGroupByPerson() {
+  _teamGroupByPerson = !_teamGroupByPerson;
+  save('wt_team_group_person', _teamGroupByPerson);
+  renderTeam();
+}
 function _toggleTeamSort(key) {
   if (_teamSortKey === key) { _teamSortDir = _teamSortDir === 'asc' ? 'desc' : 'asc'; }
   else { _teamSortKey = key; _teamSortDir = 'asc'; }
@@ -5186,10 +5210,35 @@ function renderTeam() {
         due: s.date, status: s.status || (s.done ? 'complete' : 'not-started'),
         _delegated: true, _projId: proj.id, _sessionId: s.id
       });
+      // Also include subtasks with delegation
+      (s.subtasks || []).forEach(st => {
+        const stPeople = normDelegated(st.delegatedTo);
+        if (!stPeople.length) return;
+        delegatedItems.push({
+          id: st.id + '_delegated',
+          name: st.desc, owners: stPeople, owner: stPeople.join(', '), project: proj.project,
+          due: st.date, status: st.done ? 'complete' : 'not-started',
+          _delegated: true, _projId: proj.id, _sessionId: s.id, _subtaskId: st.id, _isSubtask: true
+        });
+      });
     });
   });
 
-  let allItems = [...teamItems.map(t => ({ ...t, owners: [t.owner] })), ...delegatedItems];
+  // Collect delegated tasks from tasks[] (tasks assigned to others via delegatedTo)
+  const delegatedTasks = [];
+  tasks.forEach(t => {
+    if (t.completed) return;
+    const people = normDelegated(t.delegatedTo);
+    if (!people.length) return;
+    delegatedTasks.push({
+      id: t.id + '_taskdel',
+      name: t.name, owners: people, owner: people.join(', '), project: t.project,
+      due: t.due, status: t.completed ? 'complete' : 'in-progress',
+      _taskDelegated: true, _taskId: t.id
+    });
+  });
+
+  let allItems = [...teamItems.map(t => ({ ...t, owners: [t.owner] })), ...delegatedItems, ...delegatedTasks];
 
   // Populate person filter from all unique people
   const personSelect = document.getElementById('teamFilterPerson');
@@ -5199,6 +5248,13 @@ function renderTeam() {
     personSelect.innerHTML = '<option value="all">All people</option>';
     allPeople.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; personSelect.appendChild(o); });
     personSelect.value = curVal;
+  }
+
+  // Update group button style
+  const groupBtn = document.getElementById('teamGroupBtn');
+  if (groupBtn) {
+    if (_teamGroupByPerson) groupBtn.classList.add('team-group-btn-active');
+    else groupBtn.classList.remove('team-group-btn-active');
   }
 
   let visible = allItems;
@@ -5229,10 +5285,6 @@ function renderTeam() {
     return;
   }
 
-  // Split active vs completed
-  const active = visible.filter(i => i.status !== 'complete');
-  const completed_items = visible.filter(i => i.status === 'complete');
-
   // Column header with sort
   function arrow(k) { return _teamSortKey === k ? (_teamSortDir === 'asc' ? ' ▲' : ' ▼') : ''; }
   function cls(k) { return _teamSortKey === k ? ' sort-active' : ''; }
@@ -5248,25 +5300,57 @@ function renderTeam() {
     </div>`;
   }
 
-  function buildTeamRow(item, isCompleted) {
+  // Build co-assignee tags for grouped view (shows others, not the current person)
+  function coAssigneeTags(owners, currentPerson) {
+    const others = (owners || []).filter(o => o !== currentPerson);
+    if (!others.length) return '';
+    return '<span class="team-coassignee-tags">' + others.map(o => {
+      const pc = personColor(o);
+      return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 5px;border-radius:10px;font-size:9px;font-weight:600;white-space:nowrap;">+${o}</span>`;
+    }).join('') + '</span>';
+  }
+
+  function buildTeamRow(item, isCompleted, forPerson) {
     const row = document.createElement('div');
     row.className = 'team-row';
     if (isCompleted) row.style.opacity = '0.5';
     const dc = dueCls(item.due);
     const owners = item.owners || [item.owner];
-    const ownerHtml = `<div class="team-owner" style="display:flex;flex-wrap:wrap;gap:3px;">${owners.map(o => {
-      const pc = personColor(o || '—');
-      return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;">${o}</span>`;
-    }).join('')}</div>`;
+
+    // In grouped mode, show co-assignee tags instead of owner column
+    const ownerHtml = forPerson
+      ? `<div class="team-owner" style="display:flex;flex-wrap:wrap;gap:3px;">${coAssigneeTags(owners, forPerson) || '<span style="font-size:10px;color:var(--text3);">Solo</span>'}</div>`
+      : `<div class="team-owner" style="display:flex;flex-wrap:wrap;gap:3px;">${owners.map(o => {
+          const pc = personColor(o || '—');
+          return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;">${o}</span>`;
+        }).join('')}</div>`;
+
     if (item._delegated) {
-      const _s = bigProjs.find(p=>p.id===item._projId)?.sessions.find(s=>s.id===item._sessionId);
+      const editFn = item._isSubtask
+        ? `openEditSubtaskModal('${item._projId}','${item._sessionId}','${item._subtaskId}')`
+        : `openEditSessionModal('${item._projId}','${item._sessionId}')`;
+      const statusDropFn = item._isSubtask
+        ? `showDelegatedStatusDropdown(event,'${item._projId}','${item._sessionId}')`
+        : `showDelegatedStatusDropdown(event,'${item._projId}','${item._sessionId}')`;
+      const _s = item._isSubtask
+        ? bigProjs.find(p=>p.id===item._projId)?.sessions.find(s=>s.id===item._sessionId)?.subtasks?.find(st=>st.id===item._subtaskId)
+        : bigProjs.find(p=>p.id===item._projId)?.sessions.find(s=>s.id===item._sessionId);
       row.innerHTML = `
-        <div class="team-task-name" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')">${item.name}${_s?.waiting ? `<span class="task-waiting">⏳ ${_s.waiting}</span>` : ''}${_s?.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('session','${item._sessionId}','${item._projId}')" title="View notes">📝</span>` : ''} <span class="delegate-tag">↗</span></div>
+        <div class="team-task-name" onclick="${editFn}">${item._isSubtask ? '<span style="color:var(--text3);margin-right:4px;">╰</span>' : ''}${item.name}${_s?.waiting ? `<span class="task-waiting">⏳ ${_s.waiting}</span>` : ''}${_s?.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('${item._isSubtask ? 'subtask' : 'session'}','${item._isSubtask ? item._subtaskId : item._sessionId}','${item._projId}'${item._isSubtask ? `,'${item._sessionId}'` : ''})" title="View notes">📝</span>` : ''} <span class="delegate-tag">↗</span></div>
         ${ownerHtml}
         <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
-        <span class="team-due ${dc}" style="cursor:pointer;" onclick="openEditSessionModal('${item._projId}','${item._sessionId}')">${fmtDate(item.due)}</span>
-        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showDelegatedStatusDropdown(event,'${item._projId}','${item._sessionId}')" style="cursor:pointer;">${STATUS_LABELS[item.status]}</span>
+        <span class="team-due ${dc}" style="cursor:pointer;" onclick="${editFn}">${fmtDate(item.due)}</span>
+        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="${statusDropFn}" style="cursor:pointer;">${STATUS_LABELS[item.status]||item.status}</span>
+        `;
+    } else if (item._taskDelegated) {
+      row.innerHTML = `
+        <div class="team-task-name" onclick="openEditModal('${item._taskId}')">${item.name} <span class="delegate-tag" style="background:var(--bg3);color:var(--text3);font-size:9px;">task</span></div>
+        ${ownerHtml}
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
+        <div class="project-dot" style="background:${projColor(item.project)};"></div>
+        <span class="team-due ${dc}" style="cursor:pointer;" onclick="openEditModal('${item._taskId}')">${fmtDate(item.due)}</span>
+        <span class="status-badge s-in-progress" style="cursor:pointer;">Active</span>
         `;
     } else {
       row.innerHTML = `
@@ -5281,22 +5365,87 @@ function renderTeam() {
     return row;
   }
 
-  // Active section
+  // ── Grouped by Person view ──
+  if (_teamGroupByPerson) {
+    // Expand items so each person gets their own copy
+    const personMap = {};
+    visible.forEach(item => {
+      const owners = item.owners || [item.owner];
+      owners.forEach(person => {
+        if (!person) return;
+        if (!personMap[person]) personMap[person] = [];
+        personMap[person].push(item);
+      });
+    });
+
+    const sortedPersons = Object.keys(personMap).sort();
+    sortedPersons.forEach(person => {
+      const items = personMap[person];
+      const activeItems = items.filter(i => i.status !== 'complete');
+      const completedItems = items.filter(i => i.status === 'complete');
+      const isCollapsed = _collapsedTeamPersons.has(person);
+      const pc = personColor(person);
+
+      const group = document.createElement('div');
+      group.className = 'team-person-group';
+
+      let html = `<div class="team-person-header" onclick="_toggleTeamPersonCollapse('${person.replace(/'/g,"\\'")}')">
+        <span class="team-person-chevron${isCollapsed ? '' : ' open'}">›</span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${pc.bg};border:1px solid ${pc.border};"></span>
+        <span class="team-person-name">${person}</span>
+        <span class="team-person-count">${activeItems.length} active${completedItems.length ? ' · ' + completedItems.length + ' done' : ''}</span>
+      </div>`;
+
+      if (!isCollapsed) {
+        html += '<div class="team-person-body">';
+        if (activeItems.length) {
+          activeItems.forEach(item => {
+            const rowEl = buildTeamRow(item, false, person);
+            html += rowEl.outerHTML;
+          });
+        } else {
+          html += '<div style="padding:10px;font-size:11px;color:var(--text3);">No active tasks</div>';
+        }
+        if (completedItems.length) {
+          html += `<div style="padding:4px 10px;font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);border-top:1px solid var(--border);background:var(--bg2);">Completed (${completedItems.length})</div>`;
+          completedItems.forEach(item => {
+            const rowEl = buildTeamRow(item, true, person);
+            html += rowEl.outerHTML;
+          });
+        }
+        html += '</div>';
+      }
+
+      group.innerHTML = html;
+      container.appendChild(group);
+    });
+    return;
+  }
+
+  // ── Default flat view ──
+  const active = visible.filter(i => i.status !== 'complete');
+  const completed_items = visible.filter(i => i.status === 'complete');
+
   container.innerHTML = colHdrHtml();
   if (active.length) {
-    active.forEach(item => container.appendChild(buildTeamRow(item, false)));
+    active.forEach(item => container.appendChild(buildTeamRow(item, false, null)));
   } else {
     container.innerHTML += '<div style="padding:12px;font-size:12px;color:var(--text3);">All tasks complete.</div>';
   }
 
-  // Completed section
   if (completed_items.length) {
     const divider = document.createElement('div');
     divider.style.cssText = 'padding:8px 10px;margin-top:16px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);';
     divider.textContent = `Completed (${completed_items.length})`;
     container.appendChild(divider);
-    completed_items.forEach(item => container.appendChild(buildTeamRow(item, true)));
+    completed_items.forEach(item => container.appendChild(buildTeamRow(item, true, null)));
   }
+}
+
+function _toggleTeamPersonCollapse(person) {
+  if (_collapsedTeamPersons.has(person)) _collapsedTeamPersons.delete(person);
+  else _collapsedTeamPersons.add(person);
+  renderTeam();
 }
 
 // Notes popup — universal for any item type
