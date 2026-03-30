@@ -542,7 +542,126 @@
     outline: none;
   }
 
-  /* PROJECTS TAB */
+  /* PROJECTS TAB — Split Panel Layout */
+  .proj-split-wrap { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 120px); }
+
+  .proj-left-panel {
+    width: 230px; min-width: 230px; max-width: 230px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto; flex-shrink: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .proj-left-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px 8px; font-weight: 600; font-size: 12px; color: var(--text2);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 2;
+  }
+  .proj-left-header button {
+    background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px;
+  }
+  .proj-left-header button:hover { background: var(--bg3); color: var(--text); }
+
+  .proj-code-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; cursor: pointer; font-size: 12px; color: var(--text2);
+    border-left: 3px solid transparent; transition: all 0.12s; user-select: none;
+  }
+  .proj-code-item:hover { background: var(--bg3); }
+  .proj-code-item.active { background: var(--bg2); border-left-color: var(--accent, #7c3aed); color: var(--text); font-weight: 600; }
+  .proj-code-item .proj-code-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .proj-code-item .proj-code-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .proj-code-item .proj-eye-btn {
+    opacity: 0; background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text3); padding: 2px; border-radius: 3px; flex-shrink: 0;
+  }
+  .proj-code-item:hover .proj-eye-btn { opacity: 1; }
+  .proj-code-item .proj-eye-btn:hover { color: var(--accent); background: var(--bg3); }
+  .proj-code-item.hidden-item { opacity: 0.45; }
+  .proj-code-item.hidden-item .proj-eye-btn { opacity: 1; }
+  .proj-code-item.drag-over-code { background: var(--accent); background: rgba(124,58,237,0.12); }
+
+  .proj-hidden-section {
+    border-top: 1px solid var(--border); margin-top: auto;
+  }
+  .proj-hidden-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 12px; cursor: pointer; font-size: 11px; color: var(--text3); font-weight: 600;
+    transition: background 0.12s;
+  }
+  .proj-hidden-header:hover { background: var(--bg3); }
+  .proj-hidden-chevron { transition: transform 0.15s; display: inline-block; font-size: 10px; }
+  .proj-hidden-chevron.open { transform: rotate(90deg); }
+
+  .proj-panel-toggle {
+    width: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); border-right: 1px solid var(--border); cursor: pointer;
+    color: var(--text3); font-size: 11px; writing-mode: vertical-lr;
+  }
+  .proj-panel-toggle:hover { background: var(--bg3); color: var(--text); }
+
+  .proj-right-panel {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+  }
+  .proj-right-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .proj-right-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .proj-right-code { font-size: 12px; font-family: monospace; color: var(--text3); }
+
+  .subcode-section { margin-bottom: 20px; }
+  .subcode-header {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 6px 6px 0 0;
+    font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer;
+  }
+  .subcode-header:hover { background: var(--bg3); }
+  .subcode-header .subcode-chevron { transition: transform 0.15s; display: inline-block; font-size: 10px; }
+  .subcode-header .subcode-chevron.open { transform: rotate(90deg); }
+  .subcode-count { font-size: 10px; font-weight: 400; color: var(--text3); margin-left: auto; }
+  .subcode-body {
+    border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px;
+    background: var(--bg); overflow: hidden;
+  }
+  .subcode-body.drag-target { outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .subcode-empty { padding: 12px 14px; font-size: 11px; color: var(--text3); font-style: italic; }
+
+  .subcode-inline-add {
+    display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-top: 1px solid var(--border);
+  }
+  .subcode-inline-add input {
+    flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 8px; font-size: 11px; color: var(--text); outline: none;
+  }
+  .subcode-inline-add input:focus { border-color: var(--accent); }
+  .subcode-inline-add button {
+    background: var(--accent, #7c3aed); color: #fff; border: none; border-radius: 4px;
+    padding: 4px 10px; font-size: 11px; cursor: pointer; font-weight: 600;
+  }
+  .subcode-inline-add button:hover { opacity: 0.85; }
+
+  .proj-item-row {
+    display: grid; grid-template-columns: 20px 1fr 56px 70px 40px 80px 90px;
+    gap: 8px; align-items: center; padding: 7px 14px; border-bottom: 1px solid var(--border);
+    font-size: 12px; transition: background 0.12s; cursor: grab;
+  }
+  .proj-item-row:last-child { border-bottom: none; }
+  .proj-item-row:hover { background: var(--bg3); }
+  .proj-item-row.dragging { opacity: 0.4; }
+  .proj-item-row .session-row-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
+  .proj-item-row:hover .session-row-actions { opacity: 1; }
+
+  .proj-group-label {
+    padding: 6px 14px; font-size: 10px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .proj-empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; color: var(--text3); font-size: 13px; gap: 8px;
+  }
+
+  /* PROJECTS TAB — Legacy project cards (kept for compatibility) */
   .project-card {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -1682,7 +1801,7 @@
 
 <div class="tabs">
   <div class="tab active" data-tab="tasks">My Tasks</div>
-  <div class="tab" data-tab="projects">Big Projects</div>
+  <div class="tab" data-tab="projects">Projects</div>
   <div class="tab" data-tab="team">Team Deliverables</div>
   <div class="tab" data-tab="timesheet">Timesheet</div>
   <div class="tab" data-tab="allocations">Allocations</div>
@@ -1784,13 +1903,29 @@
     <div id="taskList"></div>
   </div>
 
-  <!-- BIG PROJECTS -->
+  <!-- PROJECTS -->
   <div class="panel" id="panel-projects">
-    <div class="toolbar">
-      <button class="btn" onclick="openManagePersonsModal()">Manage Persons</button>
-      <button class="btn primary" onclick="openAddProjectModal()">+ Add Project</button>
+    <div class="proj-split-wrap">
+      <!-- Left Panel (collapsible code list) -->
+      <div id="projLeftPanel" class="proj-left-panel">
+        <div class="proj-left-header">
+          <span>Project Codes</span>
+          <button onclick="toggleProjPanel()" title="Collapse panel">◀</button>
+        </div>
+        <div id="projCodeList"></div>
+      </div>
+      <!-- Collapse toggle strip -->
+      <div id="projPanelToggle" class="proj-panel-toggle" style="display:none;" onclick="toggleProjPanel()" title="Expand project panel">▶</div>
+      <!-- Right Panel (sub-code tables) -->
+      <div id="projRightPanel" class="proj-right-panel">
+        <div id="projCodeContent">
+          <div class="proj-empty-state">
+            <span style="font-size:24px;">📂</span>
+            <span>Select a project code to view tasks</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="projectList"></div>
   </div>
 
   <!-- TEAM DELIVERABLES -->
@@ -2098,7 +2233,7 @@
 <!-- ADD PROJECT MODAL -->
 <div class="modal-overlay" id="addProjectModal">
   <div class="modal">
-    <div class="modal-title">Add Big Project</div>
+    <div class="modal-title">Add Project</div>
     <div style="margin-bottom:14px;"></div>
     <div class="edit-form-grid">
       <div class="edit-form-group full">
@@ -2979,6 +3114,17 @@ let tasks     = load('wt_tasks',     null);
 let bigProjs  = load('wt_bigprojs',  null);
 let collapsedProjs = new Set(load('wt_collapsed_projs', []));
 let _dragSrcProjId = null;
+
+// Projects tab state
+let hiddenProjs = new Set(load('wt_hidden_projs', []));
+let selectedProjCode = null;
+let projPanelCollapsed = load('wt_proj_panel_collapsed', false);
+let hiddenSectionOpen = false;
+function saveHiddenProjs() { save('wt_hidden_projs', [...hiddenProjs]); }
+function saveProjPanelCollapsed() { save('wt_proj_panel_collapsed', projPanelCollapsed); }
+
+// Drag state for moving items between sub-code tables
+let _dragItemData = null;
 let teamItems = load('wt_team',      null);
 let completed = load('wt_completed', null);
 
@@ -4430,138 +4576,421 @@ function confirmComplete() {
 }
 
 // =============================================
-// BIG PROJECTS RENDER
+// PROJECTS RENDER (code-based split panel)
 // =============================================
 
+// Orchestrator
 function renderProjects() {
-  const container = document.getElementById('projectList');
-  container.innerHTML = '';
-
-  if (!bigProjs.length) {
-    container.innerHTML = '<div class="empty-state">No big projects yet.</div>';
-    return;
+  // Apply collapsed state to left panel
+  const lp = document.getElementById('projLeftPanel');
+  const toggle = document.getElementById('projPanelToggle');
+  if (projPanelCollapsed) {
+    lp.style.display = 'none';
+    toggle.style.display = '';
+  } else {
+    lp.style.display = '';
+    toggle.style.display = 'none';
   }
-
-  bigProjs.forEach(proj => {
-    const allItems = proj.sessions.flatMap(s => [s, ...(s.subtasks||[])]);
-    const total = allItems.length;
-    const done  = allItems.filter(x => x.done).length;
-    const pct = total ? Math.round((done / total) * 100) : 0;
-    const isCollapsed = collapsedProjs.has(proj.id);
-
-    const card = document.createElement('div');
-    card.className = 'project-card';
-    card.dataset.projId = proj.id;
-    card.draggable = true;
-
-    card.addEventListener('dragstart', e => {
-      _dragSrcProjId = proj.id;
-      e.dataTransfer.effectAllowed = 'move';
-      setTimeout(() => card.style.opacity = '0.5', 0);
-    });
-    card.addEventListener('dragend', () => { card.style.opacity = ''; });
-    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
-    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
-    card.addEventListener('drop', e => {
-      e.preventDefault();
-      card.classList.remove('drag-over');
-      if (_dragSrcProjId && _dragSrcProjId !== proj.id) {
-        const fromIdx = bigProjs.findIndex(p => p.id === _dragSrcProjId);
-        const toIdx   = bigProjs.findIndex(p => p.id === proj.id);
-        if (fromIdx !== -1 && toIdx !== -1) {
-          const [moved] = bigProjs.splice(fromIdx, 1);
-          bigProjs.splice(toIdx, 0, moved);
-          save('wt_bigprojs', bigProjs);
-          renderProjects();
-        }
-      }
-      _dragSrcProjId = null;
-    });
-
-    const cardColor = proj.color || projColor(proj.project);
-    card.innerHTML = `
-      <div class="project-card-header" onclick="toggleProjCollapse('${proj.id}')">
-        <span class="proj-drag-handle" onclick="event.stopPropagation()" title="Drag to reorder">⠿</span>
-        <span class="proj-collapse-chevron${isCollapsed ? '' : ' open'}">›</span>
-        <div class="project-dot" style="background:${cardColor};width:9px;height:9px;border-radius:50%;"></div>
-        <div class="project-name-big" onclick="event.stopPropagation();openEditBigProjModal('${proj.id}')" title="Edit project">${proj.name}</div>
-        <div style="font-size:10px;color:var(--text3);margin-right:4px;font-family:monospace;">${projBillingCode(proj.project) || ''}</div>
-        ${proj.defaultSubCode ? `<div style="font-size:10px;color:var(--accent);opacity:0.7;margin-right:4px;">${getSubCodeLabel(proj.project, proj.defaultSubCode) || ''}</div>` : ''}
-        <div style="font-size:11px;color:var(--text3);margin-right:8px;">${projLabel(proj.project)}</div>
-        <div class="progress-bar-wrap">
-          <div class="progress-bar-fill" style="width:${pct}%;background:${cardColor};"></div>
-        </div>
-        <div class="progress-pct">${pct}%</div>
-        <div class="proj-card-actions" onclick="event.stopPropagation()">
-          <button class="row-edit-btn" onclick="openEditBigProjModal('${proj.id}')" title="Edit project">✏</button>
-        </div>
-      </div>
-      <div class="session-list" id="sessions-${proj.id}" style="${isCollapsed ? 'display:none;' : ''}">
-        ${[...proj.sessions].sort((a,b)=>(a.done===b.done?0:a.done?1:-1)||(a.date||'9999').localeCompare(b.date||'9999')).map(s => `
-          <div class="session-row">
-            <div class="session-check${s.done ? ' done' : ''}" onclick="openSessionCompletionModal('${proj.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
-              ${s.done ? '<span style="color:#0d0f14;font-size:11px;">✓</span>' : ''}
-            </div>
-            <div class="session-desc" style="${s.done ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditSessionModal('${proj.id}','${s.id}')">
-              ${s.desc}
-              <span id="session-tags-${s.id}">${delegateTagsHtml(s.delegatedTo)}</span>
-              ${s.waiting ? `<span class="task-waiting">⏳ ${s.waiting}</span>` : ''}
-              ${s.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('session','${s.id}','${proj.id}')" title="View notes">📝</span>` : ''}
-              ${s.recurrence ? `<span class="recur-badge">${recurLabel(s)}</span>` : ''}
-            </div>
-            <div onclick="event.stopPropagation();showSessionPriorityDropdown(event,'${proj.id}','${s.id}')" style="cursor:pointer;">${priorityBadge(s.priority || 'med')}</div>
-            <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSessionDatePicker(this,'${proj.id}','${s.id}')">${fmtDate(s.date)}</div>
-            <div class="session-hours">${s.hours}h</div>
-            <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
-              <span class="timer-display${s.timerStart ? ' running' : ''}" data-id="${s.id}">${(s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0) > 0 ? fmtSecs((s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0)) : '—'}</span>
-              <div class="timer-btn${s.timerStart ? ' running' : ''}" onclick="${s.timerStart ? `stopSessionTimer('${proj.id}','${s.id}')` : `startSessionTimer('${proj.id}','${s.id}')`}" title="${s.timerStart ? 'Stop' : 'Start'} timer">${s.timerStart ? '⏹' : '▶'}</div>
-            </div>
-            <div class="session-row-actions" onclick="event.stopPropagation()">
-              <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}')" title="Assign">↗</button>
-              <button class="row-edit-btn" onclick="deleteSession('${proj.id}','${s.id}')" title="Delete" style="color:var(--danger);">×</button>
-              <button class="row-edit-btn" onclick="event.stopPropagation();openAddSubtaskModal('${proj.id}','${s.id}')" title="Add subtask" style="color:var(--accent);font-size:14px;font-weight:700;">+</button>
-            </div>
-          </div>
-          ${[...(s.subtasks||[])].sort((a,b)=>(a.done===b.done?0:a.done?1:-1)||(a.date||'9999').localeCompare(b.date||'9999')).map(st=>`
-            <div class="subtask-row">
-              <div class="session-check${st.done?' done':''}" onclick="openSubtaskCompletionModal('${proj.id}','${s.id}','${st.id}')" title="${st.done?'Mark incomplete':'Mark complete'}" style="cursor:pointer;">
-                ${st.done?'<span style="color:#0d0f14;font-size:10px;">✓</span>':''}
-              </div>
-              <div class="session-desc" style="${st.done?'text-decoration:line-through;color:var(--text3);':''}" onclick="openEditSubtaskModal('${proj.id}','${s.id}','${st.id}')">
-                ${st.desc}
-                <span id="subtask-tags-${st.id}">${delegateTagsHtml(st.delegatedTo)}</span>
-                ${st.waiting?`<span class="task-waiting">⏳ ${st.waiting}</span>`:''}
-                ${st.notes?`<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('subtask','${st.id}','${proj.id}','${s.id}')" title="View notes">📝</span>`:''}
-                ${st.recurrence?`<span class="recur-badge">${recurLabel(st)}</span>`:''}
-              </div>
-              <div onclick="event.stopPropagation();showSubtaskPriorityDropdown(event,'${proj.id}','${s.id}','${st.id}')" style="cursor:pointer;">${priorityBadge(st.priority || 'med')}</div>
-              <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSubtaskDatePicker(this,'${proj.id}','${s.id}','${st.id}')">${fmtDate(st.date)}</div>
-              <div class="session-hours">${st.hours}h</div>
-              <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
-                <span class="timer-display${st.timerStart ? ' running' : ''}" data-id="${st.id}">${(st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0) > 0 ? fmtSecs((st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0)) : '—'}</span>
-                <div class="timer-btn${st.timerStart ? ' running' : ''}" onclick="${st.timerStart ? `stopSubtaskTimer('${proj.id}','${s.id}','${st.id}')` : `startSubtaskTimer('${proj.id}','${s.id}','${st.id}')`}" title="${st.timerStart ? 'Stop' : 'Start'} timer">${st.timerStart ? '⏹' : '▶'}</div>
-              </div>
-              <div class="session-row-actions" onclick="event.stopPropagation()">
-                <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${proj.id}','${s.id}','${st.id}')" title="Assign">↗</button>
-                <button class="row-edit-btn" onclick="deleteSubtask('${proj.id}','${s.id}','${st.id}')" title="Delete" style="color:var(--danger);">×</button>
-              </div>
-            </div>
-          `).join('')}
-        `).join('')}
-        <div style="padding:8px 14px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
-          <button class="btn" style="font-size:11px;padding:3px 10px;" onclick="event.stopPropagation();openAddSessionModal('${proj.id}')">+ Add work item</button>
-          <div style="display:flex;gap:16px;">
-            <span style="font-size:11px;color:var(--text3);">Total: ${proj.sessions.reduce((a,s)=>a+s.hours+(s.subtasks||[]).reduce((b,st)=>b+st.hours,0),0)}h</span>
-            <span style="font-size:11px;color:var(--text3);">Done: ${proj.sessions.reduce((a,s)=>a+(s.done?s.hours:0)+(s.subtasks||[]).filter(st=>st.done).reduce((b,st)=>b+st.hours,0),0)}h</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    container.appendChild(card);
-  });
+  renderProjCodeList();
+  if (selectedProjCode && PROJECTS[selectedProjCode]) {
+    renderProjCodeContent(selectedProjCode);
+  } else {
+    // Auto-select first visible code
+    const visible = projOrder.filter(k => !hiddenProjs.has(k));
+    if (visible.length) {
+      selectedProjCode = visible[0];
+      renderProjCodeContent(selectedProjCode);
+    } else {
+      document.getElementById('projCodeContent').innerHTML = '<div class="proj-empty-state"><span style="font-size:24px;">📂</span><span>No visible project codes. Unhide some from the panel.</span></div>';
+    }
+  }
 }
 
+// ── Left Panel: project code list ──
+let _dragSrcCodeKey = null;
+
+function renderProjCodeList() {
+  const container = document.getElementById('projCodeList');
+  if (!container) return;
+  const visible = projOrder.filter(k => !hiddenProjs.has(k));
+  const hidden = projOrder.filter(k => hiddenProjs.has(k));
+
+  let html = '';
+  visible.forEach(key => {
+    const p = PROJECTS[key];
+    const isActive = key === selectedProjCode;
+    html += `<div class="proj-code-item${isActive ? ' active' : ''}" draggable="true" data-code-key="${key}"
+      onclick="selectProjCode('${key}')"
+      ondragstart="_dragSrcCodeKey='${key}';event.dataTransfer.effectAllowed='move';this.style.opacity='0.4';"
+      ondragend="this.style.opacity='';"
+      ondragover="event.preventDefault();this.classList.add('drag-over-code');"
+      ondragleave="this.classList.remove('drag-over-code');"
+      ondrop="event.preventDefault();this.classList.remove('drag-over-code');dropCodeReorder('${key}');">
+      <div class="proj-code-dot" style="background:${p.color || '#666'};"></div>
+      <span class="proj-code-label">${p.label || key}</span>
+      <button class="proj-eye-btn" onclick="event.stopPropagation();toggleProjHidden('${key}')" title="Hide this code">👁</button>
+    </div>`;
+  });
+
+  // Hidden section
+  if (hidden.length) {
+    html += `<div class="proj-hidden-section">
+      <div class="proj-hidden-header" onclick="toggleHiddenSection()">
+        <span class="proj-hidden-chevron${hiddenSectionOpen ? ' open' : ''}">›</span>
+        <span>Hidden (${hidden.length})</span>
+      </div>`;
+    if (hiddenSectionOpen) {
+      hidden.forEach(key => {
+        const p = PROJECTS[key];
+        html += `<div class="proj-code-item hidden-item" data-code-key="${key}"
+          draggable="true"
+          ondragstart="_dragSrcCodeKey='${key}';event.dataTransfer.effectAllowed='move';this.style.opacity='0.4';"
+          ondragend="this.style.opacity='';"
+          ondragover="event.preventDefault();this.classList.add('drag-over-code');"
+          ondragleave="this.classList.remove('drag-over-code');"
+          ondrop="event.preventDefault();this.classList.remove('drag-over-code');dropCodeReorder('${key}');">
+          <div class="proj-code-dot" style="background:${p.color || '#666'};"></div>
+          <span class="proj-code-label">${p.label || key}</span>
+          <button class="proj-eye-btn" onclick="event.stopPropagation();toggleProjHidden('${key}')" title="Show this code">👁‍🗨</button>
+        </div>`;
+      });
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+// ── Right Panel: sub-code tables for selected project ──
+// Collapse state for sub-code sections (in-memory)
+const collapsedSubSections = new Set();
+
+function renderProjCodeContent(projKey) {
+  const container = document.getElementById('projCodeContent');
+  if (!container) return;
+  const proj = PROJECTS[projKey];
+  if (!proj) { container.innerHTML = ''; return; }
+
+  const subCodes = getSubCodes(projKey);
+  const color = proj.color || '#666';
+
+  // Gather all items for this project code
+  // 1) Big project sessions & subtasks
+  const projBigProjs = bigProjs.filter(bp => bp.project === projKey);
+  // 2) My Tasks tagged to this code
+  const projTasks = tasks.filter(t => t.project === projKey && !t.completed);
+
+  // Group items by subCode
+  function getItemsForSubCode(scId) {
+    const items = [];
+    // Tasks
+    projTasks.forEach(t => {
+      const tsc = t.subCode || '';
+      if (tsc === (scId || '')) {
+        items.push({ _type: 'task', task: t, _date: t.due || null, _src: 'task' });
+      }
+    });
+    // Sessions & subtasks from big projects
+    projBigProjs.forEach(bp => {
+      bp.sessions.forEach(s => {
+        const ssc = s.subCode || bp.defaultSubCode || '';
+        if (ssc === (scId || '')) {
+          items.push({ _type: 'session', s, proj: bp, _date: s.date || null, _src: bp.name });
+          (s.subtasks || []).forEach(st => {
+            const stsc = st.subCode || ssc;
+            if (stsc === (scId || '')) {
+              items.push({ _type: 'subtask', st, s, proj: bp, _date: st.date || null, _src: bp.name });
+            }
+          });
+        }
+      });
+    });
+    // Sort: incomplete first, then by date, then priority
+    const po = { urgent: 0, high: 1, med: 2, low: 3 };
+    const pri = i => i._type === 'task' ? po[i.task.priority] : i._type === 'session' ? (po[i.s.priority] ?? 2) : (po[i.st.priority] ?? 2);
+    const done = i => i._type === 'task' ? !!i.task.completed : i._type === 'session' ? !!i.s.done : !!i.st.done;
+    items.sort((a, b) => (done(a) - done(b)) || (a._date || 'zzz').localeCompare(b._date || 'zzz') || pri(a) - pri(b));
+    return items;
+  }
+
+  // Header
+  let html = `<div class="proj-right-header">
+    <div class="proj-code-dot" style="background:${color};width:12px;height:12px;border-radius:50%;"></div>
+    <span class="proj-right-title">${proj.label || projKey}</span>
+    <span class="proj-right-code">${proj.billingCode || ''}</span>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button class="btn" onclick="openManagePersonsModal()" style="font-size:11px;padding:3px 10px;">Manage Persons</button>
+      <button class="btn primary" onclick="openAddProjectModal()" style="font-size:11px;padding:3px 10px;">+ Add Project</button>
+    </div>
+  </div>`;
+
+  // Build sub-code sections: "Unassigned" first, then each sub-code
+  const sections = [{ scId: '', label: 'Unassigned (no sub-code)', code: '' }];
+  subCodes.forEach(sc => sections.push({ scId: sc.id, label: sc.label || sc.code, code: sc.code }));
+
+  sections.forEach(sec => {
+    const items = getItemsForSubCode(sec.scId);
+    const openCount = items.filter(i => !(i._type === 'task' ? i.task.completed : i._type === 'session' ? i.s.done : i.st.done)).length;
+    const totalCount = items.length;
+    const sectionKey = projKey + '|' + sec.scId;
+    const isCollapsed = collapsedSubSections.has(sectionKey);
+
+    html += `<div class="subcode-section">
+      <div class="subcode-header" onclick="toggleSubSection('${sectionKey}')">
+        <span class="subcode-chevron${isCollapsed ? '' : ' open'}">›</span>
+        <span>${sec.code ? (proj.billingCode || '') + sec.code + ' — ' : ''}${sec.label}</span>
+        <span class="subcode-count">${openCount} open / ${totalCount} total</span>
+      </div>`;
+
+    if (!isCollapsed) {
+      html += `<div class="subcode-body" data-drop-sc="${sec.scId}" data-drop-proj="${projKey}"
+        ondragover="event.preventDefault();this.classList.add('drag-target');"
+        ondragleave="this.classList.remove('drag-target');"
+        ondrop="event.preventDefault();this.classList.remove('drag-target');dropItemToSubCode('${projKey}','${sec.scId}');">`;
+
+      if (!items.length) {
+        html += '<div class="subcode-empty">No items yet</div>';
+      } else {
+        // Group by source (Big Project name or "My Tasks")
+        let lastSrc = null;
+        items.forEach(item => {
+          const src = item._type === 'task' ? 'My Tasks' : item._src;
+          if (src !== lastSrc) {
+            html += `<div class="proj-group-label">${src}</div>`;
+            lastSrc = src;
+          }
+          html += renderProjItemRow(item, projKey, sec.scId);
+        });
+      }
+
+      // Inline add
+      html += `<div class="subcode-inline-add">
+        <input type="text" placeholder="Quick add task..." id="inlineAdd_${projKey}_${sec.scId}" onkeydown="if(event.key==='Enter')inlineAddTask('${projKey}','${sec.scId}')">
+        <button onclick="inlineAddTask('${projKey}','${sec.scId}')">Add</button>
+      </div>`;
+      html += '</div>'; // .subcode-body
+    }
+    html += '</div>'; // .subcode-section
+  });
+
+  container.innerHTML = html;
+}
+
+// ── Render a single item row (task, session, or subtask) ──
+function renderProjItemRow(item, projKey, scId) {
+  if (item._type === 'task') {
+    const t = item.task;
+    const isDone = !!t.completed;
+    return `<div class="proj-item-row" draggable="true"
+      ondragstart="_dragItemData={type:'task',id:'${t.id}',fromSc:'${scId}',fromProj:'${projKey}'};event.dataTransfer.effectAllowed='move';this.classList.add('dragging');"
+      ondragend="this.classList.remove('dragging');_dragItemData=null;">
+      <div class="session-check${isDone ? ' done' : ''}" onclick="toggleTaskFromProjects('${t.id}')" style="cursor:pointer;">
+        ${isDone ? '<span style="color:#0d0f14;font-size:11px;">✓</span>' : ''}
+      </div>
+      <div class="session-desc" style="${isDone ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditModal('${t.id}')">
+        ${t.name}
+        ${t.waiting ? `<span class="task-waiting">⏳ ${t.waiting}</span>` : ''}
+        ${t.notes ? '<span class="notes-icon" title="Has notes">📝</span>' : ''}
+        ${t.recurrence ? `<span class="recur-badge">${recurLabel(t)}</span>` : ''}
+      </div>
+      <div onclick="event.stopPropagation();">${priorityBadge(t.priority || 'med')}</div>
+      <div class="session-date">${fmtDate(t.due)}</div>
+      <div class="session-hours">${t.est ? t.est + 'h' : '—'}</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
+        <span class="timer-display${t.timerStart ? ' running' : ''}" data-id="${t.id}">${(t.timer||0)+(t.timerStart?Math.floor((Date.now()-t.timerStart)/1000):0) > 0 ? fmtSecs((t.timer||0)+(t.timerStart?Math.floor((Date.now()-t.timerStart)/1000):0)) : '—'}</span>
+        <div class="timer-btn${t.timerStart ? ' running' : ''}" onclick="${t.timerStart ? `stopTimer('${t.id}')` : `startTimer('${t.id}')`}" title="${t.timerStart ? 'Stop' : 'Start'} timer">${t.timerStart ? '⏹' : '▶'}</div>
+      </div>
+      <div class="session-row-actions" onclick="event.stopPropagation()">
+        <button class="row-edit-btn" onclick="deleteTaskFromProjects('${t.id}')" title="Delete" style="color:var(--danger);">×</button>
+      </div>
+    </div>`;
+  }
+
+  if (item._type === 'session') {
+    const s = item.s;
+    const bp = item.proj;
+    return `<div class="proj-item-row" draggable="true"
+      ondragstart="_dragItemData={type:'session',projId:'${bp.id}',id:'${s.id}',fromSc:'${scId}',fromProj:'${projKey}'};event.dataTransfer.effectAllowed='move';this.classList.add('dragging');"
+      ondragend="this.classList.remove('dragging');_dragItemData=null;">
+      <div class="session-check${s.done ? ' done' : ''}" onclick="openSessionCompletionModal('${bp.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
+        ${s.done ? '<span style="color:#0d0f14;font-size:11px;">✓</span>' : ''}
+      </div>
+      <div class="session-desc" style="${s.done ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditSessionModal('${bp.id}','${s.id}')">
+        ${s.desc}
+        <span id="session-tags-${s.id}">${delegateTagsHtml(s.delegatedTo)}</span>
+        ${s.waiting ? `<span class="task-waiting">⏳ ${s.waiting}</span>` : ''}
+        ${s.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('session','${s.id}','${bp.id}')" title="View notes">📝</span>` : ''}
+        ${s.recurrence ? `<span class="recur-badge">${recurLabel(s)}</span>` : ''}
+      </div>
+      <div onclick="event.stopPropagation();showSessionPriorityDropdown(event,'${bp.id}','${s.id}')" style="cursor:pointer;">${priorityBadge(s.priority || 'med')}</div>
+      <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSessionDatePicker(this,'${bp.id}','${s.id}')">${fmtDate(s.date)}</div>
+      <div class="session-hours">${s.hours}h</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
+        <span class="timer-display${s.timerStart ? ' running' : ''}" data-id="${s.id}">${(s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0) > 0 ? fmtSecs((s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0)) : '—'}</span>
+        <div class="timer-btn${s.timerStart ? ' running' : ''}" onclick="${s.timerStart ? `stopSessionTimer('${bp.id}','${s.id}')` : `startSessionTimer('${bp.id}','${s.id}')`}" title="${s.timerStart ? 'Stop' : 'Start'} timer">${s.timerStart ? '⏹' : '▶'}</div>
+      </div>
+      <div class="session-row-actions" onclick="event.stopPropagation()">
+        <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${bp.id}','${s.id}')" title="Assign">↗</button>
+        <button class="row-edit-btn" onclick="deleteSession('${bp.id}','${s.id}')" title="Delete" style="color:var(--danger);">×</button>
+        <button class="row-edit-btn" onclick="openAddSubtaskModal('${bp.id}','${s.id}')" title="Add subtask" style="color:var(--accent);font-size:14px;font-weight:700;">+</button>
+      </div>
+    </div>`;
+  }
+
+  if (item._type === 'subtask') {
+    const st = item.st;
+    const s = item.s;
+    const bp = item.proj;
+    return `<div class="proj-item-row" style="padding-left:44px;font-size:11px;" draggable="true"
+      ondragstart="_dragItemData={type:'subtask',projId:'${bp.id}',sessionId:'${s.id}',id:'${st.id}',fromSc:'${scId}',fromProj:'${projKey}'};event.dataTransfer.effectAllowed='move';this.classList.add('dragging');"
+      ondragend="this.classList.remove('dragging');_dragItemData=null;">
+      <div class="session-check${st.done ? ' done' : ''}" onclick="openSubtaskCompletionModal('${bp.id}','${s.id}','${st.id}')" title="${st.done ? 'Mark incomplete' : 'Mark complete'}" style="cursor:pointer;">
+        ${st.done ? '<span style="color:#0d0f14;font-size:10px;">✓</span>' : ''}
+      </div>
+      <div class="session-desc" style="${st.done ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditSubtaskModal('${bp.id}','${s.id}','${st.id}')">
+        ${st.desc}
+        <span id="subtask-tags-${st.id}">${delegateTagsHtml(st.delegatedTo)}</span>
+        ${st.waiting ? `<span class="task-waiting">⏳ ${st.waiting}</span>` : ''}
+        ${st.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('subtask','${st.id}','${bp.id}','${s.id}')" title="View notes">📝</span>` : ''}
+        ${st.recurrence ? `<span class="recur-badge">${recurLabel(st)}</span>` : ''}
+      </div>
+      <div onclick="event.stopPropagation();showSubtaskPriorityDropdown(event,'${bp.id}','${s.id}','${st.id}')" style="cursor:pointer;">${priorityBadge(st.priority || 'med')}</div>
+      <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSubtaskDatePicker(this,'${bp.id}','${s.id}','${st.id}')">${fmtDate(st.date)}</div>
+      <div class="session-hours">${st.hours}h</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
+        <span class="timer-display${st.timerStart ? ' running' : ''}" data-id="${st.id}">${(st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0) > 0 ? fmtSecs((st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0)) : '—'}</span>
+        <div class="timer-btn${st.timerStart ? ' running' : ''}" onclick="${st.timerStart ? `stopSubtaskTimer('${bp.id}','${s.id}','${st.id}')` : `startSubtaskTimer('${bp.id}','${s.id}','${st.id}')`}" title="${st.timerStart ? 'Stop' : 'Start'} timer">${st.timerStart ? '⏹' : '▶'}</div>
+      </div>
+      <div class="session-row-actions" onclick="event.stopPropagation()">
+        <button class="row-edit-btn" data-assign-btn="1" onclick="showAssignDropdown(event,'${bp.id}','${s.id}','${st.id}')" title="Assign">↗</button>
+        <button class="row-edit-btn" onclick="deleteSubtask('${bp.id}','${s.id}','${st.id}')" title="Delete" style="color:var(--danger);">×</button>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+// ── Interaction functions ──
+
+function toggleProjPanel() {
+  projPanelCollapsed = !projPanelCollapsed;
+  saveProjPanelCollapsed();
+  renderProjects();
+}
+
+function selectProjCode(key) {
+  selectedProjCode = key;
+  renderProjCodeList();
+  renderProjCodeContent(key);
+}
+
+function toggleProjHidden(key) {
+  if (hiddenProjs.has(key)) hiddenProjs.delete(key);
+  else hiddenProjs.add(key);
+  saveHiddenProjs();
+  // If we hid the selected code, clear selection
+  if (hiddenProjs.has(selectedProjCode)) selectedProjCode = null;
+  renderProjects();
+}
+
+function toggleHiddenSection() {
+  hiddenSectionOpen = !hiddenSectionOpen;
+  renderProjCodeList();
+}
+
+function toggleSubSection(sectionKey) {
+  if (collapsedSubSections.has(sectionKey)) collapsedSubSections.delete(sectionKey);
+  else collapsedSubSections.add(sectionKey);
+  if (selectedProjCode) renderProjCodeContent(selectedProjCode);
+}
+
+function dropCodeReorder(targetKey) {
+  if (!_dragSrcCodeKey || _dragSrcCodeKey === targetKey) { _dragSrcCodeKey = null; return; }
+  const fromIdx = projOrder.indexOf(_dragSrcCodeKey);
+  const toIdx = projOrder.indexOf(targetKey);
+  if (fromIdx === -1 || toIdx === -1) { _dragSrcCodeKey = null; return; }
+  projOrder.splice(fromIdx, 1);
+  projOrder.splice(toIdx, 0, _dragSrcCodeKey);
+  // If dragged out of hidden, unhide it
+  if (hiddenProjs.has(_dragSrcCodeKey)) {
+    hiddenProjs.delete(_dragSrcCodeKey);
+    saveHiddenProjs();
+  }
+  saveProjOrder();
+  _dragSrcCodeKey = null;
+  renderProjCodeList();
+}
+
+// ── Drag items between sub-code tables ──
+function dropItemToSubCode(projKey, newScId) {
+  if (!_dragItemData) return;
+  const d = _dragItemData;
+  _dragItemData = null;
+
+  if (d.type === 'task') {
+    const t = tasks.find(t => t.id === d.id);
+    if (t) { t.subCode = newScId; save('wt_tasks', tasks); }
+  } else if (d.type === 'session') {
+    const bp = bigProjs.find(p => p.id === d.projId);
+    if (bp) {
+      const s = bp.sessions.find(s => s.id === d.id);
+      if (s) { s.subCode = newScId; save('wt_bigprojs', bigProjs); }
+    }
+  } else if (d.type === 'subtask') {
+    const bp = bigProjs.find(p => p.id === d.projId);
+    if (bp) {
+      const s = bp.sessions.find(s => s.id === d.sessionId);
+      if (s) {
+        const st = (s.subtasks || []).find(st => st.id === d.id);
+        if (st) { st.subCode = newScId; save('wt_bigprojs', bigProjs); }
+      }
+    }
+  }
+  renderProjCodeContent(projKey);
+  renderTasks();
+}
+
+// ── Inline quick-add task to a specific sub-code ──
+function inlineAddTask(projKey, scId) {
+  const input = document.getElementById('inlineAdd_' + projKey + '_' + scId);
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  tasks.push({
+    id: uid(), name, project: projKey, subCode: scId || '',
+    priority: 'med', due: today(), est: 1, category: '',
+    waiting: '', notes: '', timer: 0, timerStart: null,
+    completed: false
+  });
+  save('wt_tasks', tasks);
+  input.value = '';
+  renderProjCodeContent(projKey);
+  renderTasks();
+}
+
+// ── Task helpers for projects view ──
+function toggleTaskFromProjects(taskId) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  if (t.completed) {
+    t.completed = false;
+  } else {
+    t.completed = true;
+    t.dateCompleted = today();
+  }
+  save('wt_tasks', tasks);
+  renderProjects();
+  renderTasks();
+}
+
+function deleteTaskFromProjects(taskId) {
+  if (!confirm('Delete this task?')) return;
+  tasks = tasks.filter(t => t.id !== taskId);
+  save('wt_tasks', tasks);
+  renderProjects();
+  renderTasks();
+}
+
+// Legacy compatibility — keep these for the Add Project modal
 function toggleProjCollapse(projId) {
   if (collapsedProjs.has(projId)) collapsedProjs.delete(projId);
   else collapsedProjs.add(projId);
@@ -6044,11 +6473,11 @@ function openAllocDrill(projKey, scId, yearMonth) {
       plannedTasks.forEach(t => { html += renderTaskItem(t); });
     }
     if (plannedSessions.length > 0) {
-      html += '<div class="alloc-drill-section">Big Project Sessions</div>';
+      html += '<div class="alloc-drill-section">Project Sessions</div>';
       plannedSessions.forEach(s => { html += renderSessionItem(s, 'Session'); });
     }
     if (plannedSubtasks.length > 0) {
-      html += '<div class="alloc-drill-section">Big Project Subtasks</div>';
+      html += '<div class="alloc-drill-section">Project Subtasks</div>';
       plannedSubtasks.forEach(s => { html += renderSessionItem(s, 'Subtask'); });
     }
     if (completedItems.length > 0) {
