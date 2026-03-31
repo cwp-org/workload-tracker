@@ -4488,23 +4488,28 @@ function renderTasks() {
   const allItems = [];
   const _8weeksOut = addDays(today(), 56);
   visible.forEach(t => {
-    if (t.recurrence && t.recurrence.type && t.due) {
-      const endLimit = t.recurrence.endDate && t.recurrence.endDate < _8weeksOut ? t.recurrence.endDate : _8weeksOut;
-      const skips = t.recurrence.skips || [];
-      const overrides = t.recurrence.overrides || {};
-      let cursor = t.due;
-      let safety = 0;
-      while (cursor && cursor <= endLimit && safety < 200) {
-        safety++;
-        if (!skips.includes(cursor)) {
-          const effectiveDate = overrides[cursor] || cursor;
-          allItems.push({ _type: 'task', task: t, _date: effectiveDate, _occurrenceDate: cursor });
+    try {
+      if (t.recurrence && t.recurrence.type && t.due) {
+        const endLimit = t.recurrence.endDate && t.recurrence.endDate < _8weeksOut ? t.recurrence.endDate : _8weeksOut;
+        const skips = t.recurrence.skips || [];
+        const overrides = t.recurrence.overrides || {};
+        let cursor = t.due;
+        let safety = 0;
+        while (cursor && cursor <= endLimit && safety < 200) {
+          safety++;
+          if (!skips.includes(cursor)) {
+            const effectiveDate = overrides[cursor] || cursor;
+            allItems.push({ _type: 'task', task: t, _date: effectiveDate, _occurrenceDate: cursor });
+          }
+          cursor = nextRecurrenceAfter(t, cursor);
         }
-        cursor = nextRecurrenceAfter(t, cursor);
+      } else {
+        const effectiveDate = (t.recurrence?.overrides?.[t.due]) || t.due || null;
+        allItems.push({ _type: 'task', task: t, _date: effectiveDate, _occurrenceDate: t.due });
       }
-    } else {
-      const effectiveDate = (t.recurrence?.overrides?.[t.due]) || t.due || null;
-      allItems.push({ _type: 'task', task: t, _date: effectiveDate, _occurrenceDate: t.due });
+    } catch(e) {
+      // Fallback: show task as single item if occurrence generation fails
+      allItems.push({ _type: 'task', task: t, _date: t.due || null, _occurrenceDate: t.due });
     }
   });
   bigProjs.forEach(proj => {
@@ -4545,7 +4550,7 @@ function renderTasks() {
 
   // ── capacity bar for this week ──
   const wkItems = allItems.filter(i => i._date && i._date >= wkStart && i._date <= wkEnd);
-  const wkEst = wkItems.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+  const wkEst = wkItems.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : i._type === 'subtask' ? (i.st?.hours || 0) : 0), 0);
   const wkCap = workingDays(wkStart, wkEnd) * tsCapacity;
   const wkPct = Math.min(Math.round((wkEst / wkCap) * 100), 100);
   const wkCls = wkEst > wkCap ? 'over' : wkEst > wkCap * 0.8 ? 'warn' : 'ok';
@@ -8103,24 +8108,29 @@ function reloadStateFromLocalStorage() {
 }
 
 function initApp() {
-  if (_currentUser) {
-    // Re-read from localStorage (refreshed from Supabase)
-    reloadStateFromLocalStorage();
-  }
-  _appInitialized = true;
+  try {
+    if (_currentUser) {
+      reloadStateFromLocalStorage();
+    }
+    _appInitialized = true;
 
-  populateProjectSelects();
-  renderTasks();
-  renderProjects();
-  renderTeam();
-  const _capInput = document.getElementById('tsCapacityInput');
-  if (_capInput) _capInput.value = tsCapacity;
-  renderTimesheet();
-  renderAllocations();
-  updateHeaderMeta();
-  _ensureTickerRunning();
-  updateActiveStrip();
-  applyTheme(getTheme());
+    populateProjectSelects();
+    renderTasks();
+    renderProjects();
+    renderTeam();
+    const _capInput = document.getElementById('tsCapacityInput');
+    if (_capInput) _capInput.value = tsCapacity;
+    renderTimesheet();
+    renderAllocations();
+    updateHeaderMeta();
+    _ensureTickerRunning();
+    updateActiveStrip();
+    applyTheme(getTheme());
+  } catch(e) {
+    console.error('initApp crashed:', e);
+    // Ensure the app is at least visible
+    document.getElementById('appWrapper').style.display = '';
+  }
 }
 
 // First-time init for offline / no-Supabase
