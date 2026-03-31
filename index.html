@@ -5698,7 +5698,7 @@ function renderProjCodeContent(projKey) {
 
   sections.forEach(sec => {
     const items = getItemsForSubCode(sec.scId);
-    const openCount = items.filter(i => !(i._type === 'task' ? i.task.completed : i._type === 'session' ? i.s.done : i.st.done)).length;
+    const openCount = items.filter(i => !(i._type === 'task' ? i.task.completed : i._type === 'session' ? i.s.done : i._type === 'team' ? (i.team.status === 'complete') : i.st?.done)).length;
     const totalCount = items.length;
     const sectionKey = projKey + '|' + sec.scId;
     const isCollapsed = collapsedSubSections.has(sectionKey);
