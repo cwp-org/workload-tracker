@@ -5122,17 +5122,33 @@ function openEditModal(taskId) {
   document.getElementById('editRecurMonthWeekday').value= normDows(r)[0] !== undefined ? normDows(r)[0] : 1;
   document.getElementById('editRecurEndDate').value     = r.endDate || '';
   onRecurTypeChange();
+  document.getElementById('editDeleteBtn').style.display = '';
   document.getElementById('editTaskModal').classList.add('open');
 }
 
 function closeEditModal() {
   document.getElementById('editTaskModal').classList.remove('open');
   editingTaskId = null;
+  _addTaskForProject = null;
 }
 
 function saveEditTask() {
-  const task = tasks.find(t => t.id === editingTaskId);
-  if (!task) return;
+  let task;
+  const isNew = editingTaskId === '__new__';
+  if (isNew) {
+    const name = document.getElementById('editName').value.trim();
+    if (!name) return alert('Task name is required.');
+    task = {
+      id: uid(), name: '', project: '', subCode: '',
+      priority: 'med', due: '', est: 0, category: '',
+      waiting: '', notes: '', timer: 0, timerStart: null, completed: false
+    };
+    tasks.unshift(task);
+    editingTaskId = task.id;
+  } else {
+    task = tasks.find(t => t.id === editingTaskId);
+    if (!task) return;
+  }
 
   task.name     = document.getElementById('editName').value.trim() || task.name;
   task.project  = document.getElementById('editProject').value;
@@ -5971,15 +5987,24 @@ function inlineAddTask(projKey, scId) {
 }
 
 function openAddTaskForProject(projKey, scId) {
-  const task = {
-    id: uid(), name: 'New Task', project: projKey, subCode: scId || '',
-    priority: 'med', due: '', est: 0, category: '',
-    waiting: '', notes: '', timer: 0, timerStart: null, completed: false
-  };
-  tasks.unshift(task);
-  save('wt_tasks', tasks);
-  openEditModal(task.id);
+  // Open edit modal in "add new" mode with project/subcode pre-set
+  editingTaskId = '__new__';
+  _addTaskForProject = { project: projKey, subCode: scId || '' };
+  document.getElementById('editName').value = '';
+  document.getElementById('editProject').value = projKey;
+  populateSubCodeSelect('editSubCode', projKey, scId || '');
+  document.getElementById('editPriority').value = 'med';
+  document.getElementById('editDue').value = '';
+  document.getElementById('editEst').value = '';
+  document.getElementById('editWaiting').value = '';
+  document.getElementById('editNotes').value = '';
+  document.getElementById('editRecurType').value = '';
+  onRecurTypeChange();
+  document.getElementById('editDeleteBtn').style.display = 'none';
+  document.getElementById('editTaskModal').classList.add('open');
+  setTimeout(() => document.getElementById('editName').focus(), 80);
 }
+let _addTaskForProject = null;
 
 // ── Task helpers for projects view ──
 function toggleTaskFromProjects(taskId) {
