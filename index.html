@@ -4625,7 +4625,7 @@ function renderTasks() {
         <span class="task-category">${projLabel(task.project)}</span>
         <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
         <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(item._date)}</div>
-        <div class="task-est">${task.est ? task.est + 'h' : '—'}</div>
+        <div class="task-est" onclick="event.stopPropagation();inlineEditEst(this,'task','${task.id}')" style="cursor:pointer;" title="Click to edit">${task.est ? task.est + 'h' : '—'}</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
           <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
@@ -4646,7 +4646,7 @@ function renderTasks() {
         <span class="task-category" style="color:var(--text3);font-style:italic;">${proj.name}</span>
         <div onclick="showSessionPriorityDropdown(event,'${proj.id}','${s.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(s.priority || 'med')}</div>
         <div class="task-due ${dc}" onclick="openSessionDatePicker(this,'${proj.id}','${s.id}')" style="cursor:pointer;">${fmtDate(s.date)}</div>
-        <div class="task-est">${s.hours ? s.hours + 'h' : '—'}</div>
+        <div class="task-est" onclick="event.stopPropagation();inlineEditEst(this,'session','${proj.id}','${s.id}')" style="cursor:pointer;" title="Click to edit">${s.hours ? s.hours + 'h' : '—'}</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="timer-display${sRunning ? ' running' : ''}" data-id="${s.id}">${sTimerStr}</span>
           <div class="timer-btn${sRunning ? ' running' : ''}" onclick="${sRunning ? `stopSessionTimer('${proj.id}','${s.id}')` : `startSessionTimer('${proj.id}','${s.id}')`}" title="${sRunning ? 'Stop' : 'Start'} timer">${sRunning ? '⏹' : '▶'}</div>
@@ -4669,7 +4669,7 @@ function renderTasks() {
         <span class="task-category" style="color:var(--text3);font-style:italic;font-size:10px;">${proj.name}</span>
         <div onclick="showSubtaskPriorityDropdown(event,'${proj.id}','${s.id}','${st.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(st.priority || 'med')}</div>
         <div class="task-due ${dc}" style="font-size:11px;cursor:pointer;" onclick="openSubtaskDatePicker(this,'${proj.id}','${s.id}','${st.id}')">${fmtDate(st.date)}</div>
-        <div class="task-est" style="font-size:11px;">${st.hours ? st.hours + 'h' : '—'}</div>
+        <div class="task-est" onclick="event.stopPropagation();inlineEditEst(this,'subtask','${proj.id}','${s.id}','${st.id}')" style="cursor:pointer;font-size:11px;" title="Click to edit">${st.hours ? st.hours + 'h' : '—'}</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="timer-display${stRunning ? ' running' : ''}" data-id="${st.id}">${stTimerStr}</span>
           <div class="timer-btn${stRunning ? ' running' : ''}" onclick="${stRunning ? `stopSubtaskTimer('${proj.id}','${s.id}','${st.id}')` : `startSubtaskTimer('${proj.id}','${s.id}','${st.id}')`}" title="${stRunning ? 'Stop' : 'Start'} timer">${stRunning ? '⏹' : '▶'}</div>
@@ -5271,6 +5271,73 @@ function deleteEditTask() {
   renderTasks();
 }
 
+// ── Inline edit hours (click-to-edit in row) ──
+function inlineEditEst(el, type, id1, id2, id3) {
+  if (el.querySelector('input')) return;
+  const currentVal = parseFloat(el.textContent) || 0;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.step = '0.25';
+  input.value = currentVal || '';
+  input.style.cssText = 'width:50px;font-size:12px;padding:2px 4px;border:1px solid var(--accent);border-radius:3px;background:var(--bg);color:var(--text);text-align:center;';
+
+  function commit() {
+    const val = parseFloat(input.value) || 0;
+    if (type === 'task') {
+      const t = tasks.find(t => t.id === id1);
+      if (t) { t.est = val; save('wt_tasks', tasks); }
+    } else if (type === 'session') {
+      const bp = bigProjs.find(p => p.id === id1);
+      if (bp) { const s = bp.sessions.find(s => s.id === id2); if (s) { s.hours = val; save('wt_bigprojs', bigProjs); } }
+    } else if (type === 'subtask') {
+      const bp = bigProjs.find(p => p.id === id1);
+      if (bp) { const s = bp.sessions.find(s => s.id === id2); if (s) { const st = (s.subtasks||[]).find(st => st.id === id3); if (st) { st.hours = val; save('wt_bigprojs', bigProjs); } } }
+    }
+    renderTasks();
+    renderProjects();
+    updateHeaderMeta();
+  }
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { el.textContent = currentVal ? currentVal + 'h' : '—'; }
+  });
+
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+}
+
+// ── Inline edit date (click-to-edit in row) ──
+function inlineEditDate(el, type, id1) {
+  if (el.querySelector('input')) return;
+  const t = tasks.find(t => t.id === id1);
+  if (!t) return;
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = t.due || '';
+  input.style.cssText = 'font-size:11px;padding:2px 4px;border:1px solid var(--accent);border-radius:3px;background:var(--bg);color:var(--text);';
+
+  function commit() {
+    t.due = input.value || '';
+    save('wt_tasks', tasks);
+    renderTasks();
+    renderProjects();
+    updateHeaderMeta();
+  }
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('change', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') { renderProjects(); } });
+
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+}
+
 function deleteTaskInline(taskId, occurrenceDate) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
@@ -5797,8 +5864,8 @@ function renderProjItemRow(item, projKey, scId) {
         ${t.recurrence ? `<span class="recur-badge">${recurLabel(t)}</span>` : ''}
       </div>
       <div onclick="event.stopPropagation();">${priorityBadge(t.priority || 'med')}</div>
-      <div class="session-date">${fmtDate(t.due)}</div>
-      <div class="session-hours">${t.est ? t.est + 'h' : '—'}</div>
+      <div class="session-date" onclick="event.stopPropagation();inlineEditDate(this,'task','${t.id}')" style="cursor:pointer;" title="Click to edit">${fmtDate(t.due)}</div>
+      <div class="session-hours" onclick="event.stopPropagation();inlineEditEst(this,'task','${t.id}')" style="cursor:pointer;" title="Click to edit">${t.est ? t.est + 'h' : '—'}</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
         <span class="timer-display${t.timerStart ? ' running' : ''}" data-id="${t.id}">${(t.timer||0)+(t.timerStart?Math.floor((Date.now()-t.timerStart)/1000):0) > 0 ? fmtSecs((t.timer||0)+(t.timerStart?Math.floor((Date.now()-t.timerStart)/1000):0)) : '—'}</span>
         <div class="timer-btn${t.timerStart ? ' running' : ''}" onclick="${t.timerStart ? `stopTimer('${t.id}')` : `startTimer('${t.id}')`}" title="${t.timerStart ? 'Stop' : 'Start'} timer">${t.timerStart ? '⏹' : '▶'}</div>
@@ -5831,7 +5898,7 @@ function renderProjItemRow(item, projKey, scId) {
       </div>
       <div onclick="event.stopPropagation();showSessionPriorityDropdown(event,'${bp.id}','${s.id}')" style="cursor:pointer;">${priorityBadge(s.priority || 'med')}</div>
       <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSessionDatePicker(this,'${bp.id}','${s.id}')">${fmtDate(s.date)}</div>
-      <div class="session-hours">${s.hours}h</div>
+      <div class="session-hours" onclick="event.stopPropagation();inlineEditEst(this,'session','${bp.id}','${s.id}')" style="cursor:pointer;" title="Click to edit">${s.hours}h</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
         <span class="timer-display${s.timerStart ? ' running' : ''}" data-id="${s.id}">${(s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0) > 0 ? fmtSecs((s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0)) : '—'}</span>
         <div class="timer-btn${s.timerStart ? ' running' : ''}" onclick="${s.timerStart ? `stopSessionTimer('${bp.id}','${s.id}')` : `startSessionTimer('${bp.id}','${s.id}')`}" title="${s.timerStart ? 'Stop' : 'Start'} timer">${s.timerStart ? '⏹' : '▶'}</div>
@@ -5866,7 +5933,7 @@ function renderProjItemRow(item, projKey, scId) {
       </div>
       <div onclick="event.stopPropagation();showSubtaskPriorityDropdown(event,'${bp.id}','${s.id}','${st.id}')" style="cursor:pointer;">${priorityBadge(st.priority || 'med')}</div>
       <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSubtaskDatePicker(this,'${bp.id}','${s.id}','${st.id}')">${fmtDate(st.date)}</div>
-      <div class="session-hours">${st.hours}h</div>
+      <div class="session-hours" onclick="event.stopPropagation();inlineEditEst(this,'subtask','${bp.id}','${s.id}','${st.id}')" style="cursor:pointer;" title="Click to edit">${st.hours}h</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
         <span class="timer-display${st.timerStart ? ' running' : ''}" data-id="${st.id}">${(st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0) > 0 ? fmtSecs((st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0)) : '—'}</span>
         <div class="timer-btn${st.timerStart ? ' running' : ''}" onclick="${st.timerStart ? `stopSubtaskTimer('${bp.id}','${s.id}','${st.id}')` : `startSubtaskTimer('${bp.id}','${s.id}','${st.id}')`}" title="${st.timerStart ? 'Stop' : 'Start'} timer">${st.timerStart ? '⏹' : '▶'}</div>
