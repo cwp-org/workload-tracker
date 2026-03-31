@@ -4472,10 +4472,26 @@ function renderTasks() {
 
   // ── build a flat list of all items (tasks + sessions + subtasks) ──
   const allItems = [];
+  const _8weeksOut = addDays(today(), 56);
   visible.forEach(t => {
-    // Use the overridden date if this occurrence has been rescheduled
-    const effectiveDate = (t.recurrence?.overrides?.[t.due]) || t.due || null;
-    allItems.push({ _type: 'task', task: t, _date: effectiveDate });
+    if (t.recurrence && t.recurrence.type && t.due) {
+      const endLimit = t.recurrence.endDate && t.recurrence.endDate < _8weeksOut ? t.recurrence.endDate : _8weeksOut;
+      const skips = t.recurrence.skips || [];
+      const overrides = t.recurrence.overrides || {};
+      let cursor = t.due;
+      let safety = 0;
+      while (cursor && cursor <= endLimit && safety < 200) {
+        safety++;
+        if (!skips.includes(cursor)) {
+          const effectiveDate = overrides[cursor] || cursor;
+          allItems.push({ _type: 'task', task: t, _date: effectiveDate, _occurrenceDate: cursor });
+        }
+        cursor = nextRecurrenceAfter(t, cursor);
+      }
+    } else {
+      const effectiveDate = (t.recurrence?.overrides?.[t.due]) || t.due || null;
+      allItems.push({ _type: 'task', task: t, _date: effectiveDate, _occurrenceDate: t.due });
+    }
   });
   bigProjs.forEach(proj => {
     if (fProj !== 'all' && proj.project !== fProj) return;
@@ -4567,22 +4583,22 @@ function renderTasks() {
       const isRunning = task.timerStart !== null;
       const secs = task.timer + (task.timerStart ? Math.floor((Date.now() - task.timerStart) / 1000) : 0);
       const timerStr = secs > 0 ? fmtSecs(secs) : '—';
-      const dc = dueCls(task.due);
+      const dc = dueCls(item._date || task.due);
       row.className = `task-row${isRunning ? ' running' : ''}`;
       row.dataset.id = task.id;
       row.innerHTML = `
         <div class="task-check" onclick="openCompletionModal('${task.id}')" title="Complete task"></div>
         <div class="project-dot" style="background:${projColor(task.project)};" title="${projLabel(task.project)}"></div>
         <div class="task-name" onclick="openEditModal('${task.id}')"><span class="task-name-text">${task.name}</span>${task.waiting ? `<span class="task-waiting">⏳ ${task.waiting}</span>` : ''}${task.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('task','${task.id}')" title="View notes">📝</span>` : ''}${task.recurrence ? `<span class="recur-badge" style="flex-shrink:0;">${recurLabel(task)}</span>` : ''}</div>
-        <div class="task-recur-actions">${task.recurrence ? `<button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}')" title="Skip this occurrence" style="font-size:11px;padding:2px 4px;">⏭</button><button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${task.id}')" title="Reschedule this occurrence" style="font-size:11px;padding:2px 4px;">📅</button>` : ''}</div>
+        <div class="task-recur-actions">${task.recurrence ? `<button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}','${item._occurrenceDate || task.due}')" title="Skip this occurrence" style="font-size:11px;padding:2px 4px;">⏭</button><button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${task.id}','${item._occurrenceDate || task.due}')" title="Reschedule this occurrence" style="font-size:11px;padding:2px 4px;">📅</button>` : ''}</div>
         <span class="task-category">${projLabel(task.project)}</span>
         <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
-        <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(task.due)}</div>
+        <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(item._date)}</div>
         <div class="task-est">${task.est ? task.est + 'h' : '—'}</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="timer-display${isRunning ? ' running' : ''}" data-id="${task.id}">${timerStr}</span>
           <div class="timer-btn${isRunning ? ' running' : ''}" onclick="${isRunning ? `stopTimer('${task.id}')` : `startTimer('${task.id}')`}" title="${isRunning ? 'Stop' : 'Start'} timer">${isRunning ? '⏹' : '▶'}</div>
-          <div class="row-del-btn" onclick="event.stopPropagation();deleteTaskInline('${task.id}')" title="Delete task">×</div>
+          <div class="row-del-btn" onclick="event.stopPropagation();deleteTaskInline('${task.id}','${item._occurrenceDate || task.due}')" title="Delete task">×</div>
         </div>`;
     } else if (item._type === 'session') {
       const { s, proj } = item;
@@ -5206,9 +5222,23 @@ function deleteEditTask() {
   renderTasks();
 }
 
-function deleteTaskInline(taskId) {
-  if (!confirm('Delete this task?')) return;
-  tasks = tasks.filter(t => t.id !== taskId);
+function deleteTaskInline(taskId, occurrenceDate) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  if (task.recurrence && task.recurrence.type) {
+    const choice = prompt('Delete just this occurrence or all in series?\nType "this" or "all":', 'this');
+    if (!choice) return;
+    if (choice.trim().toLowerCase() === 'all') {
+      tasks = tasks.filter(t => t.id !== taskId);
+    } else {
+      const occ = occurrenceDate || task.due;
+      task.recurrence.skips = [...(task.recurrence.skips || []), occ];
+      if (occ === task.due) task.due = nextRecurrenceAfter(task, occ) || occ;
+    }
+  } else {
+    if (!confirm('Delete this task?')) return;
+    tasks = tasks.filter(t => t.id !== taskId);
+  }
   save('wt_tasks', tasks);
   renderTasks();
   renderProjects();
