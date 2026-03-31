@@ -4389,13 +4389,18 @@ function normDelegated(val) {
 
 // Deterministic per-person color from name hash
 function personColor(name) {
-  if (name === 'Me') return { bg: '#1e2d3d', text: '#60a5fa', border: '#2563eb' };
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if (name === 'Me') return isLight
+    ? { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' }
+    : { bg: '#1e2d3d', text: '#60a5fa', border: '#2563eb' };
   let h = 0;
   for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
   h = Math.abs(h);
   const hue = h % 360;
   const sat = 50 + (h % 25);
-  return { bg: `hsl(${hue},${sat}%,17%)`, text: `hsl(${hue},${sat+10}%,72%)`, border: `hsl(${hue},${sat}%,33%)` };
+  return isLight
+    ? { bg: `hsl(${hue},${sat}%,92%)`, text: `hsl(${hue},${sat+10}%,30%)`, border: `hsl(${hue},${sat}%,78%)` }
+    : { bg: `hsl(${hue},${sat}%,17%)`, text: `hsl(${hue},${sat+10}%,72%)`, border: `hsl(${hue},${sat}%,33%)` };
 }
 
 function delegateTagsHtml(val) {
@@ -5727,8 +5732,8 @@ function renderProjCodeContent(projKey) {
         // Group by source (Big Project name or "My Tasks")
         let lastSrc = null;
         items.forEach(item => {
-          const src = item._type === 'task' ? 'My Tasks' : item._src;
-          if (src !== lastSrc) {
+          const src = item._type === 'task' ? 'My Tasks' : item._type === 'team' ? null : item._src;
+          if (src && src !== lastSrc) {
             html += `<div class="proj-group-label">${src}</div>`;
             lastSrc = src;
           }
@@ -5850,9 +5855,7 @@ function renderProjItemRow(item, projKey, scId) {
       return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 5px;border-radius:10px;font-size:9px;font-weight:600;white-space:nowrap;">${o}</span>`;
     }).join('');
     return `<div class="proj-item-row">
-      <div class="session-check${isDone ? ' done' : ''}" style="cursor:default;">
-        ${isDone ? '<span style="color:var(--check-fg);font-size:11px;">✓</span>' : ''}
-      </div>
+      <div style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;opacity:0.6;" title="Team deliverable">👤</div>
       <div class="session-desc" style="${isDone ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditTeamModal('${ti.id}')">
         ${ti.name}
         <span style="display:inline-flex;gap:3px;margin-left:4px;">${ownerTags}</span>
