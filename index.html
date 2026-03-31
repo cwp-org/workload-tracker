@@ -1860,9 +1860,171 @@
     /* Brain dump and other wide modals */
     .modal-scroll-body { padding: 0; }
   }
+
+  /* ── Auth Screen ── */
+  .auth-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .auth-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 32px;
+    width: 380px;
+    max-width: 92vw;
+  }
+
+  .auth-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .auth-logo span { color: var(--accent); }
+
+  .auth-subtitle {
+    text-align: center;
+    color: var(--text3);
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+
+  .auth-field { margin-bottom: 14px; }
+  .auth-field .edit-label { margin-bottom: 4px; display: block; }
+  .auth-field .edit-input { width: 100%; }
+
+  .auth-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 6px;
+    cursor: pointer;
+  }
+
+  .auth-toggle {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .auth-toggle a { color: var(--accent); text-decoration: none; }
+  .auth-toggle a:hover { text-decoration: underline; }
+
+  .auth-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    color: var(--text3);
+    font-size: 11px;
+  }
+  .auth-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--border);
+  }
+  .auth-divider span {
+    background: var(--bg2);
+    padding: 0 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .auth-offline-btn {
+    color: var(--text3);
+    border-color: var(--border2);
+    font-weight: 500;
+  }
+  .auth-offline-btn:hover { color: var(--text); border-color: var(--text3); }
+
+  .auth-error {
+    background: rgba(248,113,113,0.12);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  .auth-success {
+    background: rgba(52,211,153,0.12);
+    border: 1px solid var(--success);
+    color: var(--success);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
 </style>
+<!-- Supabase JS Client (v2) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<!-- AUTH SCREEN (shown when not logged in) -->
+<div id="authScreen" class="auth-screen" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-logo">PM <span>//</span> Workload</div>
+    <div class="auth-subtitle">Sign in to sync your data across devices</div>
+
+    <div id="authError" class="auth-error" style="display:none;"></div>
+    <div id="authSuccess" class="auth-success" style="display:none;"></div>
+
+    <!-- Login Form -->
+    <div id="authLoginForm">
+      <div class="auth-field">
+        <label class="edit-label">Email</label>
+        <input class="edit-input" type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label class="edit-label">Password</label>
+        <input class="edit-input" type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn primary auth-btn" id="authSubmitBtn" onclick="handleAuthSubmit()">Sign In</button>
+      <div class="auth-toggle">
+        Don't have an account? <a href="#" onclick="toggleAuthMode(event)">Sign Up</a>
+      </div>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="authSignupForm" style="display:none;">
+      <div class="auth-field">
+        <label class="edit-label">Display Name</label>
+        <input class="edit-input" type="text" id="authDisplayName" placeholder="Your Name" autocomplete="name">
+      </div>
+      <div class="auth-field">
+        <label class="edit-label">Email</label>
+        <input class="edit-input" type="email" id="authSignupEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label class="edit-label">Password</label>
+        <input class="edit-input" type="password" id="authSignupPassword" placeholder="Min 6 characters" autocomplete="new-password">
+      </div>
+      <button class="btn primary auth-btn" id="authSignupBtn" onclick="handleAuthSignup()">Create Account</button>
+      <div class="auth-toggle">
+        Already have an account? <a href="#" onclick="toggleAuthMode(event)">Sign In</a>
+      </div>
+    </div>
+
+    <div class="auth-divider"><span>or</span></div>
+    <button class="btn auth-btn auth-offline-btn" onclick="continueOffline()">Continue Offline (localStorage only)</button>
+  </div>
+</div>
+
+<!-- APP WRAPPER (hidden until auth is resolved) -->
+<div id="appWrapper" style="display:none;">
 
 <div class="header">
   <div class="header-title">PM <span>//</span> Workload</div>
@@ -1871,6 +2033,9 @@
     <button class="btn header-btn" onclick="openManageProjectsModal()" style="font-size:10px;padding:4px 10px;" title="Add / edit project codes">⬡ Projects</button>
     <button class="btn header-btn" id="themeToggleBtn" onclick="toggleTheme()" style="font-size:10px;padding:4px 10px;" title="Toggle light/dark mode">☀ Light</button>
     <button class="btn header-btn" onclick="openSettingsModal()" style="font-size:10px;padding:4px 10px;" title="API Settings">⚙ Settings</button>
+    <button class="btn header-btn" id="syncStatusBtn" onclick="syncToCloud()" style="font-size:10px;padding:4px 10px;display:none;" title="Click to sync">☁</button>
+    <span id="authUserDisplay" style="font-size:10px;color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button class="btn header-btn" id="logoutBtn" onclick="handleLogout()" style="font-size:10px;padding:4px 10px;display:none;color:var(--danger);border-color:var(--danger);" title="Sign out">↪ Logout</button>
   </div>
 </div>
 
@@ -2663,7 +2828,8 @@
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-title">Settings</div>
-    <div class="modal-subtitle">Anthropic API key for Brain Dump. Stored only in localStorage.</div>
+    <div id="settingsAccountInfo"></div>
+    <div class="modal-subtitle">Anthropic API key for Brain Dump.</div>
     <div style="margin-bottom:14px;">
       <label class="edit-label" style="display:block;margin-bottom:6px;">Anthropic API Key</label>
       <input class="settings-input" type="password" id="settingsApiKey" placeholder="sk-ant-api03-...">
@@ -2675,8 +2841,343 @@
     </div>
   </div>
 </div>
+</div><!-- /appWrapper -->
 
 <script>
+// =============================================
+// SUPABASE CONFIG & AUTH
+// =============================================
+
+/*
+ * ──────────────────────────────────────────────
+ *  SUPABASE SETUP — Replace these with your project values
+ *  Dashboard → Settings → API
+ * ──────────────────────────────────────────────
+ *
+ *  SQL schema to run in Supabase SQL Editor:
+ *
+ *  -- Profiles (auto-created on signup via trigger)
+ *  CREATE TABLE profiles (
+ *    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+ *    display_name TEXT,
+ *    org_id UUID,
+ *    created_at TIMESTAMPTZ DEFAULT now()
+ *  );
+ *  ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ *  CREATE POLICY "Users can read own profile"   ON profiles FOR SELECT USING (auth.uid() = id);
+ *  CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+ *  CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+ *
+ *  -- Generic key-value store for all app data (per-user)
+ *  CREATE TABLE user_data (
+ *    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+ *    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+ *    org_id UUID,
+ *    key TEXT NOT NULL,
+ *    data JSONB NOT NULL DEFAULT '{}',
+ *    updated_at TIMESTAMPTZ DEFAULT now()
+ *  );
+ *  ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
+ *  CREATE UNIQUE INDEX user_data_user_key ON user_data(user_id, key);
+ *  CREATE POLICY "Users can read own data"   ON user_data FOR SELECT USING (auth.uid() = user_id);
+ *  CREATE POLICY "Users can insert own data" ON user_data FOR INSERT WITH CHECK (auth.uid() = user_id);
+ *  CREATE POLICY "Users can update own data" ON user_data FOR UPDATE USING (auth.uid() = user_id);
+ *  CREATE POLICY "Users can delete own data" ON user_data FOR DELETE USING (auth.uid() = user_id);
+ *
+ *  -- Trigger to auto-create profile on signup
+ *  CREATE OR REPLACE FUNCTION public.handle_new_user()
+ *  RETURNS TRIGGER AS $$
+ *  BEGIN
+ *    INSERT INTO public.profiles (id, display_name)
+ *    VALUES (NEW.id, NEW.raw_user_meta_data ->> 'display_name');
+ *    RETURN NEW;
+ *  END;
+ *  $$ LANGUAGE plpgsql SECURITY DEFINER;
+ *
+ *  CREATE TRIGGER on_auth_user_created
+ *    AFTER INSERT ON auth.users
+ *    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+ *
+ * ──────────────────────────────────────────────
+ */
+
+const SUPABASE_URL  = '';   // e.g. 'https://xyzcompany.supabase.co'
+const SUPABASE_ANON = '';   // e.g. 'eyJhbGciOiJIUzI1NiIs...'
+
+let _supabase = null;
+let _currentUser = null;
+let _isOffline = false;
+
+// Initialize Supabase client (only if configured)
+function initSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return null;
+  if (typeof supabase === 'undefined') return null;
+  try {
+    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    return _supabase;
+  } catch (e) {
+    console.warn('Supabase init failed:', e);
+    return null;
+  }
+}
+
+// ── Auth functions ──
+
+async function handleAuthSubmit() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!email || !password) return showAuthError('Please enter email and password.');
+
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  hideAuthMessages();
+
+  try {
+    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    _currentUser = data.user;
+    await loadFromSupabase();
+    showApp();
+  } catch (e) {
+    showAuthError(e.message || 'Sign in failed.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function handleAuthSignup() {
+  const name = document.getElementById('authDisplayName').value.trim();
+  const email = document.getElementById('authSignupEmail').value.trim();
+  const password = document.getElementById('authSignupPassword').value;
+  if (!email || !password) return showAuthError('Please enter email and password.');
+  if (password.length < 6) return showAuthError('Password must be at least 6 characters.');
+
+  const btn = document.getElementById('authSignupBtn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  hideAuthMessages();
+
+  try {
+    const { data, error } = await _supabase.auth.signUp({
+      email, password,
+      options: { data: { display_name: name || email.split('@')[0] } }
+    });
+    if (error) throw error;
+    if (data.user && !data.user.confirmed_at && data.user.identities?.length > 0) {
+      showAuthSuccess('Check your email for a confirmation link, then sign in.');
+      toggleAuthMode();
+    } else if (data.user) {
+      _currentUser = data.user;
+      await migrateLocalToSupabase();
+      showApp();
+    }
+  } catch (e) {
+    showAuthError(e.message || 'Sign up failed.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+async function handleLogout() {
+  if (!_supabase) return;
+  await _supabase.auth.signOut();
+  _currentUser = null;
+  _isOffline = false;
+  document.getElementById('appWrapper').style.display = 'none';
+  document.getElementById('authScreen').style.display = '';
+  hideAuthMessages();
+}
+
+function continueOffline() {
+  _isOffline = true;
+  _currentUser = null;
+  showApp();
+}
+
+function toggleAuthMode(e) {
+  if (e) e.preventDefault();
+  const login = document.getElementById('authLoginForm');
+  const signup = document.getElementById('authSignupForm');
+  const isLogin = login.style.display !== 'none';
+  login.style.display = isLogin ? 'none' : '';
+  signup.style.display = isLogin ? '' : 'none';
+  hideAuthMessages();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = '';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('authSuccess');
+  el.textContent = msg; el.style.display = '';
+}
+
+function hideAuthMessages() {
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authSuccess').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appWrapper').style.display = '';
+  updateAuthUI();
+  initApp();
+}
+
+function updateAuthUI() {
+  const userEl = document.getElementById('authUserDisplay');
+  if (!userEl) return;
+  if (_currentUser) {
+    const name = _currentUser.user_metadata?.display_name || _currentUser.email;
+    userEl.textContent = name;
+    userEl.title = _currentUser.email;
+    document.getElementById('logoutBtn').style.display = '';
+    document.getElementById('syncStatusBtn').style.display = '';
+  } else {
+    userEl.textContent = 'Offline';
+    userEl.title = 'Using localStorage only';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('syncStatusBtn').style.display = 'none';
+  }
+}
+
+// ── Supabase Data Layer ──
+
+const SYNC_KEYS = [
+  'wt_tasks', 'wt_bigprojs', 'wt_team', 'wt_completed',
+  'wt_projects_meta', 'wt_project_order', 'wt_allocations',
+  'wt_persons', 'wt_hidden_projs', 'wt_proj_panel_collapsed',
+  'wt_collapsed_projs', 'wt_team_group_person', 'wt_ts_capacity',
+  'wt_theme', 'wt_api_key'
+];
+
+async function cloudSave(key, data) {
+  if (!_supabase || !_currentUser) return;
+  try {
+    await _supabase.from('user_data').upsert({
+      user_id: _currentUser.id,
+      key: key,
+      data: { value: data },
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,key' });
+  } catch (e) {
+    console.warn('Cloud save failed for', key, e);
+  }
+}
+
+async function cloudLoad(key) {
+  if (!_supabase || !_currentUser) return undefined;
+  try {
+    const { data, error } = await _supabase
+      .from('user_data')
+      .select('data')
+      .eq('user_id', _currentUser.id)
+      .eq('key', key)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? data.data.value : undefined;
+  } catch (e) {
+    console.warn('Cloud load failed for', key, e);
+    return undefined;
+  }
+}
+
+async function loadFromSupabase() {
+  if (!_supabase || !_currentUser) return;
+  try {
+    const { data, error } = await _supabase
+      .from('user_data')
+      .select('key, data')
+      .eq('user_id', _currentUser.id);
+    if (error) throw error;
+    if (data && data.length > 0) {
+      data.forEach(row => {
+        try {
+          localStorage.setItem(row.key, JSON.stringify(row.data.value));
+        } catch (e) { /* localStorage full or unavailable */ }
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to load from Supabase, using localStorage fallback:', e);
+  }
+}
+
+async function migrateLocalToSupabase() {
+  if (!_supabase || !_currentUser) return;
+  const promises = SYNC_KEYS.map(key => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return Promise.resolve();
+      const parsed = JSON.parse(raw);
+      return cloudSave(key, parsed);
+    } catch (e) { return Promise.resolve(); }
+  });
+  await Promise.all(promises);
+}
+
+async function syncToCloud() {
+  if (!_supabase || !_currentUser) return;
+  const btn = document.getElementById('syncStatusBtn');
+  if (btn) { btn.textContent = '⟳'; btn.title = 'Syncing...'; }
+  try {
+    await migrateLocalToSupabase();
+    if (btn) { btn.textContent = '☁'; btn.title = 'Synced'; }
+    setTimeout(() => { if (btn) btn.title = 'Click to sync'; }, 2000);
+  } catch (e) {
+    if (btn) { btn.textContent = '⚠'; btn.title = 'Sync failed'; }
+  }
+}
+
+// ── Boot ──
+
+let _appInitialized = false;
+
+async function boot() {
+  applyTheme(getThemePreBoot());
+
+  // Enter-key support for auth forms
+  ['authEmail', 'authPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
+  });
+  ['authDisplayName', 'authSignupEmail', 'authSignupPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSignup(); });
+  });
+
+  const sb = initSupabase();
+  if (sb) {
+    document.getElementById('authScreen').style.display = '';
+    // Check for existing session
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) {
+        _currentUser = session.user;
+        await loadFromSupabase();
+        showApp();
+        return;
+      }
+    } catch (e) { /* no session */ }
+    // Listen for auth changes (e.g. email confirm redirect)
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user && !_currentUser) {
+        _currentUser = session.user;
+        await loadFromSupabase();
+        showApp();
+      }
+    });
+  } else {
+    // No Supabase configured — go straight to app (offline mode)
+    _isOffline = true;
+    showApp();
+  }
+}
+
+function getThemePreBoot() {
+  try { return localStorage.getItem('wt_theme') || 'dark'; } catch(e) { return 'dark'; }
+}
+
 // =============================================
 // DATA LAYER
 // =============================================
@@ -3146,6 +3647,10 @@ function load(key, fallback) {
 
 function save(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+  // Fire-and-forget cloud sync (non-blocking)
+  if (_supabase && _currentUser && SYNC_KEYS.includes(key)) {
+    cloudSave(key, data).catch(() => {});
+  }
 }
 
 // =============================================
@@ -6972,6 +7477,49 @@ document.getElementById('tsFilterProject')?.addEventListener('change', renderTim
 // INIT
 // =============================================
 
+function reloadStateFromLocalStorage() {
+  // Re-read all data from localStorage (which may have been populated from Supabase)
+  PROJECTS = load('wt_projects_meta', null) || DEFAULT_PROJECTS;
+  Object.keys(PROJECTS).forEach(k => {
+    if (!PROJECTS[k].subCodes) PROJECTS[k].subCodes = [];
+    if (!PROJECTS[k].tags) PROJECTS[k].tags = [];
+  });
+  projOrder = load('wt_project_order', null) || Object.keys(PROJECTS);
+  allocations = load('wt_allocations', {});
+  PERSONS = load('wt_persons', []);
+  tasks = load('wt_tasks', null) || SEED_TASKS;
+  bigProjs = load('wt_bigprojs', null) || SEED_PROJECTS;
+  collapsedProjs = new Set(load('wt_collapsed_projs', []));
+  hiddenProjs = new Set(load('wt_hidden_projs', []));
+  projPanelCollapsed = load('wt_proj_panel_collapsed', false);
+  teamItems = load('wt_team', null) || SEED_TEAM;
+  completed = load('wt_completed', null) || SEED_COMPLETED;
+  _teamGroupByPerson = load('wt_team_group_person', false);
+  tsCapacity = load('wt_ts_capacity', 8);
+}
+
+function initApp() {
+  if (_currentUser) {
+    // Re-read from localStorage (refreshed from Supabase)
+    reloadStateFromLocalStorage();
+  }
+  _appInitialized = true;
+
+  populateProjectSelects();
+  renderTasks();
+  renderProjects();
+  renderTeam();
+  const _capInput = document.getElementById('tsCapacityInput');
+  if (_capInput) _capInput.value = tsCapacity;
+  renderTimesheet();
+  renderAllocations();
+  updateHeaderMeta();
+  _ensureTickerRunning();
+  updateActiveStrip();
+  applyTheme(getTheme());
+}
+
+// First-time init for offline / no-Supabase
 populateProjectSelects();
 renderTasks();
 renderProjects();
@@ -7800,7 +8348,7 @@ function deletePerson(idx) {
 // THEME TOGGLE
 // =============================================
 
-function getTheme() { return localStorage.getItem('wt_theme') || 'dark'; }
+function getTheme() { return load('wt_theme', 'dark') || 'dark'; }
 
 function applyTheme(theme) {
   if (theme === 'light') {
@@ -7815,12 +8363,15 @@ function applyTheme(theme) {
 function toggleTheme() {
   const current = getTheme();
   const next = current === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('wt_theme', next);
+  save('wt_theme', next);
   applyTheme(next);
 }
 
 // Apply saved theme on load
 applyTheme(getTheme());
+
+// ── Kick off Supabase boot sequence ──
+boot();
 
 // =============================================
 // SETTINGS
@@ -7829,11 +8380,27 @@ applyTheme(getTheme());
 const BD_KEY_STORE = 'wt_api_key';
 
 function loadApiKey() {
-  return localStorage.getItem(BD_KEY_STORE) || '';
+  return load(BD_KEY_STORE, '') || '';
 }
 
 function openSettingsModal() {
   document.getElementById('settingsApiKey').value = loadApiKey();
+  // Show account info if logged in
+  const acctInfo = document.getElementById('settingsAccountInfo');
+  if (acctInfo) {
+    if (_currentUser) {
+      acctInfo.innerHTML = '<div style="margin-bottom:14px;padding:10px;background:var(--bg3);border-radius:6px;">' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Signed in as</div>' +
+        '<div style="font-size:13px;font-weight:600;">' + (_currentUser.user_metadata?.display_name || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);">' + _currentUser.email + '</div>' +
+        '<div style="font-size:10px;color:var(--success);margin-top:4px;">☁ Cloud sync enabled</div>' +
+        '</div>';
+    } else {
+      acctInfo.innerHTML = '<div style="margin-bottom:14px;padding:10px;background:var(--bg3);border-radius:6px;">' +
+        '<div style="font-size:11px;color:var(--text3);">Offline mode — data stored in localStorage only</div>' +
+        '</div>';
+    }
+  }
   document.getElementById('settingsModal').classList.add('open');
   setTimeout(() => document.getElementById('settingsApiKey').focus(), 80);
 }
@@ -7844,8 +8411,8 @@ function closeSettingsModal() {
 
 function saveApiKeyFromModal() {
   const val = document.getElementById('settingsApiKey').value.trim();
-  if (val) localStorage.setItem(BD_KEY_STORE, val);
-  else localStorage.removeItem(BD_KEY_STORE);
+  if (val) save(BD_KEY_STORE, val);
+  else { localStorage.removeItem(BD_KEY_STORE); if (_supabase && _currentUser) cloudSave(BD_KEY_STORE, '').catch(() => {}); }
   closeSettingsModal();
 }
 
