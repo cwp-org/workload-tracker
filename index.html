@@ -4554,21 +4554,70 @@ function renderTasks() {
     currentWeekDays.push(d);
   }
 
-  // ── capacity bar for this week ──
-  const wkItems = allItems.filter(i => i._date && i._date >= wkStart && i._date <= wkEnd);
-  const wkEst = wkItems.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : i._type === 'subtask' ? (i.st?.hours || 0) : 0), 0);
+  // ── capacity bar for this week (uses ALL tasks, unfiltered) ──
+  const allTasksThisWeek = tasks.filter(t => {
+    const d = t.due || '';
+    return d >= wkStart && d <= wkEnd;
+  });
+  // Planned hours: non-completed tasks (including recurring occurrences)
+  let wkPlanned = 0;
+  let wkDone = 0;
+  allTasksThisWeek.forEach(t => {
+    if (t.recurrence && t.recurrence.type) {
+      // Count each occurrence in this week
+      const skips = t.recurrence.skips || [];
+      const overrides = t.recurrence.overrides || {};
+      let cursor = t.due; let safety = 0;
+      while (cursor && cursor <= wkEnd && safety < 200) {
+        safety++;
+        if (!skips.includes(cursor)) {
+          const effDate = overrides[cursor] || cursor;
+          if (effDate >= wkStart && effDate <= wkEnd) {
+            if (t.completed) wkDone += (t.est || 0);
+            else wkPlanned += (t.est || 0);
+          }
+        }
+        cursor = nextRecurrenceAfter(t, cursor);
+        if (!cursor || cursor > wkEnd) break;
+      }
+    } else {
+      if (t.completed) wkDone += (t.est || 0);
+      else wkPlanned += (t.est || 0);
+    }
+  });
+  // Also count sessions/subtasks from bigProjs
+  bigProjs.forEach(proj => {
+    proj.sessions.forEach(s => {
+      if (s.date && s.date >= wkStart && s.date <= wkEnd) {
+        if (s.done) wkDone += (s.hours || 0);
+        else wkPlanned += (s.hours || 0);
+      }
+      (s.subtasks || []).forEach(st => {
+        if (st.date && st.date >= wkStart && st.date <= wkEnd) {
+          if (st.done) wkDone += (st.hours || 0);
+          else wkPlanned += (st.hours || 0);
+        }
+      });
+    });
+  });
+  // Also count completed items from the completed array (moved via completion modal)
+  completed.forEach(c => {
+    if (c.dateCompleted && c.dateCompleted >= wkStart && c.dateCompleted <= wkEnd) {
+      wkDone += (c.actualHours || c.estHours || 0);
+    }
+  });
+
+  const wkTotal = wkPlanned + wkDone;
   const wkCap = workingDays(wkStart, wkEnd) * tsCapacity;
-  const wkPct = Math.min(Math.round((wkEst / wkCap) * 100), 100);
-  const wkCls = wkEst > wkCap ? 'over' : wkEst > wkCap * 0.8 ? 'warn' : 'ok';
+  const wkPct = Math.min(Math.round((wkTotal / wkCap) * 100), 100);
+  const wkCls = wkTotal > wkCap ? 'over' : wkTotal > wkCap * 0.8 ? 'warn' : 'ok';
+  const donePct = Math.min(Math.round((wkDone / wkCap) * 100), 100);
   const capBar = document.getElementById('tasksCapBar');
   if (capBar) {
     capBar.style.display = '';
-    const wkCompleted = completed.filter(c => c.dateCompleted && c.dateCompleted >= wkStart && c.dateCompleted <= wkEnd)
-      .reduce((a, c) => a + (c.actualHours || c.estHours || 0), 0);
-    const donePct = Math.min(Math.round((wkCompleted / wkCap) * 100), 100);
     document.getElementById('tasksCapLabel').textContent =
-      `This week — ${fmtQ(wkEst)}h planned${wkCompleted > 0 ? ' · ' + fmtQ(wkCompleted) + 'h done' : ''} / ${wkCap.toFixed(0)}h capacity`;
-    document.getElementById('tasksCapDetail').textContent = wkEst > wkCap ? `+${fmtQ(wkEst - wkCap)}h over` : `${fmtQ(wkCap - wkEst)}h left`;
+      `This week — ${fmtQ(wkPlanned)}h planned${wkDone > 0 ? ' · ' + fmtQ(wkDone) + 'h done' : ''} / ${wkCap.toFixed(0)}h capacity`;
+    document.getElementById('tasksCapDetail').textContent = wkTotal > wkCap ? `+${fmtQ(wkTotal - wkCap)}h over` : `${fmtQ(wkCap - wkTotal)}h left`;
     document.getElementById('tasksCapDetail').style.color = wkCls === 'over' ? 'var(--danger)' : wkCls === 'warn' ? 'var(--warn)' : 'var(--success)';
     const fill = document.getElementById('tasksCapFill');
     fill.style.width = wkPct + '%';
