@@ -2730,6 +2730,7 @@
       </div>
     </div>
     <div class="modal-actions">
+      <button class="btn" id="editSessionDeleteBtn" style="margin-right:auto;color:var(--danger);border-color:var(--danger);display:none;" onclick="deleteSessionFromModal()">Delete</button>
       <button class="btn" onclick="closeEditSessionModal()">Cancel</button>
       <button class="btn primary" onclick="saveSession()">Save</button>
     </div>
@@ -8423,6 +8424,9 @@ function _openSessionModal(projId, sessionId, title, desc, date, hours, waiting,
   document.getElementById('editSessionPriority').value = priority || 'med';
   populateSessionDelegatePills(getPersonsForProject(projId), delegatedTo);
   _populateSessionRecurFields(recurrence || null);
+  // Show delete button only when editing an existing item
+  const delBtn = document.getElementById('editSessionDeleteBtn');
+  delBtn.style.display = sessionId ? '' : 'none';
   document.getElementById('editSessionModal').classList.add('open');
 }
 
@@ -8499,6 +8503,16 @@ function saveSession() {
   renderProjects();
   renderTeam();
   renderTasks();
+}
+
+function deleteSessionFromModal() {
+  if (!editingSessionProjId || !editingSessionId) return;
+  if (editingSubtaskMode) {
+    deleteSubtask(editingSessionProjId, editingSubtaskParentSessionId, editingSessionId);
+  } else {
+    deleteSession(editingSessionProjId, editingSessionId);
+  }
+  closeEditSessionModal();
 }
 
 function deleteSession(projId, sessionId) {
