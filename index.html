@@ -2841,8 +2841,16 @@
 <div class="modal-overlay" id="brainDumpModal">
   <div class="modal modal-wide">
     <div class="modal-title">Brain Dump</div>
-    <div class="modal-subtitle">Paste notes, a messy to-do list, voice transcript — anything. Claude will parse it against your current tasks.</div>
-    <textarea class="brain-dump-textarea" id="brainDumpText" placeholder="e.g. Need to follow up with Marcus on DOEE eval forms, he said he'd have them by Thursday. P2 slide deck is now urgent — stakeholder call moved to next week. Also I should set up a kick-off call for the new IPP cohort lead…"></textarea>
+    <div class="modal-subtitle">Paste notes, a messy to-do list, or upload a spreadsheet. Claude will parse it against your current tasks.</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+      <label class="btn" style="font-size:11px;padding:5px 12px;cursor:pointer;" id="bdFileLabel">
+        📎 Upload XLS / CSV
+        <input type="file" accept=".xlsx,.xls,.csv" id="bdFileInput" onchange="handleBrainDumpFile(event)" style="display:none;">
+      </label>
+      <span id="bdFileName" style="font-size:11px;color:var(--text3);"></span>
+      <button class="btn" id="bdFileClear" style="font-size:10px;padding:2px 8px;display:none;" onclick="clearBrainDumpFile()">✕</button>
+    </div>
+    <textarea class="brain-dump-textarea" id="brainDumpText" placeholder="e.g. Need to follow up with Marcus on DOEE eval forms, he said he'd have them by Thursday. Also set up a kick-off call for the new cohort lead…"></textarea>
     <div class="bd-status" id="bdStatus"></div>
     <div class="modal-actions" style="margin-top:10px;">
       <button class="btn" onclick="closeBrainDumpModal()">Cancel</button>
@@ -8877,6 +8885,9 @@ function saveApiKeyFromModal() {
 // BRAIN DUMP — INPUT MODAL
 // =============================================
 
+// Spreadsheet text buffer for Brain Dump file uploads
+let _bdFileText = '';
+
 function openBrainDumpModal() {
   if (!loadApiKey()) {
     openSettingsModal();
@@ -8886,6 +8897,7 @@ function openBrainDumpModal() {
   }
   document.getElementById('brainDumpText').value = '';
   document.getElementById('bdStatus').textContent = '';
+  clearBrainDumpFile();
   const btn = document.getElementById('brainDumpSubmitBtn');
   btn.disabled = false;
   btn.innerHTML = '⚡ Process Brain Dump';
@@ -8897,9 +8909,72 @@ function closeBrainDumpModal() {
   document.getElementById('brainDumpModal').classList.remove('open');
 }
 
+function handleBrainDumpFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  document.getElementById('bdFileName').textContent = file.name;
+  document.getElementById('bdFileClear').style.display = '';
+  document.getElementById('bdStatus').textContent = 'Reading spreadsheet…';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      if (typeof XLSX === 'undefined') throw new Error('SheetJS not loaded.');
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      // Convert all sheets to readable text
+      const parts = [];
+      wb.SheetNames.forEach(name => {
+        const ws = wb.Sheets[name];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        if (rows.length < 2) return;
+
+        parts.push(`[Sheet: ${name}]`);
+        // Header
+        const header = rows[0].map(h => String(h || '').trim());
+        parts.push(header.join('\t'));
+        // Data rows
+        for (let r = 1; r < rows.length; r++) {
+          const cells = rows[r].map((v, i) => {
+            if (v instanceof Date || (typeof v === 'object' && v && v.getTime)) {
+              return new Date(v).toISOString().slice(0, 10);
+            }
+            return String(v ?? '');
+          });
+          // Skip fully empty rows
+          if (cells.every(c => !c.trim())) continue;
+          parts.push(cells.join('\t'));
+        }
+        parts.push('');
+      });
+
+      _bdFileText = parts.join('\n');
+      document.getElementById('bdStatus').textContent = `Loaded ${file.name} — ${wb.SheetNames.length} sheet(s). Add any extra notes in the text box, then process.`;
+      // Pre-fill the textarea with a hint if empty
+      if (!document.getElementById('brainDumpText').value.trim()) {
+        document.getElementById('brainDumpText').value = '';
+        document.getElementById('brainDumpText').placeholder = 'Optional: add notes like "mark KC tasks as urgent" or "only import rows for T-21-010"…';
+      }
+    } catch (err) {
+      document.getElementById('bdStatus').textContent = '⚠ Could not read file: ' + err.message;
+      _bdFileText = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function clearBrainDumpFile() {
+  _bdFileText = '';
+  document.getElementById('bdFileInput').value = '';
+  document.getElementById('bdFileName').textContent = '';
+  document.getElementById('bdFileClear').style.display = 'none';
+  document.getElementById('brainDumpText').placeholder = 'e.g. Need to follow up with Marcus on DOEE eval forms…';
+}
+
 async function submitBrainDump() {
   const text = document.getElementById('brainDumpText').value.trim();
-  if (!text) { alert('Please enter some text first.'); return; }
+  const hasFile = !!_bdFileText;
+  if (!text && !hasFile) { alert('Please enter some text or upload a file first.'); return; }
 
   const apiKey = loadApiKey();
   if (!apiKey) { openSettingsModal(); return; }
@@ -8921,9 +8996,9 @@ async function submitBrainDump() {
   const systemPrompt =
 `You are a task management assistant for a program manager. You will receive:
 1. A JSON array of the user's current active tasks (each has: id, name, project, priority, due, est, category, waiting, notes).
-2. A free-text "brain dump" — notes, thoughts, voice transcript, messy to-do list, etc.
+2. Either a free-text "brain dump" (notes, thoughts, voice transcript, messy to-do list) OR tab-separated spreadsheet data from an uploaded file, possibly with additional user instructions.
 
-Your job: parse the brain dump and reconcile it against the existing task list.
+Your job: parse the input and reconcile it against the existing task list. For spreadsheet data, treat each non-empty row as a potential task — use column headers to map fields (task name, due date, estimated hours, project, priority, status, etc.). Skip header rows, totals rows, and empty rows.
 
 Return ONLY a single valid JSON object — no preamble, no markdown, no code fences — with exactly these three keys:
 
@@ -8934,7 +9009,7 @@ Return ONLY a single valid JSON object — no preamble, no markdown, no code fen
 }
 
 Definitions:
-- new_tasks: Array of full task objects for items that don't match anything existing. Fields: name (string), project (must be one of the project codes listed below — choose the best fit; use "admin" if unclear), priority ("urgent" | "high" | "med" | "low"), due ("YYYY-MM-DD" or ""), est (number of hours or 0), category (string), waiting (string), notes (string).
+- new_tasks: Array of full task objects for items that don't match anything existing. Fields: name (string), project (must be one of the project codes listed below — choose the best fit; use "overhead" if unclear), priority ("urgent" | "high" | "med" | "low"), due ("YYYY-MM-DD" or ""), est (number of hours or 0), category (string), waiting (string), notes (string).
 
 Project codes and their tags/abbreviations (use these to match shorthand in the brain dump):
 ${Object.keys(PROJECTS).map(k => { const p = PROJECTS[k]; const tags = (p.tags || []).length ? ' [tags: ' + p.tags.join(', ') + ']' : ''; return k + ' = "' + p.label + '"' + tags; }).join('\n')}
@@ -8949,12 +9024,15 @@ Matching rules:
 - When uncertain, prefer new_task over update.
 - Return empty arrays if a category has no items. Never omit any of the three keys.`;
 
-  const userMessage =
-`Current active tasks (JSON):
-${JSON.stringify(activeTasks, null, 2)}
+  let userMessage = `Current active tasks (JSON):\n${JSON.stringify(activeTasks, null, 2)}\n\n`;
 
-Brain dump text:
-${text}`;
+  if (_bdFileText) {
+    userMessage += `Spreadsheet data (tab-separated):\n${_bdFileText}\n\n`;
+    if (text) userMessage += `Additional instructions from user:\n${text}\n`;
+    else userMessage += `Instructions: Parse the spreadsheet rows as tasks. Each row that looks like a deliverable, to-do, or action item should become a task. Use column headers to map fields (name, due date, hours, project, priority, etc.). Match project codes/names to the known project list.\n`;
+  } else {
+    userMessage += `Brain dump text:\n${text}`;
+  }
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
