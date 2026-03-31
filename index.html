@@ -5759,8 +5759,8 @@ function renderProjCodeContent(projKey) {
 
       // Inline add
       html += `<div class="subcode-inline-add">
-        <input type="text" placeholder="Quick add..." id="inlineAdd_${projKey}_${sec.scId}" onkeydown="if(event.key==='Enter')inlineAddTask('${projKey}','${sec.scId}')">
-        <button class="btn" onclick="openAddTaskForProject('${projKey}','${sec.scId}')" style="font-size:10px;padding:2px 8px;" title="Add with full details">+ Detail</button>
+        <button class="btn" onclick="openAddTaskForProject('${projKey}','${sec.scId}')" style="font-size:10px;padding:2px 8px;flex-shrink:0;" title="Add with full details">+ Detail</button>
+        <input type="text" placeholder="Quick add — type and hit enter" id="inlineAdd_${projKey}_${sec.scId}" onkeydown="if(event.key==='Enter')inlineAddTask('${projKey}','${sec.scId}')">
       </div>`;
       html += '</div>'; // .subcode-body
     }
