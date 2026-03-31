@@ -705,6 +705,7 @@
   .proj-item-row:last-child { border-bottom: none; }
   .proj-item-row:hover { background: var(--bg3); }
   .proj-item-row.dragging { opacity: 0.4; }
+  .proj-item-row.drag-over-row { border-top: 2px solid var(--accent); }
   .proj-item-row .session-row-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .proj-item-row:hover .session-row-actions { opacity: 1; }
 
@@ -5695,11 +5696,15 @@ function renderProjCodeContent(projKey) {
         items.push({ _type: 'team', team: ti, _date: ti.due || null, _src: 'Team Deliverables' });
       }
     });
-    // Sort: incomplete first, then by date, then priority
+    // Sort: incomplete first, then by manual order if set, then date, then priority
     const po = { urgent: 0, high: 1, med: 2, low: 3 };
     const pri = i => i._type === 'task' ? po[i.task.priority] : i._type === 'session' ? (po[i.s.priority] ?? 2) : i._type === 'team' ? 2 : (po[i.st.priority] ?? 2);
-    const done = i => i._type === 'task' ? !!i.task.completed : i._type === 'session' ? !!i.s.done : i._type === 'team' ? (i.team.status === 'complete') : !!i.st.done;
-    items.sort((a, b) => (done(a) - done(b)) || (a._date || 'zzz').localeCompare(b._date || 'zzz') || pri(a) - pri(b));
+    const done = i => i._type === 'task' ? !!i.task.completed : i._type === 'session' ? !!i.s.done : i._type === 'team' ? (i.team.status === 'complete') : !!i.st?.done;
+    const ord = i => {
+      const obj = i._type === 'task' ? i.task : i._type === 'session' ? i.s : i._type === 'team' ? i.team : i.st;
+      return obj?.projSortOrder ?? 999999;
+    };
+    items.sort((a, b) => (done(a) - done(b)) || (ord(a) - ord(b)) || (a._date || 'zzz').localeCompare(b._date || 'zzz') || pri(a) - pri(b));
     return items;
   }
 
@@ -5775,9 +5780,12 @@ function renderProjItemRow(item, projKey, scId) {
   if (item._type === 'task') {
     const t = item.task;
     const isDone = !!t.completed;
-    return `<div class="proj-item-row" draggable="true"
+    return `<div class="proj-item-row" draggable="true" data-reorder-type="task" data-reorder-id="${t.id}"
       ondragstart="_dragItemData={type:'task',id:'${t.id}',fromSc:'${scId}',fromProj:'${projKey}'};event.dataTransfer.effectAllowed='move';this.classList.add('dragging');"
-      ondragend="this.classList.remove('dragging');_dragItemData=null;">
+      ondragend="this.classList.remove('dragging');_dragItemData=null;"
+      ondragover="event.preventDefault();if(_dragItemData&&_dragItemData.fromSc==='${scId}')this.classList.add('drag-over-row');"
+      ondragleave="this.classList.remove('drag-over-row');"
+      ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('drag-over-row');reorderItemInSection('${projKey}','${scId}','task','${t.id}');">
       <div class="session-check${isDone ? ' done' : ''}" onclick="toggleTaskFromProjects('${t.id}')" style="cursor:pointer;">
         ${isDone ? '<span style="color:var(--check-fg);font-size:11px;">✓</span>' : ''}
       </div>
@@ -5805,9 +5813,12 @@ function renderProjItemRow(item, projKey, scId) {
   if (item._type === 'session') {
     const s = item.s;
     const bp = item.proj;
-    return `<div class="proj-item-row" draggable="true"
+    return `<div class="proj-item-row" draggable="true" data-reorder-type="session" data-reorder-id="${s.id}"
       ondragstart="_dragItemData={type:'session',projId:'${bp.id}',id:'${s.id}',fromSc:'${scId}',fromProj:'${projKey}'};event.dataTransfer.effectAllowed='move';this.classList.add('dragging');"
-      ondragend="this.classList.remove('dragging');_dragItemData=null;">
+      ondragend="this.classList.remove('dragging');_dragItemData=null;"
+      ondragover="event.preventDefault();if(_dragItemData&&_dragItemData.fromSc==='${scId}')this.classList.add('drag-over-row');"
+      ondragleave="this.classList.remove('drag-over-row');"
+      ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('drag-over-row');reorderItemInSection('${projKey}','${scId}','session','${s.id}');">
       <div class="session-check${s.done ? ' done' : ''}" onclick="openSessionCompletionModal('${bp.id}','${s.id}')" title="${s.done ? 'Mark incomplete' : 'Mark complete'}">
         ${s.done ? '<span style="color:var(--check-fg);font-size:11px;">✓</span>' : ''}
       </div>
@@ -5837,9 +5848,12 @@ function renderProjItemRow(item, projKey, scId) {
     const st = item.st;
     const s = item.s;
     const bp = item.proj;
-    return `<div class="proj-item-row" style="padding-left:44px;font-size:11px;" draggable="true"
+    return `<div class="proj-item-row" style="padding-left:44px;font-size:11px;" draggable="true" data-reorder-type="subtask" data-reorder-id="${st.id}"
       ondragstart="_dragItemData={type:'subtask',projId:'${bp.id}',sessionId:'${s.id}',id:'${st.id}',fromSc:'${scId}',fromProj:'${projKey}'};event.dataTransfer.effectAllowed='move';this.classList.add('dragging');"
-      ondragend="this.classList.remove('dragging');_dragItemData=null;">
+      ondragend="this.classList.remove('dragging');_dragItemData=null;"
+      ondragover="event.preventDefault();if(_dragItemData&&_dragItemData.fromSc==='${scId}')this.classList.add('drag-over-row');"
+      ondragleave="this.classList.remove('drag-over-row');"
+      ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('drag-over-row');reorderItemInSection('${projKey}','${scId}','subtask','${st.id}');">
       <div class="session-check${st.done ? ' done' : ''}" onclick="openSubtaskCompletionModal('${bp.id}','${s.id}','${st.id}')" title="${st.done ? 'Mark incomplete' : 'Mark complete'}" style="cursor:pointer;">
         ${st.done ? '<span style="color:var(--check-fg);font-size:10px;">✓</span>' : ''}
       </div>
@@ -5968,6 +5982,59 @@ function dropItemToSubCode(projKey, newScId) {
   }
   renderProjCodeContent(projKey);
   renderTasks();
+}
+
+// ── Reorder items within a sub-code section via drag-drop ──
+function reorderItemInSection(projKey, scId, targetType, targetId) {
+  if (!_dragItemData) return;
+  const d = _dragItemData;
+  // Only reorder if staying in the same sub-code section
+  if (d.fromSc !== scId || d.fromProj !== projKey) {
+    // Different section — fall through to sub-code reassignment
+    dropItemToSubCode(projKey, scId);
+    return;
+  }
+
+  // Get all items in this section to compute new sort orders
+  // We need the same items that getItemsForSubCode returns
+  const projBigProjs = bigProjs.filter(bp => bp.project === projKey);
+  const projTasks = tasks.filter(t => t.project === projKey && !t.completed);
+  const projTeamItems = teamItems.filter(ti => ti.project === projKey);
+
+  // Collect all item objects in this section
+  const sectionItems = [];
+  projTasks.forEach(t => { if ((t.subCode || '') === (scId || '')) sectionItems.push({ type: 'task', id: t.id, obj: t }); });
+  projBigProjs.forEach(bp => {
+    bp.sessions.forEach(s => {
+      if ((s.subCode || bp.defaultSubCode || '') === (scId || '')) {
+        sectionItems.push({ type: 'session', id: s.id, obj: s });
+        (s.subtasks || []).forEach(st => {
+          if ((st.subCode || s.subCode || bp.defaultSubCode || '') === (scId || ''))
+            sectionItems.push({ type: 'subtask', id: st.id, obj: st });
+        });
+      }
+    });
+  });
+  projTeamItems.forEach(ti => { if ((ti.subCode || '') === (scId || '')) sectionItems.push({ type: 'team', id: ti.id, obj: ti }); });
+
+  // Find source and target indices
+  const srcIdx = sectionItems.findIndex(i => i.type === d.type && i.id === d.id);
+  const tgtIdx = sectionItems.findIndex(i => i.type === targetType && i.id === targetId);
+  if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
+
+  // Move source to target position
+  const [moved] = sectionItems.splice(srcIdx, 1);
+  sectionItems.splice(tgtIdx, 0, moved);
+
+  // Assign sequential projSortOrder to all items
+  sectionItems.forEach((item, idx) => {
+    item.obj.projSortOrder = idx;
+  });
+
+  save('wt_tasks', tasks);
+  save('wt_bigprojs', bigProjs);
+  save('wt_team', teamItems);
+  renderProjCodeContent(projKey);
 }
 
 // ── Inline quick-add task to a specific sub-code ──
