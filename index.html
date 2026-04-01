@@ -2432,6 +2432,10 @@
         <label class="edit-label">Notes</label>
         <input class="edit-input" type="text" id="editNotes">
       </div>
+      <div class="edit-form-group full">
+        <label class="edit-label">Assign to <span style="font-weight:400;color:var(--text3);">(optional — appears in Team tab)</span></label>
+        <div id="editTaskDelegateWrap" style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 0;min-height:28px;"></div>
+      </div>
       <div class="edit-form-group full" style="margin-top:4px;padding-top:10px;border-top:1px solid var(--border);">
         <label class="edit-label">Repeats</label>
         <select class="edit-input" id="editRecurType" onchange="onRecurTypeChange()">
@@ -4438,6 +4442,11 @@ function computeWeekCapacity(wkStart, wkEnd) {
   const items = plannedItems(wkStart, wkEnd);
   items.forEach(p => {
     const t = tasks.find(t => t.id === p.id || p.id.startsWith(t.id + '_'));
+    // Only count items that are mine: unassigned, or "Me" is in the delegation list
+    if (t) {
+      const del = normDelegated(t.delegatedTo);
+      if (del.length && !del.includes('Me')) return; // delegated to others only — not my capacity
+    }
     const isCompleted = t ? t.completed : false;
     if (isCompleted) done += (p.hours || 0);
     else planned += (p.hours || 0);
@@ -5099,6 +5108,8 @@ function openEditModal(taskId) {
   // category removed from UI
   document.getElementById('editWaiting').value = task.waiting || '';
   document.getElementById('editNotes').value = task.notes || '';
+  // Assign-to pills
+  populateSessionDelegatePills(PERSONS, task.delegatedTo, 'editTaskDelegateWrap');
   // Recurrence
   const r = task.recurrence || {};
   document.getElementById('editRecurType').value        = r.type || '';
@@ -5147,6 +5158,8 @@ function saveEditTask() {
   // category field preserved in data but removed from UI
   task.waiting  = document.getElementById('editWaiting').value.trim();
   task.notes    = document.getElementById('editNotes').value.trim();
+  const delegated = getSelectedDelegatees('editTaskDelegateWrap');
+  task.delegatedTo = delegated.length ? delegated : null;
 
   // Recurrence pattern
   const rType = document.getElementById('editRecurType').value;
@@ -6132,6 +6145,7 @@ function openAddTaskForProject(projKey, scId) {
   document.getElementById('editNotes').value = '';
   document.getElementById('editRecurType').value = '';
   onRecurTypeChange();
+  populateSessionDelegatePills(PERSONS, null, 'editTaskDelegateWrap');
   document.getElementById('editDeleteBtn').style.display = 'none';
   document.getElementById('editTaskModal').classList.add('open');
   setTimeout(() => document.getElementById('editName').focus(), 80);
@@ -8655,12 +8669,14 @@ let editingSessionId = null;
 let editingSubtaskMode = false;
 let editingSubtaskParentSessionId = null;
 
-function populateSessionDelegatePills(members, selected) {
+function populateSessionDelegatePills(members, selected, containerId) {
   // selected is null, string (legacy), or string[]
   const current = !selected ? [] : Array.isArray(selected) ? selected : [selected];
-  const wrap = document.getElementById('editSessionDelegateWrap');
+  const wrapId = containerId || 'editSessionDelegateWrap';
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
   const note = document.getElementById('editSessionDelegateNote');
-  note.style.display = 'none';
+  if (note) note.style.display = 'none';
   const allMembers = ['Me', ...members];
   wrap.innerHTML = allMembers.map(m => {
     const c = personColor(m);
@@ -8687,9 +8703,10 @@ function toggleDelegatePill(el, name, bg, text, border) {
   }
 }
 
-function getSelectedDelegatees() {
-  const pills = document.querySelectorAll('#editSessionDelegateWrap .delegate-pill.selected');
-  return Array.from(pills).map(p => p.textContent.replace(/^✓\s*/, '').trim());
+function getSelectedDelegatees(containerId) {
+  const id = containerId || 'editSessionDelegateWrap';
+  const pills = document.querySelectorAll('#' + id + ' .delegate-pill.selected');
+  return Array.from(pills).map(p => p.textContent.replace(/^✓\s*/, '').replace('📌 ', '').trim());
 }
 
 function onSessionRecurTypeChange() {
