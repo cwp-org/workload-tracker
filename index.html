@@ -2166,6 +2166,7 @@
           <option value="weekly">Weekly</option>
           <option value="biweekly">Bi-weekly</option>
           <option value="monthly-date">Monthly on a date</option>
+          <option value="monthly-last-day">Monthly on last day</option>
           <option value="monthly-weekday">Monthly on a weekday</option>
         </select>
         <div id="nrDayWrap" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;">
@@ -2177,6 +2178,7 @@
           <label class="day-toggle"><input type="checkbox" name="nrDow" value="5"><span>Fri</span></label>
           <label class="day-toggle"><input type="checkbox" name="nrDow" value="6"><span>Sat</span></label>
         </div>
+        <label id="nrWeekdayAdjust" style="display:none;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text2);"><input type="checkbox" id="nrWeekdayAdjustCb" checked> Fri if weekend</label>
         <input class="form-input" type="number" id="nrMday" min="1" max="31" placeholder="Day (1-31)" style="display:none;width:110px;">
         <select class="form-input" id="nrWofM" style="display:none;">
           <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="-1">Last</option>
@@ -2437,8 +2439,15 @@
           <option value="weekly">Weekly</option>
           <option value="biweekly">Bi-weekly</option>
           <option value="monthly-date">Monthly on a date</option>
+          <option value="monthly-last-day">Monthly on last day</option>
           <option value="monthly-weekday">Monthly on a weekday</option>
         </select>
+      </div>
+      <!-- Weekday adjust checkbox (for monthly-date and monthly-last-day) -->
+      <div class="edit-form-group full" id="editRecurWeekdayAdjustGroup" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);">
+          <input type="checkbox" id="editRecurWeekdayAdjust"> Adjust to previous Friday if date falls on a weekend
+        </label>
       </div>
       <!-- Weekly / Bi-weekly: pick day(s) of week -->
       <div class="edit-form-group full" id="editRecurWeekdayGroup" style="display:none;">
@@ -2694,8 +2703,14 @@
           <option value="weekly">Weekly</option>
           <option value="biweekly">Bi-weekly</option>
           <option value="monthly-date">Monthly on a date</option>
+          <option value="monthly-last-day">Monthly on last day</option>
           <option value="monthly-weekday">Monthly on a weekday</option>
         </select>
+      </div>
+      <div class="edit-form-group full" id="editSessionRecurWeekdayAdjustGroup" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);">
+          <input type="checkbox" id="editSessionRecurWeekdayAdjust"> Adjust to previous Friday if date falls on a weekend
+        </label>
       </div>
       <div class="edit-form-group full" id="editSessionRecurWeekdayGroup" style="display:none;">
         <label class="edit-label">Day(s) of week</label>
@@ -4283,6 +4298,15 @@ function normDows(r) {
   return [1];
 }
 
+// If date falls on Sat/Sun, return previous Friday
+function adjustToWeekday(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const dow = d.getDay();
+  if (dow === 6) d.setDate(d.getDate() - 1); // Sat → Fri
+  else if (dow === 0) d.setDate(d.getDate() - 2); // Sun → Fri
+  return localDateStr(d);
+}
+
 function nextRecurrenceAfter(task, fromDateStr) {
   if (!task.recurrence) return null;
   const { type, dayOfMonth, weekOfMonth } = task.recurrence;
@@ -4301,12 +4325,19 @@ function nextRecurrenceAfter(task, fromDateStr) {
     d.setDate(d.getDate() + (gap - fromDow + dows[0]));
     return localDateStr(d);
   }
-  if (type === 'monthly-date') {
+  if (type === 'monthly-date' || type === 'monthly-last-day') {
     let m = from.getMonth() + 1, y = from.getFullYear();
     if (m > 11) { m = 0; y++; }
-    const max = new Date(y, m + 1, 0).getDate();
-    const day = Math.min(+dayOfMonth, max);
-    return `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    let day;
+    if (type === 'monthly-last-day') {
+      day = new Date(y, m + 1, 0).getDate(); // last day of month
+    } else {
+      const max = new Date(y, m + 1, 0).getDate();
+      day = Math.min(+dayOfMonth, max);
+    }
+    let result = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    if (task.recurrence.weekdayAdjust) result = adjustToWeekday(result);
+    return result;
   }
   if (type === 'monthly-weekday') {
     const [dayOfWeek] = normDows(task.recurrence);
@@ -4324,7 +4355,8 @@ function recurLabel(task) {
   const ordinal = n => { const s=['th','st','nd','rd']; const v=+n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
   if (type === 'weekly')   return `↻ Weekly ${normDows(task.recurrence).map(d=>days[d]).join('/')}`;
   if (type === 'biweekly') return `↻ Biweekly ${normDows(task.recurrence).map(d=>days[d]).join('/')}`;
-  if (type === 'monthly-date') return `↻ ${ordinal(dayOfMonth)} monthly`;
+  if (type === 'monthly-date') return `↻ ${ordinal(dayOfMonth)} monthly${task.recurrence.weekdayAdjust ? ' (wkday)' : ''}`;
+  if (type === 'monthly-last-day') return `↻ Last day monthly${task.recurrence.weekdayAdjust ? ' (wkday)' : ''}`;
   if (type === 'monthly-weekday') {
     const wk = +weekOfMonth === -1 ? 'Last' : ordinal(weekOfMonth);
     return `↻ ${wk} ${days[normDows(task.recurrence)[0]]} monthly`;
@@ -4336,6 +4368,7 @@ function onRecurTypeChange() {
   const type = document.getElementById('editRecurType').value;
   document.getElementById('editRecurWeekdayGroup').style.display     = (type === 'weekly' || type === 'biweekly') ? '' : 'none';
   document.getElementById('editRecurMonthDayGroup').style.display     = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('editRecurWeekdayAdjustGroup').style.display = (type === 'monthly-date' || type === 'monthly-last-day') ? '' : 'none';
   document.getElementById('editRecurWeekOfMonthGroup').style.display  = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('editRecurMonthWeekdayGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('editRecurEndDateGroup').style.display      = type ? '' : 'none';
@@ -4345,6 +4378,7 @@ function onNewRecurChange() {
   const type = document.getElementById('nrType').value;
   document.getElementById('nrDayWrap').style.display       = (type === 'weekly' || type === 'biweekly') ? 'flex' : 'none';
   document.getElementById('nrMday').style.display          = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('nrWeekdayAdjust').style.display = (type === 'monthly-date' || type === 'monthly-last-day') ? 'flex' : 'none';
   document.getElementById('nrWofM').style.display          = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('nrMwday').style.display         = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('nrEndWrap').style.display       = type ? 'flex' : 'none';
@@ -4998,6 +5032,9 @@ function addTask() {
       recurrence.daysOfWeek = checked.length ? checked : [1];
     } else if (rType === 'monthly-date') {
       recurrence.dayOfMonth = +document.getElementById('nrMday').value || 1;
+      recurrence.weekdayAdjust = document.getElementById('nrWeekdayAdjustCb').checked;
+    } else if (rType === 'monthly-last-day') {
+      recurrence.weekdayAdjust = document.getElementById('nrWeekdayAdjustCb').checked;
     } else if (rType === 'monthly-weekday') {
       recurrence.weekOfMonth = +document.getElementById('nrWofM').value;
       recurrence.dayOfWeek   = +document.getElementById('nrMwday').value;
@@ -5142,6 +5179,7 @@ function openEditModal(taskId) {
   document.getElementById('editRecurWeekOfMonth').value = r.weekOfMonth !== undefined ? r.weekOfMonth : 1;
   document.getElementById('editRecurMonthWeekday').value= normDows(r)[0] !== undefined ? normDows(r)[0] : 1;
   document.getElementById('editRecurEndDate').value     = r.endDate || '';
+  document.getElementById('editRecurWeekdayAdjust').checked = r.weekdayAdjust !== false;
   onRecurTypeChange();
   document.getElementById('editDeleteBtn').style.display = '';
   document.getElementById('editTaskModal').classList.add('open');
@@ -5196,6 +5234,9 @@ function saveEditTask() {
       task.recurrence.daysOfWeek = checked.length ? checked : [1];
     } else if (rType === 'monthly-date') {
       task.recurrence.dayOfMonth = +document.getElementById('editRecurMonthDay').value || 1;
+      task.recurrence.weekdayAdjust = document.getElementById('editRecurWeekdayAdjust').checked;
+    } else if (rType === 'monthly-last-day') {
+      task.recurrence.weekdayAdjust = document.getElementById('editRecurWeekdayAdjust').checked;
     } else if (rType === 'monthly-weekday') {
       task.recurrence.weekOfMonth = +document.getElementById('editRecurWeekOfMonth').value;
       task.recurrence.dayOfWeek   = +document.getElementById('editRecurMonthWeekday').value;
@@ -8726,6 +8767,7 @@ function onSessionRecurTypeChange() {
   const type = document.getElementById('editSessionRecurType').value;
   document.getElementById('editSessionRecurWeekdayGroup').style.display = (type === 'weekly' || type === 'biweekly') ? '' : 'none';
   document.getElementById('editSessionRecurMonthDayGroup').style.display = type === 'monthly-date' ? '' : 'none';
+  document.getElementById('editSessionRecurWeekdayAdjustGroup').style.display = (type === 'monthly-date' || type === 'monthly-last-day') ? '' : 'none';
   document.getElementById('editSessionRecurWeekOfMonthGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('editSessionRecurMonthWeekdayGroup').style.display = type === 'monthly-weekday' ? '' : 'none';
   document.getElementById('editSessionRecurEndGroup').style.display = type ? '' : 'none';
@@ -8740,6 +8782,9 @@ function _getSessionRecurrence() {
     recurrence.daysOfWeek = checked.length ? checked : [1];
   } else if (type === 'monthly-date') {
     recurrence.dayOfMonth = +document.getElementById('editSessionRecurMonthDay').value || 1;
+    recurrence.weekdayAdjust = document.getElementById('editSessionRecurWeekdayAdjust').checked;
+  } else if (type === 'monthly-last-day') {
+    recurrence.weekdayAdjust = document.getElementById('editSessionRecurWeekdayAdjust').checked;
   } else if (type === 'monthly-weekday') {
     recurrence.weekOfMonth = +document.getElementById('editSessionRecurWeekOfMonth').value;
     recurrence.dayOfWeek = +document.getElementById('editSessionRecurMonthWeekday').value;
@@ -8761,6 +8806,7 @@ function _populateSessionRecurFields(recurrence) {
   document.getElementById('editSessionRecurWeekOfMonth').value = r.weekOfMonth || '1';
   document.getElementById('editSessionRecurMonthWeekday').value = r.dayOfWeek != null ? r.dayOfWeek : '1';
   document.getElementById('editSessionRecurEnd').value = r.endDate || '';
+  document.getElementById('editSessionRecurWeekdayAdjust').checked = r.weekdayAdjust !== false;
   onSessionRecurTypeChange();
 }
 
