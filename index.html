@@ -3971,65 +3971,10 @@ function save(key, data) {
 // SEED DATA (only loaded once)
 // =============================================
 
-const SEED_TASKS = [
-  { id: uid(), name: 'Finalize Q2 CWC cohort schedule', project: 'cwc', priority: 'urgent', due: '2026-06-02', est: 2, category: 'Planning', waiting: '', notes: 'Coordinate with site leads first', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'CWC format guide update (Canva)', project: 'cwc', priority: 'med', due: '2026-06-14', est: 2, category: 'Content', waiting: '', notes: 'Match new brand colors', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'KC Mid-America GSI training prep — Session 2', project: 'kc', priority: 'urgent', due: '2026-06-06', est: 4, category: 'Training', waiting: '', notes: '', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Kansas City outreach materials review', project: 'kc', priority: 'high', due: '2026-06-10', est: 2, category: 'Review', waiting: '', notes: 'Task 2 deliverable', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Coastal Resilience peer learning session prep', project: 'coastal_pl', priority: 'high', due: '2026-06-08', est: 3, category: 'Planning', waiting: '', notes: 'Monthly deliverable — 33h allocated', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Carroll County final report — Part 1 draft', project: 'carroll', priority: 'high', due: '2026-06-05', est: 5, category: 'Content', waiting: '', notes: 'Due July — start early', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Gaithersburg final watershed plan — first draft', project: 'gaithwp', priority: 'med', due: '2026-06-15', est: 4, category: 'Content', waiting: '', notes: 'Final plan phase starts this month', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'SRC startup grant admin — June cycle', project: 'src_pa', priority: 'med', due: '2026-06-20', est: 4, category: 'Admin', waiting: '', notes: '8h allocated monthly', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'DOEE TA monthly meeting prep', project: 'doee_ta', priority: 'med', due: '2026-06-12', est: 1.5, category: 'Meetings', waiting: '', notes: 'Monthly check-in with DOEE staff', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'CWC Pasadena delivery planning', project: 'cwc_pas', priority: 'high', due: '2026-06-04', est: 3, category: 'Planning', waiting: '', notes: '21h block — May through Aug', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Coastal Stormwater virtual design forum prep', project: 'coastal_sw', priority: 'med', due: '2026-06-18', est: 2.5, category: 'Content', waiting: '', notes: '', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Watershed Planning Training — PPT drafting', project: 'wpt', priority: 'low', due: '2026-07-15', est: 6, category: 'Content', waiting: '', notes: '12h over Jul–Oct', timer: 0, timerStart: null, completed: false },
-  { id: uid(), name: 'Submit Timesheet (mid-month)', project: 'overhead', priority: 'urgent', due: '2026-06-15', est: 0.25, category: 'Finance', waiting: '', notes: 'BigTime timesheet due by COB', timer: 0, timerStart: null, completed: false, recurrence: { type: 'monthly-date', dayOfMonth: 15, endDate: null } },
-  { id: uid(), name: 'Submit Timesheet (end-of-month)', project: 'overhead', priority: 'urgent', due: '2026-06-30', est: 0.25, category: 'Finance', waiting: '', notes: 'BigTime timesheet due by COB — last day of month', timer: 0, timerStart: null, completed: false, recurrence: { type: 'monthly-date', dayOfMonth: 31, endDate: null } },
-];
-
-const SEED_PROJECTS = [
-  {
-    id: uid(),
-    name: 'Carroll County Final Report',
-    project: 'carroll',
-    sessions: [
-      { id: uid(), num: 1, desc: 'Post-processing data cleanup', date: '2026-03-15', hours: 8, done: true },
-      { id: uid(), num: 2, desc: 'Outreach materials creation', date: '2026-03-22', hours: 8, done: true },
-      { id: uid(), num: 3, desc: 'Final report — Part 1 draft', date: '2026-04-10', hours: 5, done: false },
-      { id: uid(), num: 4, desc: 'Final report — Part 2 + review', date: '2026-05-08', hours: 5, done: false },
-      { id: uid(), num: 5, desc: 'Final report — revisions and submit', date: '2026-06-05', hours: 5, done: false },
-    ]
-  },
-  {
-    id: uid(),
-    name: 'Gaithersburg Watershed Plan',
-    project: 'gaithwp',
-    sessions: [
-      { id: uid(), num: 1, desc: 'Project meetings + scoping', date: '2026-03-10', hours: 1, done: true },
-      { id: uid(), num: 2, desc: 'Draft watershed plan — research', date: '2026-03-20', hours: 8, done: true },
-      { id: uid(), num: 3, desc: 'Draft watershed plan — writing', date: '2026-04-15', hours: 12, done: false },
-      { id: uid(), num: 4, desc: 'Draft watershed plan — final section', date: '2026-05-10', hours: 12, done: false },
-      { id: uid(), num: 5, desc: 'Final plan — revisions and delivery', date: '2026-06-15', hours: 8, done: false },
-    ]
-  }
-];
-
-const SEED_TEAM = [
-  { id: uid(), name: 'KC outreach material design', owner: 'Jordan P.', project: 'kc', due: '2026-06-03', status: 'in-progress', notes: 'Task 2 deliverable — Canva drafts' },
-  { id: uid(), name: 'SRC startup grant data entry', owner: 'Intern – Aisha', project: 'src_pa', due: '2026-06-05', status: 'pending', notes: 'Template sent 5/28' },
-  { id: uid(), name: 'DOEE TA meeting notes + follow-ups', owner: 'Marcus T.', project: 'doee_ta', due: '2026-06-08', status: 'not-started', notes: '' },
-  { id: uid(), name: 'CWC flyer design (Canva)', owner: 'Intern – Dev', project: 'cwc', due: '2026-06-07', status: 'in-review', notes: 'First draft received, minor edits needed' },
-  { id: uid(), name: 'Coastal Stormwater outreach materials', owner: 'Sarah M.', project: 'coastal_sw', due: '2026-06-10', status: 'in-progress', notes: '6h allocated this quarter' },
-];
-
-const SEED_COMPLETED = [
-  { id: uid(), name: 'Carroll County outreach materials', project: 'carroll', dateCompleted: '2026-03-28', estHours: 8, actualHours: 8.5, category: 'Content' },
-  { id: uid(), name: 'CWC Session 3 delivery', project: 'cwc', dateCompleted: '2026-05-29', estHours: 4, actualHours: 4, category: 'Training' },
-  { id: uid(), name: 'Gaithersburg draft plan — Section 1', project: 'gaithwp', dateCompleted: '2026-04-18', estHours: 8, actualHours: 7.5, category: 'Content' },
-  { id: uid(), name: 'KC WFD kickoff planning', project: 'kc', dateCompleted: '2026-03-20', estHours: 2, actualHours: 2, category: 'Planning' },
-  { id: uid(), name: 'DOEE TA May meeting', project: 'doee_ta', dateCompleted: '2026-05-15', estHours: 1.5, actualHours: 1.5, category: 'Meetings' },
-];
+const SEED_TASKS = [];
+const SEED_PROJECTS = [];
+const SEED_TEAM = [];
+const SEED_COMPLETED = [];
 
 // Initialize state
 let tasks     = load('wt_tasks',     null);
@@ -4054,22 +3999,6 @@ if (!tasks)     { tasks = SEED_TASKS;     save('wt_tasks', tasks); }
 if (!bigProjs)  { bigProjs = SEED_PROJECTS; save('wt_bigprojs', bigProjs); }
 if (!teamItems) { teamItems = SEED_TEAM;  save('wt_team', teamItems); }
 if (!completed) { completed = SEED_COMPLETED; save('wt_completed', completed); }
-
-// Migration: inject recurring timesheet reminder tasks for existing users
-(function migrateTimesheetTasks() {
-  const hasMid = tasks.some(t => t.name === 'Submit Timesheet (mid-month)');
-  const hasEnd = tasks.some(t => t.name === 'Submit Timesheet (end-of-month)');
-  let changed = false;
-  if (!hasMid) {
-    tasks.push({ id: uid(), name: 'Submit Timesheet (mid-month)', project: 'overhead', priority: 'urgent', due: today(), est: 0.25, category: 'Finance', waiting: '', notes: 'BigTime timesheet due by COB', timer: 0, timerStart: null, completed: false, recurrence: { type: 'monthly-date', dayOfMonth: 15, endDate: null } });
-    changed = true;
-  }
-  if (!hasEnd) {
-    tasks.push({ id: uid(), name: 'Submit Timesheet (end-of-month)', project: 'overhead', priority: 'urgent', due: today(), est: 0.25, category: 'Finance', waiting: '', notes: 'BigTime timesheet due by COB — last day of month', timer: 0, timerStart: null, completed: false, recurrence: { type: 'monthly-date', dayOfMonth: 31, endDate: null } });
-    changed = true;
-  }
-  if (changed) save('wt_tasks', tasks);
-})();
 
 // =============================================
 // TIMER STATE
