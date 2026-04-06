@@ -852,7 +852,7 @@
   /* TEAM TAB */
   .team-row {
     display: grid;
-    grid-template-columns: 1fr 90px 90px 8px 75px 105px 30px;
+    grid-template-columns: 1fr 90px 90px 8px 75px 120px 30px;
     gap: 8px;
     align-items: center;
     padding: 7px 10px;
@@ -873,7 +873,7 @@
 
   .team-table-header {
     display: grid;
-    grid-template-columns: 1fr 90px 90px 8px 75px 105px 30px;
+    grid-template-columns: 1fr 90px 90px 8px 75px 120px 30px;
     gap: 8px; padding: 3px 10px;
     font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--text3); background: var(--bg2); border-bottom: 1px solid var(--border);
@@ -927,6 +927,10 @@
     white-space: nowrap;
     text-transform: uppercase;
     transition: opacity 0.12s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: inline-block;
   }
 
   .status-badge:hover { opacity: 0.75; }
@@ -1373,7 +1377,7 @@
 
   /* TEAM ROW: fixed columns for grid alignment */
   .team-row {
-    grid-template-columns: 1fr 90px 90px 8px 75px 90px 30px !important;
+    grid-template-columns: 1fr 90px 90px 8px 75px 120px 30px !important;
   }
 
   /* TEAM PERSON GROUP HEADER (legacy - replaced by .team-person-section-header) */
@@ -5063,10 +5067,10 @@ function openDueDatePicker(el, taskId) {
   input.addEventListener('change', () => {
     task.due = input.value;
     save('wt_tasks', tasks);
-    renderTasks();
+    renderTasks(); renderTeam();
   });
   input.addEventListener('blur', () => {
-    renderTasks();
+    renderTasks(); renderTeam();
   });
 }
 
@@ -5084,9 +5088,9 @@ function openSessionDatePicker(el, projId, sessionId) {
   input.addEventListener('change', () => {
     s.date = input.value;
     save('wt_bigprojs', bigProjs);
-    renderProjects(); renderTasks();
+    renderProjects(); renderTasks(); renderTeam();
   });
-  input.addEventListener('blur', () => { renderProjects(); renderTasks(); });
+  input.addEventListener('blur', () => { renderProjects(); renderTasks(); renderTeam(); });
 }
 
 function openSubtaskDatePicker(el, projId, sessionId, subtaskId) {
@@ -5104,9 +5108,9 @@ function openSubtaskDatePicker(el, projId, sessionId, subtaskId) {
   input.addEventListener('change', () => {
     st.date = input.value;
     save('wt_bigprojs', bigProjs);
-    renderProjects(); renderTasks();
+    renderProjects(); renderTasks(); renderTeam();
   });
-  input.addEventListener('blur', () => { renderProjects(); renderTasks(); });
+  input.addEventListener('blur', () => { renderProjects(); renderTasks(); renderTeam(); });
 }
 
 function openTeamDueDatePicker(el, itemId) {
@@ -6354,13 +6358,12 @@ function renderTeam() {
   // Collect delegated tasks from tasks[] (tasks assigned to others via delegatedTo)
   const delegatedTasks = [];
   tasks.forEach(t => {
-    if (t.completed) return;
     const people = normDelegated(t.delegatedTo);
     if (!people.length) return;
     delegatedTasks.push({
       id: t.id + '_taskdel',
       name: t.name, owners: people, owner: people.join(', '), project: t.project,
-      due: t.due, status: t.completed ? 'complete' : 'in-progress',
+      due: t.due, status: t.completed ? 'complete' : (t.status || 'in-progress'),
       _taskDelegated: true, _taskId: t.id
     });
   });
@@ -6456,6 +6459,9 @@ function renderTeam() {
       const editFn = item._isSubtask
         ? `openEditSubtaskModal('${item._projId}','${item._sessionId}','${item._subtaskId}')`
         : `openEditSessionModal('${item._projId}','${item._sessionId}')`;
+      const dateFn = item._isSubtask
+        ? `openSubtaskDatePicker(this,'${item._projId}','${item._sessionId}','${item._subtaskId}')`
+        : `openSessionDatePicker(this,'${item._projId}','${item._sessionId}')`;
       const statusDropFn = item._isSubtask
         ? `showDelegatedStatusDropdown(event,'${item._projId}','${item._sessionId}')`
         : `showDelegatedStatusDropdown(event,'${item._projId}','${item._sessionId}')`;
@@ -6467,8 +6473,8 @@ function renderTeam() {
         ${ownerHtml}
         <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
-        <span class="team-due ${dc}" style="cursor:pointer;" onclick="${editFn}">${fmtDate(item.due)}</span>
-        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="${statusDropFn}" style="cursor:pointer;">${STATUS_LABELS[item.status]||item.status}</span>
+        <span class="team-due ${dc}" style="cursor:pointer;" onclick="${dateFn}">${fmtDate(item.due)}</span>
+        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="${statusDropFn}" style="cursor:pointer;" title="${STATUS_LABELS[item.status]||item.status}">${STATUS_LABELS[item.status]||item.status}</span>
         `;
     } else if (item._taskDelegated) {
       row.innerHTML = `
@@ -6476,8 +6482,8 @@ function renderTeam() {
         ${ownerHtml}
         <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
-        <span class="team-due ${dc}" style="cursor:pointer;" onclick="openEditModal('${item._taskId}')">${fmtDate(item.due)}</span>
-        <span class="status-badge s-in-progress" style="cursor:pointer;">Active</span>
+        <span class="team-due ${dc}" style="cursor:pointer;" onclick="openDueDatePicker(this,'${item._taskId}')">${fmtDate(item.due)}</span>
+        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showDelegatedTaskStatusDropdown(event,'${item._taskId}')" style="cursor:pointer;" title="${STATUS_LABELS[item.status]||item.status}">${STATUS_LABELS[item.status]||item.status}</span>
         `;
     } else {
       row.innerHTML = `
@@ -6486,7 +6492,7 @@ function renderTeam() {
         <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openTeamDueDatePicker(this,'${item.id}')">${fmtDate(item.due)}</span>
-        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showStatusDropdown(event,'${item.id}')" style="cursor:pointer;">${STATUS_LABELS[item.status]}</span>
+        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showStatusDropdown(event,'${item.id}')" style="cursor:pointer;" title="${STATUS_LABELS[item.status]}">${STATUS_LABELS[item.status]}</span>
         `;
     }
     return row;
@@ -8651,6 +8657,21 @@ function showDelegatedStatusDropdown(e, projId, sessionId) {
     s.done = (val === 'complete');
     s.status = val;
     save('wt_bigprojs', bigProjs);
+    renderTeam();
+    renderTasks();
+    renderProjects();
+  });
+}
+
+function showDelegatedTaskStatusDropdown(e, taskId) {
+  e.stopPropagation();
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  const curStatus = task.completed ? 'complete' : (task.status || 'in-progress');
+  showDropdown(e.currentTarget, STATUS_OPTS, curStatus, val => {
+    task.completed = (val === 'complete');
+    task.status = val;
+    save('wt_tasks', tasks);
     renderTeam();
     renderTasks();
     renderProjects();
