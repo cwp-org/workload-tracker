@@ -8475,16 +8475,46 @@ function _parseBillingCode(jobStr) {
   return { code: '', label: String(jobStr).trim() };
 }
 
+// Normalize a billing code for comparison: strip dashes, lowercase
+function _normBillingCode(code) {
+  return (code || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Normalize a label for fuzzy comparison
+function _normLabel(label) {
+  return (label || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
 // Find project key by billing code, or create a new one
 function _findOrCreateProject(billingCode, jobLabel) {
-  // Try matching by billing code first
+  const normCode = _normBillingCode(billingCode);
+  const normLabel = _normLabel(jobLabel);
+
+  // 1. Exact billing code match
   if (billingCode) {
     for (const [key, proj] of Object.entries(PROJECTS)) {
-      if (proj.billingCode && proj.billingCode.toLowerCase() === billingCode.toLowerCase()) return key;
+      if (proj.billingCode && _normBillingCode(proj.billingCode) === normCode) return key;
     }
   }
-  // No match — create a new project
-  const newKey = billingCode.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+
+  // 2. Label match (exact normalized)
+  if (jobLabel) {
+    for (const [key, proj] of Object.entries(PROJECTS)) {
+      if (_normLabel(proj.label) === normLabel) return key;
+    }
+  }
+
+  // 3. Label contains match (one contains the other)
+  if (jobLabel && jobLabel.length >= 4) {
+    for (const [key, proj] of Object.entries(PROJECTS)) {
+      const pn = _normLabel(proj.label);
+      if (pn && (pn.includes(normLabel) || normLabel.includes(pn))) return key;
+    }
+  }
+
+  // 4. Key collision check
+  const newKey = (billingCode || jobLabel).toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  if (PROJECTS[newKey]) return newKey;
   if (PROJECTS[newKey]) return newKey; // key collision — already exists
 
   // Pick a color from a palette
@@ -8508,18 +8538,164 @@ function _findOrCreateProject(billingCode, jobLabel) {
 
 // Ensure a sub-code exists on a project, return its id
 function _ensureSubCode(projKey, code, label) {
+  if (!PROJECTS[projKey].subCodes) PROJECTS[projKey].subCodes = [];
   const scs = PROJECTS[projKey].subCodes;
-  if (!scs) { PROJECTS[projKey].subCodes = []; }
-  const existing = PROJECTS[projKey].subCodes.find(s =>
-    s.label.toLowerCase() === label.toLowerCase() ||
-    (s.code && s.code === code)
-  );
+  const normLbl = _normLabel(label);
+
+  // 1. Exact label match (case-insensitive)
+  let existing = scs.find(s => s.label.toLowerCase() === label.toLowerCase());
   if (existing) return existing.id;
 
+  // 2. Normalized label match (strips punctuation)
+  existing = scs.find(s => _normLabel(s.label) === normLbl);
+  if (existing) return existing.id;
+
+  // 3. Contains match (one contains the other, min 4 chars)
+  if (normLbl.length >= 4) {
+    existing = scs.find(s => {
+      const sn = _normLabel(s.label);
+      return sn && (sn.includes(normLbl) || normLbl.includes(sn));
+    });
+    if (existing) return existing.id;
+  }
+
+  // 4. Code match
+  if (code) {
+    existing = scs.find(s => s.code && s.code === code);
+    if (existing) return existing.id;
+  }
+
   const newId = uid();
-  const num = PROJECTS[projKey].subCodes.length + 1;
-  PROJECTS[projKey].subCodes.push({ id: newId, code: String(num), label: label });
+  const num = scs.length + 1;
+  scs.push({ id: newId, code: String(num), label: label });
   return newId;
+}
+
+// ── Duplicate detection ──
+
+function _findDuplicateProjects() {
+  const dupes = [];
+  const keys = Object.keys(PROJECTS);
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = PROJECTS[keys[i]], b = PROJECTS[keys[j]];
+      const na = _normLabel(a.label), nb = _normLabel(b.label);
+      const ca = _normBillingCode(a.billingCode), cb = _normBillingCode(b.billingCode);
+      if ((ca && cb && ca === cb) ||
+          (na && nb && na.length >= 4 && (na === nb || na.includes(nb) || nb.includes(na)))) {
+        dupes.push({ aKey: keys[i], bKey: keys[j], a, b });
+      }
+    }
+  }
+  return dupes;
+}
+
+function _findDuplicateSubCodes() {
+  const dupes = [];
+  for (const [projKey, proj] of Object.entries(PROJECTS)) {
+    const scs = proj.subCodes || [];
+    for (let i = 0; i < scs.length; i++) {
+      for (let j = i + 1; j < scs.length; j++) {
+        const na = _normLabel(scs[i].label), nb = _normLabel(scs[j].label);
+        if (na && nb && na.length >= 4 && (na === nb || na.includes(nb) || nb.includes(na))) {
+          dupes.push({ projKey, aId: scs[i].id, bId: scs[j].id, a: scs[i], b: scs[j] });
+        }
+      }
+    }
+  }
+  return dupes;
+}
+
+// Merge project bKey into aKey: move all references, then delete bKey
+function _mergeProjects(keepKey, removeKey) {
+  if (!PROJECTS[keepKey] || !PROJECTS[removeKey]) return;
+
+  // Move sub-codes from removeKey to keepKey (skip duplicates)
+  const keepScs = PROJECTS[keepKey].subCodes || [];
+  (PROJECTS[removeKey].subCodes || []).forEach(sc => {
+    if (!keepScs.find(s => _normLabel(s.label) === _normLabel(sc.label))) {
+      keepScs.push(sc);
+    }
+  });
+  PROJECTS[keepKey].subCodes = keepScs;
+
+  // Re-point all tasks, bigProjs, teamItems, completed entries
+  tasks.forEach(t => { if (t.project === removeKey) t.project = keepKey; });
+  bigProjs.forEach(bp => { if (bp.project === removeKey) bp.project = keepKey; });
+  teamItems.forEach(ti => { if (ti.project === removeKey) ti.project = keepKey; });
+  completed.forEach(c => { if (c.project === removeKey) c.project = keepKey; });
+
+  // Re-point allocations
+  Object.keys(allocations).forEach(key => {
+    if (key.startsWith(removeKey + '|')) {
+      const rest = key.slice(removeKey.length);
+      const newKey = keepKey + rest;
+      allocations[newKey] = (allocations[newKey] || 0) + allocations[key];
+      delete allocations[key];
+    }
+  });
+
+  // Remove the duplicate project
+  delete PROJECTS[removeKey];
+  projOrder = projOrder.filter(k => k !== removeKey);
+
+  save('wt_tasks', tasks);
+  save('wt_bigprojs', bigProjs);
+  save('wt_team', teamItems);
+  save('wt_completed', completed);
+  saveProjects();
+  saveProjOrder();
+  saveAllocations();
+  populateProjectSelects();
+  renderAllocations();
+  renderProjects();
+  showSyncToast(`Merged "${PROJECTS[keepKey]?.label}" — duplicate removed.`, 'success');
+}
+
+// Merge sub-code bId into aId within a project
+function _mergeSubCodes(projKey, keepId, removeId) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return;
+
+  // Re-point all references from removeId to keepId
+  tasks.forEach(t => { if (t.project === projKey && t.subCode === removeId) t.subCode = keepId; });
+  bigProjs.forEach(bp => {
+    if (bp.project === projKey) {
+      bp.sessions.forEach(s => {
+        if (s.subCode === removeId) s.subCode = keepId;
+        (s.subtasks || []).forEach(st => { if (st.subCode === removeId) st.subCode = keepId; });
+      });
+    }
+  });
+  teamItems.forEach(ti => { if (ti.project === projKey && ti.subCode === removeId) ti.subCode = keepId; });
+  completed.forEach(c => { if (c.project === projKey && c.subCode === removeId) c.subCode = keepId; });
+
+  // Re-point allocations
+  Object.keys(allocations).forEach(key => {
+    const prefix = projKey + '|' + removeId + '|';
+    if (key.startsWith(prefix)) {
+      const ym = key.slice(prefix.length);
+      const newKey = allocKey(projKey, keepId, ym);
+      allocations[newKey] = (allocations[newKey] || 0) + allocations[key];
+      delete allocations[key];
+    }
+  });
+
+  // Remove the duplicate sub-code
+  proj.subCodes = (proj.subCodes || []).filter(s => s.id !== removeId);
+
+  save('wt_tasks', tasks);
+  save('wt_bigprojs', bigProjs);
+  save('wt_team', teamItems);
+  save('wt_completed', completed);
+  saveProjects();
+  saveAllocations();
+  populateProjectSelects();
+  renderAllocations();
+  renderProjects();
+
+  const kept = (proj.subCodes || []).find(s => s.id === keepId);
+  showSyncToast(`Merged sub-codes in ${proj.label} — kept "${kept?.label}".`, 'success');
 }
 
 let _allocImportUndo = null;
@@ -8696,23 +8872,45 @@ function handleAllocImport(event) {
         return (p?.label || pk) + ' → ' + (sc?.label || scId);
       });
 
+      // Detect potential duplicate projects
+      const dupeProjects = _findDuplicateProjects();
+      const dupeSubs = _findDuplicateSubCodes();
+
       // Build status with action buttons
       const monthList = [...importMonths].sort().join(', ');
       const parts = [`<strong>${importedRows} rows</strong> imported for ${monthList}`];
       if (newProjectNames.length) parts.push(`<strong>${newProjectNames.length}</strong> new project${newProjectNames.length > 1 ? 's' : ''}`);
       if (newSubCodeNames.length) parts.push(`<strong>${newSubCodeNames.length}</strong> new sub-code${newSubCodeNames.length > 1 ? 's' : ''}`);
       if (staleNames.length) parts.push(`<strong style="color:var(--danger);">${staleNames.length}</strong> <span style="color:var(--danger);">removed from allocations</span>`);
+      if (dupeProjects.length || dupeSubs.length) parts.push(`<strong style="color:var(--warn);">${dupeProjects.length + dupeSubs.length}</strong> <span style="color:var(--warn);">possible duplicates</span>`);
 
-      const hasDetails = newProjectNames.length || newSubCodeNames.length || staleNames.length;
+      const hasDetails = newProjectNames.length || newSubCodeNames.length || staleNames.length || dupeProjects.length || dupeSubs.length;
       let detailHtml = '';
       if (hasDetails) {
-        detailHtml = `<div id="allocImportDetails" style="display:none;margin-top:8px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:11px;max-height:200px;overflow-y:auto;">`;
+        detailHtml = `<div id="allocImportDetails" style="display:none;margin-top:8px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:11px;max-height:300px;overflow-y:auto;">`;
+        if (dupeProjects.length || dupeSubs.length) {
+          detailHtml += `<div style="font-weight:700;margin-bottom:4px;color:var(--warn);">Possible Duplicates — click Merge to combine:</div>`;
+          dupeProjects.forEach(d => {
+            detailHtml += `<div style="padding:3px 0;display:flex;align-items:center;gap:6px;">
+              <span style="color:var(--warn);">⚠</span>
+              <span>Project: "<strong>${d.a.label}</strong>" and "<strong>${d.b.label}</strong>"</span>
+              <button class="btn" onclick="_mergeProjects('${d.aKey}','${d.bKey}')" style="font-size:9px;padding:2px 8px;margin-left:auto;">Merge</button>
+            </div>`;
+          });
+          dupeSubs.forEach(d => {
+            detailHtml += `<div style="padding:3px 0;display:flex;align-items:center;gap:6px;">
+              <span style="color:var(--warn);">⚠</span>
+              <span>${PROJECTS[d.projKey]?.label}: "<strong>${d.a.label}</strong>" and "<strong>${d.b.label}</strong>"</span>
+              <button class="btn" onclick="_mergeSubCodes('${d.projKey}','${d.aId}','${d.bId}')" style="font-size:9px;padding:2px 8px;margin-left:auto;">Merge</button>
+            </div>`;
+          });
+        }
         if (newProjectNames.length) {
-          detailHtml += `<div style="font-weight:700;margin-bottom:4px;">New Projects:</div>`;
+          detailHtml += `<div style="font-weight:700;margin:8px 0 4px;">New Projects:</div>`;
           detailHtml += newProjectNames.map(n => `<div style="padding:1px 0;color:var(--text2);">+ ${n}</div>`).join('');
         }
         if (newSubCodeNames.length) {
-          detailHtml += `<div style="font-weight:700;margin:${newProjectNames.length ? '8' : '0'}px 0 4px;">New Sub-codes:</div>`;
+          detailHtml += `<div style="font-weight:700;margin:8px 0 4px;">New Sub-codes:</div>`;
           detailHtml += newSubCodeNames.map(n => `<div style="padding:1px 0;color:var(--text2);">+ ${n}</div>`).join('');
         }
         if (staleNames.length) {
