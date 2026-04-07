@@ -52,12 +52,12 @@
   [data-theme="light"] .p-high   { background: #fffbeb; }
   [data-theme="light"] .p-med    { background: #eff6ff; }
   [data-theme="light"] .p-low    { background: #f0fdf4; }
-  [data-theme="light"] .s-need-delegate { background: #fef9ee; }
-  [data-theme="light"] .s-in-progress   { background: #eff6ff; }
-  [data-theme="light"] .s-ready-review  { background: #fffbeb; }
-  [data-theme="light"] .s-in-review     { background: #f0fdfa; }
-  [data-theme="light"] .s-blocked       { background: #fef2f2; }
-  [data-theme="light"] .s-complete      { background: #f0fdf4; }
+  [data-theme="light"] .s-need-delegate { background: #fef9ee; color: #be185d; border-color: #f9a8d4; }
+  [data-theme="light"] .s-in-progress   { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+  [data-theme="light"] .s-ready-review  { background: #fffbeb; color: #7e22ce; border-color: #d8b4fe; }
+  [data-theme="light"] .s-in-review     { background: #f0fdfa; color: #0f766e; border-color: #5eead4; }
+  [data-theme="light"] .s-blocked       { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+  [data-theme="light"] .s-complete      { background: #f0fdf4; color: #15803d; border-color: #86efac; }
   [data-theme="light"] .ts-accuracy.good { background: #f0fdf4; }
   [data-theme="light"] .ts-accuracy.over { background: #fef2f2; }
   [data-theme="light"] .review-card.accepted { border-color: var(--success); background: #f0fdf4; }
@@ -8466,6 +8466,7 @@ function initApp() {
 }
 
 // First-time init for offline / no-Supabase
+applyTheme(getTheme());
 populateProjectSelects();
 renderTasks();
 renderProjects();
@@ -9398,6 +9399,11 @@ function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   save('wt_theme', next);
   applyTheme(next);
+  renderTasks();
+  renderProjects();
+  renderTeam();
+  renderTimesheet();
+  renderAllocations();
 }
 
 // Apply saved theme on load
