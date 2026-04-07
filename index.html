@@ -3852,7 +3852,8 @@ const SYNC_KEYS = [
   'wt_persons', 'wt_hidden_projs', 'wt_proj_panel_collapsed',
   'wt_collapsed_projs', 'wt_team_group_person', 'wt_ts_capacity',
   'wt_theme', 'wt_api_key',
-  'wt_dup_decisions', 'wt_stale_subcodes'
+  'wt_dup_decisions', 'wt_stale_subcodes',
+  'wt_onboarded', 'wt_xlsx_alloc_imported', 'wt_active_tab'
 ];
 
 async function cloudSave(key, data) {
@@ -4126,7 +4127,7 @@ function saveAllocations() { save('wt_allocations', allocations); }
 
 // ── Excel workload allocation import (one-time migration) ──
 (function migrateXlsxAllocations() {
-  if (localStorage.getItem('wt_xlsx_alloc_imported')) return;
+  if (load('wt_xlsx_alloc_imported', null)) return;
 
   // ── 1. Define new project entries ──
   const newProjects = {
@@ -4413,7 +4414,7 @@ function saveAllocations() { save('wt_allocations', allocations); }
   saveAllocations();
 
   // Set migration guard
-  localStorage.setItem('wt_xlsx_alloc_imported', '1');
+  save('wt_xlsx_alloc_imported', '1');
   console.log('[Migration] Excel workload allocations imported successfully.');
 })();
 
@@ -8876,7 +8877,7 @@ function _undoAllocImport() {
   PROJECTS = _allocImportUndo.projects;
   projOrder = _allocImportUndo.projOrder;
   _staleSubCodes = new Set();
-  localStorage.removeItem('wt_stale_subcodes');
+  save('wt_stale_subcodes', []);
   saveProjects();
   saveProjOrder();
   saveAllocations();
@@ -9021,7 +9022,7 @@ function handleAllocImport(event) {
         if (importMonths.has(ym) && sc) nowAllocatedScs.add(pk + '|' + sc);
       });
       _staleSubCodes = new Set([...prevAllocatedScs].filter(k => !nowAllocatedScs.has(k)));
-      localStorage.setItem('wt_stale_subcodes', JSON.stringify([..._staleSubCodes]));
+      save('wt_stale_subcodes', [..._staleSubCodes]);
 
       // Save everything
       saveProjects();
@@ -9571,7 +9572,7 @@ function _switchTab(tab) {
   tab.setAttribute('aria-selected', 'true');
   tab.setAttribute('tabindex', '0');
   document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-  localStorage.setItem('wt_active_tab', tab.dataset.tab);
+  save('wt_active_tab', tab.dataset.tab);
   // Update help panel context if open
   if (document.getElementById('helpPanel')?.classList.contains('open')) _updateHelpContext();
 }
@@ -9686,7 +9687,7 @@ function showWelcome() {
 
 function closeWelcome() {
   document.getElementById('welcomeOverlay').style.display = 'none';
-  localStorage.setItem('wt_onboarded', '1');
+  save('wt_onboarded', '1');
 }
 
 function welcomeNav(dir) {
@@ -9707,7 +9708,7 @@ function _updateWelcomeUI() {
 
 // Show welcome on first visit (after app is visible)
 function _maybeShowWelcome() {
-  if (!localStorage.getItem('wt_onboarded')) {
+  if (!load('wt_onboarded', null)) {
     setTimeout(showWelcome, 500);
   }
 }
@@ -9907,7 +9908,7 @@ function initApp() {
     applyTheme(getTheme());
 
     // Restore last active tab on refresh
-    const savedTab = localStorage.getItem('wt_active_tab');
+    const savedTab = load('wt_active_tab', null);
     if (savedTab) {
       const tabEl = document.querySelector(`.tab[data-tab="${savedTab}"]`);
       const panelEl = document.getElementById('panel-' + savedTab);
