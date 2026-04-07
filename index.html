@@ -499,6 +499,198 @@
   }
   .form-error.visible { display: block; }
 
+  /* WELCOME OVERLAY */
+  .welcome-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10001;
+    backdrop-filter: blur(4px);
+  }
+  .welcome-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 520px;
+    max-width: 92vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .welcome-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .welcome-subtitle {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 20px;
+  }
+  .welcome-step {
+    display: none;
+  }
+  .welcome-step.active {
+    display: block;
+  }
+  .welcome-step h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px 0;
+  }
+  .welcome-step p {
+    font-size: 12px;
+    color: var(--text2);
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+  }
+  .welcome-tip {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .welcome-tip-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+  .welcome-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 18px 0 0;
+  }
+  .welcome-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: background 0.2s;
+  }
+  .welcome-dot.active {
+    background: var(--accent);
+  }
+  .welcome-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+  }
+  .welcome-skip {
+    font-size: 11px;
+    color: var(--text3);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .welcome-skip:hover { color: var(--text2); }
+
+  /* HELP PANEL */
+  .help-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9998;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.15s, color 0.15s;
+  }
+  .help-btn:hover { background: var(--accent); color: #fff; }
+
+  .help-panel {
+    position: fixed;
+    top: 0; right: -400px;
+    width: 380px;
+    max-width: 90vw;
+    height: 100vh;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    z-index: 10000;
+    overflow-y: auto;
+    transition: right 0.25s ease;
+    box-shadow: -4px 0 16px #0003;
+    padding: 20px;
+  }
+  .help-panel.open { right: 0; }
+  .help-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .help-panel-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .help-panel-close {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .help-panel-close:hover { color: var(--text); }
+  .help-section {
+    margin-bottom: 18px;
+  }
+  .help-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .help-item {
+    font-size: 12px;
+    color: var(--text2);
+    padding: 4px 0;
+    line-height: 1.5;
+  }
+  .help-kbd {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-family: monospace;
+    color: var(--text);
+    min-width: 20px;
+    text-align: center;
+  }
+  .help-link {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 12px;
+  }
+  .help-link:hover { text-decoration: underline; }
+
   /* EMPTY STATE */
   .empty-state {
     text-align: center;
@@ -3135,6 +3327,82 @@ if (typeof XLSX === 'undefined') {
     </div>
   </div>
 </div>
+<!-- WELCOME OVERLAY (first-time only) -->
+<div class="welcome-overlay" id="welcomeOverlay" style="display:none;">
+  <div class="welcome-card">
+    <div class="welcome-title">Welcome to PM Workload Tracker</div>
+    <div class="welcome-subtitle">A quick tour to get you started — takes 30 seconds.</div>
+
+    <div class="welcome-step active" data-step="0">
+      <h3>Your 5 Tabs</h3>
+      <div class="welcome-tip"><span class="welcome-tip-icon">1</span><span><strong>My Tasks</strong> — your personal to-do list with timers, priorities, and recurring tasks.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">2</span><span><strong>Projects</strong> — organize work into projects with sessions and subtasks.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">3</span><span><strong>Team Deliverables</strong> — track cross-team assignments and delegated work.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">4</span><span><strong>Timesheet</strong> — see actual vs estimated hours, export to CSV.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">5</span><span><strong>Allocations</strong> — monthly capacity planning by person and project.</span></div>
+    </div>
+
+    <div class="welcome-step" data-step="1">
+      <h3>Adding Tasks & Tracking Time</h3>
+      <p>Use <strong>+ Add Task</strong> or press <strong>N</strong> to create a task. Set a priority, due date, and time estimate.</p>
+      <div class="welcome-tip"><span class="welcome-tip-icon">⏱</span><span>Click the <strong>play button</strong> on any task to start a timer. When you complete the task, actual hours are logged to your timesheet automatically.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">↻</span><span>Tasks can <strong>recur</strong> weekly, biweekly, or monthly — set it up in the task edit modal.</span></div>
+    </div>
+
+    <div class="welcome-step" data-step="2">
+      <h3>Projects & Sessions</h3>
+      <p>The <strong>Projects</strong> tab groups work into projects. Each project can have multiple <strong>sessions</strong> (work items) and <strong>subtasks</strong>.</p>
+      <div class="welcome-tip"><span class="welcome-tip-icon">📂</span><span>Sessions have their own timers, due dates, and can be delegated to team members.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">💡</span><span>Use the <strong>Brain Dump</strong> button (in settings) to paste messy notes — AI turns them into organized tasks.</span></div>
+    </div>
+
+    <div class="welcome-step" data-step="3">
+      <h3>Keyboard Shortcuts & Tips</h3>
+      <div class="welcome-tip"><span class="welcome-tip-icon">⌨</span><span><strong>N</strong> = new task &nbsp; <strong>1-5</strong> = switch tabs &nbsp; <strong>/</strong> = search &nbsp; <strong>Esc</strong> = close modal &nbsp; <strong>Ctrl+Z</strong> = undo delete</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">☁</span><span>Your data syncs to the cloud automatically. Click the <strong>cloud icon</strong> in the header to force a sync.</span></div>
+      <div class="welcome-tip"><span class="welcome-tip-icon">ℹ</span><span>Click the <strong>(i)</strong> button in the bottom-right corner anytime for help, tips, and shortcuts.</span></div>
+    </div>
+
+    <div class="welcome-dots" id="welcomeDots"></div>
+    <div class="welcome-nav">
+      <button class="welcome-skip" onclick="closeWelcome()">Skip tour</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" id="welcomePrev" onclick="welcomeNav(-1)" style="display:none;font-size:11px;padding:5px 12px;">‹ Back</button>
+        <button class="btn primary" id="welcomeNext" onclick="welcomeNav(1)" style="font-size:11px;padding:5px 12px;">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HELP PANEL (slide-out) -->
+<button class="help-btn" id="helpBtn" onclick="toggleHelpPanel()" title="Help & tips (?)">i</button>
+<div class="help-panel" id="helpPanel">
+  <div class="help-panel-header">
+    <span class="help-panel-title">Help & Tips</span>
+    <button class="help-panel-close" onclick="toggleHelpPanel()">✕</button>
+  </div>
+
+  <div class="help-section" id="helpContext">
+    <!-- Filled dynamically based on active tab -->
+  </div>
+
+  <div class="help-section">
+    <div class="help-section-title">Keyboard Shortcuts</div>
+    <div class="help-item"><span class="help-kbd">N</span> New task / deliverable</div>
+    <div class="help-item"><span class="help-kbd">1</span>–<span class="help-kbd">5</span> Switch tabs</div>
+    <div class="help-item"><span class="help-kbd">/</span> Focus search</div>
+    <div class="help-item"><span class="help-kbd">Esc</span> Close modal</div>
+    <div class="help-item"><span class="help-kbd">Ctrl</span>+<span class="help-kbd">Z</span> Undo delete</div>
+    <div class="help-item"><span class="help-kbd">?</span> Quick shortcut reminder</div>
+  </div>
+
+  <div class="help-section">
+    <div class="help-section-title">Quick Links</div>
+    <div class="help-item"><a class="help-link" onclick="closeHelpPanel();showWelcome();">Replay welcome tour</a></div>
+    <div class="help-item"><a class="help-link" onclick="closeHelpPanel();document.getElementById('settingsModal').classList.add('open');">Open settings</a></div>
+  </div>
+</div>
+
 </div><!-- /appWrapper -->
 
 <script>
@@ -3484,6 +3752,7 @@ function showApp() {
   document.getElementById('appWrapper').style.display = '';
   updateAuthUI();
   initApp();
+  _maybeShowWelcome();
 }
 
 function updateAuthUI() {
@@ -8736,6 +9005,8 @@ function _switchTab(tab) {
   tab.setAttribute('tabindex', '0');
   document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
   localStorage.setItem('wt_active_tab', tab.dataset.tab);
+  // Update help panel context if open
+  if (document.getElementById('helpPanel')?.classList.contains('open')) _updateHelpContext();
 }
 
 document.querySelectorAll('.tab').forEach(tab => {
@@ -8823,6 +9094,135 @@ function _restoreFilters() {
 });
 
 document.getElementById('tsFilterProject')?.addEventListener('change', () => { _persistFilter('tsFilterProject'); renderTimesheet(); });
+
+// =============================================
+// WELCOME OVERLAY
+// =============================================
+
+let _welcomeStep = 0;
+const _WELCOME_STEPS = 4;
+
+function showWelcome() {
+  _welcomeStep = 0;
+  const overlay = document.getElementById('welcomeOverlay');
+  overlay.style.display = 'flex';
+  // Build dots
+  const dotsEl = document.getElementById('welcomeDots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < _WELCOME_STEPS; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'welcome-dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(dot);
+  }
+  _updateWelcomeUI();
+}
+
+function closeWelcome() {
+  document.getElementById('welcomeOverlay').style.display = 'none';
+  localStorage.setItem('wt_onboarded', '1');
+}
+
+function welcomeNav(dir) {
+  _welcomeStep += dir;
+  if (_welcomeStep >= _WELCOME_STEPS) { closeWelcome(); return; }
+  if (_welcomeStep < 0) _welcomeStep = 0;
+  _updateWelcomeUI();
+}
+
+function _updateWelcomeUI() {
+  document.querySelectorAll('.welcome-step').forEach(s => s.classList.remove('active'));
+  const active = document.querySelector(`.welcome-step[data-step="${_welcomeStep}"]`);
+  if (active) active.classList.add('active');
+  document.querySelectorAll('.welcome-dot').forEach((d, i) => d.classList.toggle('active', i === _welcomeStep));
+  document.getElementById('welcomePrev').style.display = _welcomeStep > 0 ? '' : 'none';
+  document.getElementById('welcomeNext').textContent = _welcomeStep === _WELCOME_STEPS - 1 ? 'Get started ✓' : 'Next →';
+}
+
+// Show welcome on first visit (after app is visible)
+function _maybeShowWelcome() {
+  if (!localStorage.getItem('wt_onboarded')) {
+    setTimeout(showWelcome, 500);
+  }
+}
+
+// =============================================
+// HELP PANEL
+// =============================================
+
+const _TAB_TIPS = {
+  tasks: {
+    title: 'My Tasks — Tips',
+    tips: [
+      'Click <strong>+ Add Task</strong> or press <strong>N</strong> to create a task.',
+      'Click the <strong>play ▶ button</strong> to start a timer. It persists across refreshes.',
+      'Click a <strong>due date</strong> to edit it inline. Click <strong>hours</strong> to edit estimates.',
+      'Set up <strong>recurring tasks</strong> (weekly, monthly) in the edit modal.',
+      'Use the <strong>priority filter</strong> to focus on urgent work.',
+      'Drag tasks to <strong>reorder</strong> within each section.'
+    ]
+  },
+  projects: {
+    title: 'Projects — Tips',
+    tips: [
+      'Click a <strong>project card</strong> to expand it and see sessions/subtasks.',
+      'Use <strong>+ Add Session</strong> to create work items within a project.',
+      'Sessions can have <strong>subtasks</strong>, timers, and be delegated to team members.',
+      '<strong>Hide</strong> inactive projects to keep the view clean.',
+      'Manage project codes, billing codes, and colors in <strong>Settings → Manage Projects</strong>.'
+    ]
+  },
+  team: {
+    title: 'Team Deliverables — Tips',
+    tips: [
+      'Track <strong>cross-team assignments</strong> — who owns what and its status.',
+      'Click a deliverable to <strong>edit</strong> its owner, status, and notes.',
+      'Use <strong>filters</strong> to view by person, project, or status.',
+      'Statuses: need-delegate, in-progress, ready-review, in-review, blocked, complete.'
+    ]
+  },
+  timesheet: {
+    title: 'Timesheet — Tips',
+    tips: [
+      'Completed tasks auto-log here with actual hours from timers.',
+      'Click <strong>+ Log time</strong> to add manual entries.',
+      'Switch between <strong>Week</strong> and <strong>Month</strong> views.',
+      'The <strong>capacity bar</strong> shows how full your week/month is.',
+      'Use <strong>⬇ CSV</strong> to export entries for reporting.',
+      'Set your <strong>hours/day capacity</strong> in the toolbar.'
+    ]
+  },
+  allocations: {
+    title: 'Allocations — Tips',
+    tips: [
+      'Plan <strong>monthly capacity</strong> by person and project.',
+      'Click any cell to <strong>enter planned hours</strong>.',
+      'Actual hours from completed work appear as a <strong>second bar</strong>.',
+      'Import allocations from an <strong>Excel spreadsheet</strong>.',
+      'Use <strong>Copy Forward</strong> to fill empty future months with current values.'
+    ]
+  }
+};
+
+function toggleHelpPanel() {
+  const panel = document.getElementById('helpPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) _updateHelpContext();
+}
+
+function closeHelpPanel() {
+  document.getElementById('helpPanel').classList.remove('open');
+}
+
+function _updateHelpContext() {
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'tasks';
+  const tips = _TAB_TIPS[activeTab];
+  if (!tips) return;
+  const ctx = document.getElementById('helpContext');
+  ctx.innerHTML = `
+    <div class="help-section-title">${tips.title}</div>
+    ${tips.tips.map(t => `<div class="help-item">• ${t}</div>`).join('')}
+  `;
+}
 
 // =============================================
 // KEYBOARD SHORTCUTS
