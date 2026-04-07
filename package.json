@@ -1,6 +1,0 @@
-{
-  "name": "workload-tracker",
-  "version": "1.0.0",
-  "private": true,
-  "description": "PM Workload Tracker — single-file app, no dependencies"
-}
