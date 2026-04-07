@@ -5,6 +5,12 @@ GitHub repo: Jackalope178/workload-tracker — push all changes directly to this
 Live site: https://jackalope178.github.io/workload-tracker/
 Supabase project: fkgmgpfbfoadgjllttjd (config baked into the app)
 
+## Setup
+
+No build step, no package manager, no dependencies to install. The `package.json` exists only to satisfy the Claude Code on the web environment setup script — do not add dependencies to it.
+
+**Environment setup script** (claude.ai/code environment settings): should be empty or `exit 0`. This project needs no setup.
+
 ## Architecture
 
 Single-file app: everything lives in `index.html` (~9800 lines of inline HTML, CSS, and vanilla JS). No frameworks, no build step, no package manager.
