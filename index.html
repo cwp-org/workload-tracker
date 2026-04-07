@@ -3851,7 +3851,8 @@ const SYNC_KEYS = [
   'wt_projects_meta', 'wt_project_order', 'wt_allocations',
   'wt_persons', 'wt_hidden_projs', 'wt_proj_panel_collapsed',
   'wt_collapsed_projs', 'wt_team_group_person', 'wt_ts_capacity',
-  'wt_theme', 'wt_api_key'
+  'wt_theme', 'wt_api_key',
+  'wt_dup_decisions', 'wt_stale_subcodes'
 ];
 
 async function cloudSave(key, data) {
@@ -9880,6 +9881,8 @@ function reloadStateFromLocalStorage() {
   completed = load('wt_completed', null) || SEED_COMPLETED;
   _teamGroupByPerson = load('wt_team_group_person', false);
   tsCapacity = load('wt_ts_capacity', 8);
+  _dupDecisions = load('wt_dup_decisions', {});
+  _staleSubCodes = new Set(load('wt_stale_subcodes', []));
 }
 
 function initApp() {
