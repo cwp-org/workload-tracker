@@ -8498,6 +8498,14 @@ function handleAllocImport(event) {
       if (jobCol === -1) throw new Error('Could not find "Job" column in header row.');
       if (Object.keys(monthCols).length === 0) throw new Error('Could not find any month columns (e.g. "MAR 2026").');
 
+      // Clear existing allocations for the months in this spreadsheet
+      // so the import fully replaces old values (including zeros)
+      const importMonths = new Set(Object.values(monthCols));
+      Object.keys(allocations).forEach(key => {
+        const ym = key.split('|')[2];
+        if (importMonths.has(ym)) delete allocations[key];
+      });
+
       let importedRows = 0;
       let newProjects = 0;
       let newSubCodes = 0;
@@ -8528,10 +8536,14 @@ function handleAllocImport(event) {
         let hasData = false;
         Object.entries(monthCols).forEach(([colIdx, ym]) => {
           const val = row[Number(colIdx)];
-          if (val !== null && val !== undefined && val !== '' && !isNaN(Number(val)) && Number(val) > 0) {
+          if (val !== null && val !== undefined && val !== '' && !isNaN(Number(val))) {
+            const hrs = Number(val);
             const key = allocKey(projKey, scId, ym);
-            allocations[key] = Number(val);
-            hasData = true;
+            if (hrs > 0) {
+              allocations[key] = hrs;
+              hasData = true;
+            }
+            // Zero values: already cleared above, so no-op (stays deleted)
           }
         });
 
