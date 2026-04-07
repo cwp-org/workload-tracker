@@ -1912,6 +1912,105 @@
     .modal-scroll-body { padding: 0; }
   }
 
+  /* =============================================
+     RESPONSIVE: PHONE (≤600px)
+     ============================================= */
+  @media (max-width: 600px) {
+    .main { padding: 8px 6px; }
+    .header { padding: 0 8px; gap: 4px; height: 44px; }
+    .header-title { font-size: 12px; letter-spacing: 0; }
+    .header-meta { display: none; }
+    .header-actions { gap: 2px !important; margin-left: 4px !important; }
+    .header-btn { padding: 5px 7px !important; font-size: 10px !important; min-height: 28px !important; }
+
+    /* Tabs: compact, scrollable */
+    .tabs { top: 44px; padding: 0 4px; gap: 0; }
+    .active-timer-strip.visible + .tabs { top: 73px; }
+    .tab { padding: 8px 10px; font-size: 9px; }
+
+    /* Toolbar: stack vertically */
+    .toolbar { flex-wrap: wrap; gap: 4px; top: 78px; padding: 6px 6px; }
+    .active-timer-strip.visible ~ .main .toolbar { top: 107px; }
+    #panel-tasks > .toolbar,
+    #panel-timesheet > .toolbar { margin: 0 -6px; padding-left: 6px; padding-right: 6px; }
+    .search-box { font-size: 12px; padding: 6px 8px; }
+    .filter-select { font-size: 11px; padding: 5px 6px; min-height: 30px; }
+    .btn { font-size: 11px; padding: 5px 8px; min-height: 30px; }
+
+    /* Task rows: minimal columns — checkbox, name, due, actions */
+    .task-row {
+      grid-template-columns: 18px 6px 1fr 56px 60px !important;
+      gap: 4px; padding: 6px;
+    }
+    .task-table-header {
+      grid-template-columns: 18px 6px 1fr 56px 60px !important;
+      gap: 4px;
+    }
+    .task-table-header span:nth-child(5),
+    .task-table-header span:nth-child(6),
+    .task-table-header span:nth-child(7),
+    .task-table-header span:nth-child(8) { display: none !important; }
+    .task-category, .task-est, .task-project, .task-priority { display: none !important; }
+    .task-name-text { font-size: 11px; }
+    .task-check { width: 18px; height: 18px; }
+    .timer-btn { width: 24px; height: 24px; font-size: 11px; }
+
+    /* Session rows: compact */
+    .session-row {
+      grid-template-columns: 18px 1fr 56px 60px !important;
+      gap: 4px; padding: 6px;
+    }
+    .session-row > :nth-child(n+5) { display: none; }
+
+    /* Team rows: name + status only */
+    .team-row {
+      grid-template-columns: 1fr 70px 30px !important;
+      gap: 4px; padding: 6px;
+    }
+    .team-row > :nth-child(2) { display: none; } /* owner */
+    .team-row > :nth-child(3) { display: none; } /* project */
+    .team-row > :nth-child(4) { display: none; } /* dot */
+    .team-table-header {
+      grid-template-columns: 1fr 70px 30px !important;
+    }
+    .team-table-header > :nth-child(2),
+    .team-table-header > :nth-child(3),
+    .team-table-header > :nth-child(4) { display: none; }
+    .team-owner { display: none; }
+
+    /* Forms: full-width stacking */
+    .form-row { flex-direction: column; gap: 4px; }
+    .add-form { padding: 8px; }
+    .form-input { font-size: 12px; padding: 6px 8px; }
+
+    /* Modals: full screen on phone */
+    .modal { width: 100vw; max-width: 100vw; border-radius: 8px 8px 0 0; padding: 14px; }
+    .modal-wide, .modal-xl { width: 100vw; max-width: 100vw; padding: 12px; }
+    .edit-form-grid { grid-template-columns: 1fr; gap: 8px; }
+    .modal .btn, .modal-actions .btn { min-height: 40px; font-size: 13px; }
+
+    /* Allocations: scrollable, very compact */
+    .alloc-table { min-width: 500px; font-size: 10px; }
+    .alloc-table th:first-child,
+    .alloc-table td:first-child { min-width: 90px; max-width: 120px; font-size: 9px; }
+
+    /* Timesheet grids */
+    .ts-month-row { grid-template-columns: 80px minmax(50px, 120px) 1fr 16px; gap: 4px; }
+    .ts-week-row { grid-template-columns: 90px minmax(40px, 100px) 1fr 14px; gap: 4px; }
+    .ts-month-week-row { grid-template-columns: 90px 1fr 40px; gap: 4px; }
+    .ts-entry-row { font-size: 11px; padding: 4px 6px; }
+    .ts-entry-code { min-width: 50px; font-size: 10px; }
+    .ts-entry-subcode { display: none; }
+
+    /* Project cards */
+    .proj-card { padding: 8px; }
+    .proj-card-actions { flex-wrap: wrap; gap: 4px; }
+    .proj-card-actions .btn { padding: 3px 6px; font-size: 9px; }
+
+    /* Active timer strip */
+    .active-timer-strip { font-size: 10px; padding: 4px 8px; }
+  }
+
   /* ── Auth Screen ── */
   .auth-screen {
     position: fixed; inset: 0;
@@ -2382,9 +2481,9 @@
 </div>
 
 <!-- UNDO TOAST -->
-<div id="undoToast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 16px;display:none;align-items:center;gap:10px;z-index:9999;font-size:12px;color:var(--text2);box-shadow:0 4px 12px #0006;">
+<div id="undoToast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 16px;align-items:center;gap:10px;z-index:9999;font-size:12px;color:var(--text2);box-shadow:0 4px 12px #0006;">
   <span id="undoToastMsg"></span>
-  <button class="btn" onclick="undoRecurAction()" style="padding:3px 10px;font-size:11px;">↩ Undo</button>
+  <button class="btn" id="undoToastBtn" onclick="undoRecurAction()" style="padding:3px 10px;font-size:11px;">↩ Undo</button>
 </div>
 
 <!-- SYNC STATUS TOAST -->
@@ -5082,7 +5181,12 @@ function renderTasks() {
   renderSection('Unscheduled', unscheduled, '');
 
   if (!hasAny) {
-    container.innerHTML = '<div class="empty-state">No tasks match your filters.</div>';
+    const hasFilters = document.getElementById('taskSearch')?.value || document.getElementById('filterPriority')?.value || document.getElementById('filterProject')?.value !== 'all' || document.getElementById('filterWaiting')?.value;
+    if (tasks.filter(t => !t.completed).length === 0) {
+      container.innerHTML = '<div class="empty-state"><span style="font-size:20px;">✅</span><br>No tasks yet.<br><span style="font-size:11px;color:var(--text3);">Click <strong>+ Add Task</strong> above to create your first task.</span></div>';
+    } else {
+      container.innerHTML = '<div class="empty-state">No tasks match your filters.<br><span style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;" onclick="document.getElementById(\'taskSearch\').value=\'\';document.getElementById(\'filterPriority\').value=\'\';document.getElementById(\'filterProject\').value=\'all\';document.getElementById(\'filterWaiting\').value=\'\';renderTasks();">Clear all filters</span></div>';
+    }
   }
 }
 
@@ -5363,6 +5467,34 @@ function undoRecurAction() {
   else document.getElementById('undoToast').style.display = 'none';
 }
 
+// ── General delete undo system ──
+let _deleteUndo = null;
+
+function _performDelete(label, doDelete, doRestore) {
+  doDelete();
+  _deleteUndo = { label, doRestore };
+  const toast = document.getElementById('undoToast');
+  const msgEl = document.getElementById('undoToastMsg');
+  const btn = document.getElementById('undoToastBtn');
+  msgEl.textContent = label;
+  btn.onclick = _undoDelete;
+  toast.style.display = 'flex';
+  clearTimeout(_performDelete._t);
+  _performDelete._t = setTimeout(() => {
+    if (_deleteUndo && _deleteUndo.label === label) _deleteUndo = null;
+    toast.style.display = 'none';
+    btn.onclick = undoRecurAction;
+  }, 8000);
+}
+
+function _undoDelete() {
+  if (!_deleteUndo) return;
+  _deleteUndo.doRestore();
+  _deleteUndo = null;
+  document.getElementById('undoToast').style.display = 'none';
+  document.getElementById('undoToastBtn').onclick = undoRecurAction;
+}
+
 function skipRecurOccurrence(taskId, occurrenceDate) {
   const task = tasks.find(t => t.id === taskId);
   if (!task || !task.recurrence || !task.due) return;
@@ -5409,11 +5541,19 @@ function confirmReschedule() {
 }
 
 function deleteEditTask() {
-  if (!confirm('Delete this task?')) return;
-  tasks = tasks.filter(t => t.id !== editingTaskId);
-  save('wt_tasks', tasks);
+  const id = editingTaskId;
+  const deleted = tasks.find(t => t.id === id);
+  if (!deleted) return;
   closeEditModal();
-  renderTasks();
+  _performDelete('Task deleted', () => {
+    tasks = tasks.filter(t => t.id !== id);
+    save('wt_tasks', tasks);
+    renderTasks(); renderProjects(); updateHeaderMeta();
+  }, () => {
+    tasks.push(deleted);
+    save('wt_tasks', tasks);
+    renderTasks(); renderProjects(); updateHeaderMeta();
+  });
 }
 
 // ── Inline edit hours (click-to-edit in row) ──
@@ -5490,20 +5630,31 @@ function deleteTaskInline(taskId, occurrenceDate) {
     const choice = prompt('Delete just this occurrence or all in series?\nType "this" or "all":', 'this');
     if (!choice) return;
     if (choice.trim().toLowerCase() === 'all') {
-      tasks = tasks.filter(t => t.id !== taskId);
+      const deleted = JSON.parse(JSON.stringify(task));
+      _performDelete('Recurring task deleted', () => {
+        tasks = tasks.filter(t => t.id !== taskId);
+        save('wt_tasks', tasks); renderTasks(); renderProjects(); updateHeaderMeta();
+      }, () => {
+        tasks.push(deleted);
+        save('wt_tasks', tasks); renderTasks(); renderProjects(); updateHeaderMeta();
+      });
     } else {
       const occ = occurrenceDate || task.due;
+      pushRecurUndo(`Skipped occurrence on ${occ}`, taskId, task.due, task.recurrence);
       task.recurrence.skips = [...(task.recurrence.skips || []), occ];
       if (occ === task.due) task.due = nextRecurrenceAfter(task, occ) || occ;
+      save('wt_tasks', tasks); renderTasks(); renderProjects(); updateHeaderMeta();
     }
   } else {
-    if (!confirm('Delete this task?')) return;
-    tasks = tasks.filter(t => t.id !== taskId);
+    const deleted = JSON.parse(JSON.stringify(task));
+    _performDelete('Task deleted', () => {
+      tasks = tasks.filter(t => t.id !== taskId);
+      save('wt_tasks', tasks); renderTasks(); renderProjects(); updateHeaderMeta();
+    }, () => {
+      tasks.push(deleted);
+      save('wt_tasks', tasks); renderTasks(); renderProjects(); updateHeaderMeta();
+    });
   }
-  save('wt_tasks', tasks);
-  renderTasks();
-  renderProjects();
-  updateHeaderMeta();
 }
 
 // =============================================
@@ -6317,11 +6468,16 @@ function toggleTaskFromProjects(taskId) {
 }
 
 function deleteTaskFromProjects(taskId) {
-  if (!confirm('Delete this task?')) return;
-  tasks = tasks.filter(t => t.id !== taskId);
-  save('wt_tasks', tasks);
-  renderProjects();
-  renderTasks();
+  const deleted = tasks.find(t => t.id === taskId);
+  if (!deleted) return;
+  const snap = JSON.parse(JSON.stringify(deleted));
+  _performDelete('Task deleted', () => {
+    tasks = tasks.filter(t => t.id !== taskId);
+    save('wt_tasks', tasks); renderProjects(); renderTasks(); updateHeaderMeta();
+  }, () => {
+    tasks.push(snap);
+    save('wt_tasks', tasks); renderProjects(); renderTasks(); updateHeaderMeta();
+  });
 }
 
 // Legacy compatibility — keep these for the Add Project modal
@@ -6511,7 +6667,11 @@ function renderTeam() {
   container.innerHTML = '';
 
   if (!visible.length) {
-    container.innerHTML = '<div class="empty-state">No deliverables match.</div>';
+    if (teamItems.length === 0) {
+      container.innerHTML = '<div class="empty-state"><span style="font-size:20px;">👥</span><br>No team deliverables yet.<br><span style="font-size:11px;color:var(--text3);">Click <strong>+ Add Deliverable</strong> above to track cross-team work.</span></div>';
+    } else {
+      container.innerHTML = '<div class="empty-state">No deliverables match your filters.<br><span style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;" onclick="document.getElementById(\'teamSearch\').value=\'\';document.getElementById(\'teamFilterPerson\').value=\'\';document.getElementById(\'teamFilterProject\').value=\'all\';document.getElementById(\'teamFilterStatus\').value=\'\';renderTeam();">Clear all filters</span></div>';
+    }
     return;
   }
 
@@ -7256,7 +7416,7 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
   if (!hasAny) {
     const empty = document.createElement('div');
     empty.style.cssText = 'padding:10px 32px;font-size:11px;color:var(--text3);';
-    empty.textContent = 'No entries this week.';
+    empty.textContent = 'No entries this week. Complete a task or add a manual entry to start tracking time.';
     wrap.appendChild(empty);
   }
   container.appendChild(wrap);
@@ -7490,7 +7650,7 @@ function renderTimesheet() {
       });
 
     if (!plannedAll.length) {
-      container.innerHTML = '<div class="empty-state">No upcoming planned work.</div>';
+      container.innerHTML = '<div class="empty-state"><span style="font-size:20px;">📅</span><br>No upcoming planned work.<br><span style="font-size:11px;color:var(--text3);">Add due dates and estimates to your tasks to see the forecast.</span></div>';
     } else {
       // Group by week (Sun–Sat)
       const byWeek = {};
@@ -7634,7 +7794,7 @@ function renderTimesheet() {
     });
 
     if (!Object.keys(byProject).length) {
-      container.innerHTML = '<div class="empty-state">No logged time yet.</div>';
+      container.innerHTML = '<div class="empty-state"><span style="font-size:20px;">⏱</span><br>No logged time yet.<br><span style="font-size:11px;color:var(--text3);">Complete tasks or click <strong>+ Manual Entry</strong> to log time.</span></div>';
     }
   }
 }
@@ -7709,11 +7869,17 @@ function saveTsEntry() {
 function deleteTsEntry(entryId) {
   const id = entryId || editingTsEntryId;
   if (!id) return;
-  if (!confirm('Delete this time entry?')) return;
-  completed = completed.filter(c => c.id !== id);
-  save('wt_completed', completed);
+  const deleted = completed.find(c => c.id === id);
+  if (!deleted) return;
+  const snap = JSON.parse(JSON.stringify(deleted));
   if (!entryId) closeTsEntryModal();
-  renderTimesheet();
+  _performDelete('Time entry deleted', () => {
+    completed = completed.filter(c => c.id !== id);
+    save('wt_completed', completed); renderTimesheet();
+  }, () => {
+    completed.push(snap);
+    save('wt_completed', completed); renderTimesheet();
+  });
 }
 
 // =============================================
@@ -8492,16 +8658,32 @@ document.querySelectorAll('.tab').forEach(tab => {
 // LIVE FILTER LISTENERS
 // =============================================
 
+function _debounce(fn, ms) {
+  let t; return function() { clearTimeout(t); t = setTimeout(fn, ms); };
+}
+
+const _debouncedRenderTasks = _debounce(renderTasks, 150);
+const _debouncedRenderTeam = _debounce(renderTeam, 150);
+
 ['taskSearch','filterDate','filterPriority','filterProject','filterWaiting'].forEach(id => {
   const el = document.getElementById(id);
-  if (el) el.addEventListener('input', renderTasks);
-  if (el) el.addEventListener('change', renderTasks);
+  if (!el) return;
+  // Text inputs: debounce. Dropdowns: immediate.
+  if (el.tagName === 'SELECT') {
+    el.addEventListener('change', renderTasks);
+  } else {
+    el.addEventListener('input', _debouncedRenderTasks);
+  }
 });
 
 ['teamSearch','teamFilterPerson','teamFilterProject','teamFilterStatus'].forEach(id => {
   const el = document.getElementById(id);
-  if (el) el.addEventListener('input', renderTeam);
-  if (el) el.addEventListener('change', renderTeam);
+  if (!el) return;
+  if (el.tagName === 'SELECT') {
+    el.addEventListener('change', renderTeam);
+  } else {
+    el.addEventListener('input', _debouncedRenderTeam);
+  }
 });
 
 document.getElementById('tsFilterProject')?.addEventListener('change', renderTimesheet);
@@ -8953,11 +9135,18 @@ function saveEditBigProj() {
 }
 
 function deleteBigProj() {
-  if (!confirm('Delete this project and all its sessions?')) return;
-  bigProjs = bigProjs.filter(p => p.id !== editingBigProjId);
-  save('wt_bigprojs', bigProjs);
+  const id = editingBigProjId;
+  const deleted = bigProjs.find(p => p.id === id);
+  if (!deleted) return;
+  const snap = JSON.parse(JSON.stringify(deleted));
   closeEditBigProjModal();
-  renderProjects();
+  _performDelete('Project deleted', () => {
+    bigProjs = bigProjs.filter(p => p.id !== id);
+    save('wt_bigprojs', bigProjs); renderProjects(); renderTasks();
+  }, () => {
+    bigProjs.push(snap);
+    save('wt_bigprojs', bigProjs); renderProjects(); renderTasks();
+  });
 }
 
 // =============================================
@@ -9168,13 +9357,18 @@ function deleteSessionFromModal() {
 }
 
 function deleteSession(projId, sessionId) {
-  if (!confirm('Delete this work item?')) return;
   const proj = bigProjs.find(p => p.id === projId);
   if (!proj) return;
-  proj.sessions = proj.sessions.filter(s => s.id !== sessionId);
-  save('wt_bigprojs', bigProjs);
-  renderProjects();
-  renderTasks();
+  const deleted = proj.sessions.find(s => s.id === sessionId);
+  if (!deleted) return;
+  const snap = JSON.parse(JSON.stringify(deleted));
+  _performDelete('Work item deleted', () => {
+    proj.sessions = proj.sessions.filter(s => s.id !== sessionId);
+    save('wt_bigprojs', bigProjs); renderProjects(); renderTasks();
+  }, () => {
+    proj.sessions.push(snap);
+    save('wt_bigprojs', bigProjs); renderProjects(); renderTasks();
+  });
 }
 
 function toggleSubtask(projId, sessionId, subtaskId) {
@@ -9191,15 +9385,21 @@ function toggleSubtask(projId, sessionId, subtaskId) {
 }
 
 function deleteSubtask(projId, sessionId, subtaskId) {
-  if (!confirm('Delete this subtask?')) return;
   const proj = bigProjs.find(p => p.id === projId);
   if (!proj) return;
   const s = proj.sessions.find(s => s.id === sessionId);
   if (!s) return;
-  s.subtasks = (s.subtasks || []).filter(st => st.id !== subtaskId);
-  save('wt_bigprojs', bigProjs);
-  renderProjects();
-  renderTasks();
+  const deleted = (s.subtasks || []).find(st => st.id === subtaskId);
+  if (!deleted) return;
+  const snap = JSON.parse(JSON.stringify(deleted));
+  _performDelete('Subtask deleted', () => {
+    s.subtasks = (s.subtasks || []).filter(st => st.id !== subtaskId);
+    save('wt_bigprojs', bigProjs); renderProjects(); renderTasks();
+  }, () => {
+    s.subtasks = s.subtasks || [];
+    s.subtasks.push(snap);
+    save('wt_bigprojs', bigProjs); renderProjects(); renderTasks();
+  });
 }
 
 // =============================================
@@ -9249,13 +9449,18 @@ function saveEditTeamItem() {
 }
 
 function deleteTeamItem() {
-  if (!confirm('Delete this deliverable?')) return;
-  teamItems = teamItems.filter(t => t.id !== editingTeamId);
-  save('wt_team', teamItems);
+  const id = editingTeamId;
+  const deleted = teamItems.find(t => t.id === id);
+  if (!deleted) return;
+  const snap = JSON.parse(JSON.stringify(deleted));
   closeEditTeamModal();
-  renderTeam();
-  renderProjects();
-  updateHeaderMeta();
+  _performDelete('Deliverable deleted', () => {
+    teamItems = teamItems.filter(t => t.id !== id);
+    save('wt_team', teamItems); renderTeam(); renderProjects(); updateHeaderMeta();
+  }, () => {
+    teamItems.push(snap);
+    save('wt_team', teamItems); renderTeam(); renderProjects(); updateHeaderMeta();
+  });
 }
 
 // =============================================
@@ -9493,10 +9698,13 @@ function updatePersonName(idx, name) {
 
 function deletePerson(idx) {
   const name = PERSONS[idx];
-  if (!confirm(`Remove "${name}" from persons list?`)) return;
-  PERSONS.splice(idx, 1);
-  savePersons();
-  renderPersonMetaList();
+  _performDelete(`"${name}" removed`, () => {
+    PERSONS.splice(idx, 1);
+    savePersons(); renderPersonMetaList();
+  }, () => {
+    PERSONS.splice(idx, 0, name);
+    savePersons(); renderPersonMetaList();
+  });
 }
 
 // =============================================
