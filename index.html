@@ -9220,7 +9220,8 @@ function handleAllocImport(event) {
 }
 
 function barColor(pct) {
-  if (pct >= 100) return 'red';
+  if (pct > 100) return 'red';
+  if (pct >= 100) return 'green';
   if (pct >= 80) return 'yellow';
   return 'green';
 }
@@ -9236,7 +9237,7 @@ function allocSummaryCell(allocated, planned, actual, onclick, extraCls) {
   let dotClr = '';
   if (actual > 0 && allocated > 0) {
     const pct = Math.round((actual / allocated) * 100);
-    dotClr = pct >= 100 ? 'red' : pct >= 80 ? 'yellow' : 'green';
+    dotClr = pct > 100 ? 'red' : pct >= 100 ? 'green' : pct >= 80 ? 'yellow' : 'green';
   } else if (planned > 0 && allocated === 0) {
     dotClr = 'blue';
   }
