@@ -2958,21 +2958,21 @@ if (typeof XLSX === 'undefined') {
 
 <!-- CONTACTS: TEMPLATE EDITOR MODAL -->
 <div class="modal-overlay" id="ctTemplateModal" style="display:none;">
-  <div class="modal" style="max-width:700px;max-height:85vh;">
+  <div class="modal" style="max-width:860px;max-height:85vh;width:95vw;">
     <div class="modal-header"><span>Edit Stage Templates</span><button class="modal-close" onclick="document.getElementById('ctTemplateModal').style.display='none'">×</button></div>
     <div class="modal-body" style="overflow-y:auto;max-height:65vh;">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
         <div>
           <label class="modal-label">Stage</label>
-          <select id="ctTplStage" class="modal-input" onchange="ctRenderTemplateEditor()" style="min-width:160px;"></select>
+          <select id="ctTplStage" class="modal-input" onchange="ctRenderTemplateEditor()" style="width:100%;"></select>
         </div>
         <div>
           <label class="modal-label">Project</label>
-          <select id="ctTplProject" class="modal-input" onchange="populateSubCodeSelect('ctTplSubCode', this.value, ctGetStage(document.getElementById('ctTplStage').value)?.subCode || '')" style="min-width:160px;"></select>
+          <select id="ctTplProject" class="modal-input" onchange="populateSubCodeSelect('ctTplSubCode', this.value, ctGetStage(document.getElementById('ctTplStage').value)?.subCode || '')" style="width:100%;"></select>
         </div>
         <div>
           <label class="modal-label">Sub-Code</label>
-          <select id="ctTplSubCode" class="modal-input" style="min-width:160px;"></select>
+          <select id="ctTplSubCode" class="modal-input" style="width:100%;"></select>
         </div>
       </div>
       <div id="ctTplTaskList" style="margin-top:12px;"></div>
@@ -12530,10 +12530,10 @@ function ctRenderTemplateEditor() {
   populateSubCodeSelect('ctTplSubCode', stage.project || 'cwc', stage.subCode || '');
   const list = document.getElementById('ctTplTaskList');
   // Header matching My Tasks form style
-  list.innerHTML = '<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 70px 24px;gap:6px;padding:4px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em;">' +
-    '<span>Task Name</span><span>Est (h)</span><span>Priority</span><span>Waiting</span><span>Offset</span><span></span></div>';
+  list.innerHTML = '<div style="display:grid;grid-template-columns:2fr 65px 85px 1fr 70px 24px;gap:8px;padding:4px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em;">' +
+    '<span>Task Name</span><span>Est (h)</span><span>Priority</span><span>Waiting On</span><span>Offset</span><span></span></div>';
   (stage.tasks || []).forEach((t, i) => {
-    list.innerHTML += `<div class="ct-tpl-task" data-idx="${i}" style="grid-template-columns:1fr 60px 80px 80px 70px 24px;">
+    list.innerHTML += `<div class="ct-tpl-task" data-idx="${i}" style="grid-template-columns:2fr 65px 85px 1fr 70px 24px;">
       <input class="form-input" value="${escHtml(t.name)}" data-field="name" placeholder="Task name" style="font-size:11px;padding:4px 8px;">
       <input class="form-input" type="number" value="${t.est || ''}" data-field="est" placeholder="0" style="font-size:11px;padding:4px 6px;" step="0.25" min="0">
       <select class="form-input filter-select" data-field="priority" style="font-size:11px;padding:4px 4px;">
