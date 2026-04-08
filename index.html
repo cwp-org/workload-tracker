@@ -9737,6 +9737,14 @@ function _switchTab(tab) {
   tab.setAttribute('tabindex', '0');
   document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
   localStorage.setItem('wt_active_tab', tab.dataset.tab);
+  // Re-render the target tab so it reflects any cross-tab data changes
+  const t = tab.dataset.tab;
+  if (t === 'tasks') renderTasks();
+  else if (t === 'projects') renderProjects();
+  else if (t === 'team') renderTeam();
+  else if (t === 'timesheet') renderTimesheet();
+  else if (t === 'allocations') renderAllocations();
+  updateHeaderMeta();
   // Update help panel context if open
   if (document.getElementById('helpPanel')?.classList.contains('open')) _updateHelpContext();
 }
