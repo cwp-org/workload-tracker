@@ -1823,15 +1823,19 @@
   [data-theme="light"] .alloc-month-current { background: rgba(59,130,246,0.08); }
   .alloc-month-past.alloc-hidden { display: none; }
   .alloc-cell input {
-    width: 48px;
+    width: 100%;
     background: var(--bg);
     border: 1px solid var(--border);
     color: var(--text);
     font-size: 11px;
-    padding: 2px 4px;
+    padding: 3px 4px;
     border-radius: 3px;
     text-align: center;
     outline: none;
+    position: relative;
+    z-index: 2;
+    cursor: text;
+    box-sizing: border-box;
   }
   .alloc-cell input:focus { border-color: var(--accent); }
   .alloc-cell input.alloc-readonly {
@@ -6669,12 +6673,12 @@ function renderProjItemRow(item, projKey, scId) {
       <div onclick="event.stopPropagation();">${priorityBadge(t.priority || 'med')}</div>
       <div class="session-date" onclick="event.stopPropagation();inlineEditDate(this,'task','${t.id}')" style="cursor:pointer;" title="Click to edit">${fmtDate(t.due)}</div>
       <div class="session-hours" onclick="event.stopPropagation();inlineEditEst(this,'task','${t.id}')" style="cursor:pointer;" title="Click to edit">${t.est ? t.est + 'h' : '—'}</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <button class="row-edit-btn" onclick="showTaskAssignDropdown(event,'${t.id}')" title="Assign" style="opacity:0.7;font-size:13px;">↗</button>
         <span class="timer-display${t.timerStart ? ' running' : ''}" data-id="${t.id}">${(t.timer||0)+(t.timerStart?Math.floor((Date.now()-t.timerStart)/1000):0) > 0 ? fmtSecs((t.timer||0)+(t.timerStart?Math.floor((Date.now()-t.timerStart)/1000):0)) : '—'}</span>
         <div class="timer-btn${t.timerStart ? ' running' : ''}" onclick="${t.timerStart ? `stopTimer('${t.id}')` : `startTimer('${t.id}')`}" title="${t.timerStart ? 'Stop' : 'Start'} timer">${t.timerStart ? '⏹' : '▶'}</div>
       </div>
-      <div class="session-row-actions" onclick="event.stopPropagation()">
+      <div class="session-row-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <button class="row-edit-btn" onclick="deleteTaskFromProjects('${t.id}')" title="Delete" style="color:var(--danger);">×</button>
       </div>
     </div>`;
@@ -6702,12 +6706,12 @@ function renderProjItemRow(item, projKey, scId) {
       <div onclick="event.stopPropagation();showSessionPriorityDropdown(event,'${bp.id}','${s.id}')" style="cursor:pointer;">${priorityBadge(s.priority || 'med')}</div>
       <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSessionDatePicker(this,'${bp.id}','${s.id}')">${fmtDate(s.date)}</div>
       <div class="session-hours" onclick="event.stopPropagation();inlineEditEst(this,'session','${bp.id}','${s.id}')" style="cursor:pointer;" title="Click to edit">${s.hours}h</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <button class="row-edit-btn" onclick="showAssignDropdown(event,'${bp.id}','${s.id}')" title="Assign" style="opacity:0.7;font-size:13px;">↗</button>
         <span class="timer-display${s.timerStart ? ' running' : ''}" data-id="${s.id}">${(s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0) > 0 ? fmtSecs((s.timer||0)+(s.timerStart?Math.floor((Date.now()-s.timerStart)/1000):0)) : '—'}</span>
         <div class="timer-btn${s.timerStart ? ' running' : ''}" onclick="${s.timerStart ? `stopSessionTimer('${bp.id}','${s.id}')` : `startSessionTimer('${bp.id}','${s.id}')`}" title="${s.timerStart ? 'Stop' : 'Start'} timer">${s.timerStart ? '⏹' : '▶'}</div>
       </div>
-      <div class="session-row-actions" onclick="event.stopPropagation()">
+      <div class="session-row-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <button class="row-edit-btn" onclick="deleteSession('${bp.id}','${s.id}')" title="Delete" style="color:var(--danger);">×</button>
         <button class="row-edit-btn" onclick="openAddSubtaskModal('${bp.id}','${s.id}')" title="Add subtask" style="color:var(--accent);font-size:14px;font-weight:700;">+</button>
       </div>
@@ -6737,12 +6741,12 @@ function renderProjItemRow(item, projKey, scId) {
       <div onclick="event.stopPropagation();showSubtaskPriorityDropdown(event,'${bp.id}','${s.id}','${st.id}')" style="cursor:pointer;">${priorityBadge(st.priority || 'med')}</div>
       <div class="session-date" style="cursor:pointer;" onclick="event.stopPropagation();openSubtaskDatePicker(this,'${bp.id}','${s.id}','${st.id}')">${fmtDate(st.date)}</div>
       <div class="session-hours" onclick="event.stopPropagation();inlineEditEst(this,'subtask','${bp.id}','${s.id}','${st.id}')" style="cursor:pointer;" title="Click to edit">${st.hours}h</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <button class="row-edit-btn" onclick="showAssignDropdown(event,'${bp.id}','${s.id}','${st.id}')" title="Assign" style="opacity:0.7;font-size:13px;">↗</button>
         <span class="timer-display${st.timerStart ? ' running' : ''}" data-id="${st.id}">${(st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0) > 0 ? fmtSecs((st.timer||0)+(st.timerStart?Math.floor((Date.now()-st.timerStart)/1000):0)) : '—'}</span>
         <div class="timer-btn${st.timerStart ? ' running' : ''}" onclick="${st.timerStart ? `stopSubtaskTimer('${bp.id}','${s.id}','${st.id}')` : `startSubtaskTimer('${bp.id}','${s.id}','${st.id}')`}" title="${st.timerStart ? 'Stop' : 'Start'} timer">${st.timerStart ? '⏹' : '▶'}</div>
       </div>
-      <div class="session-row-actions" onclick="event.stopPropagation()">
+      <div class="session-row-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <button class="row-edit-btn" onclick="deleteSubtask('${bp.id}','${s.id}','${st.id}')" title="Delete" style="color:var(--danger);">×</button>
       </div>
     </div>`;
@@ -9600,7 +9604,7 @@ function renderAllocations() {
         html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','','${m.ym}')" title="Click to see task breakdown">`;
         if (noSubs) {
           html += `<input type="number" min="0" step="1" value="${projAlloc || ''}" placeholder="—"
-                    onchange="allocSet('${projKey}','','${m.ym}',this.value)" onclick="event.stopPropagation()"
+                    onchange="allocSet('${projKey}','','${m.ym}',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"
                     title="Allocated hours for ${proj.label} in ${m.label}">`;
         } else {
           html += `<div style="font-weight:600;font-size:11px;">${projAlloc > 0 ? projAlloc + 'h' : '—'}</div>`;
@@ -9641,7 +9645,7 @@ function renderAllocations() {
 
           html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','${sc.id}','${m.ym}')" title="Click to see task breakdown">`;
           html += `<input type="number" min="0" step="1" value="${allocated || ''}" placeholder="—"
-                    onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)" onclick="event.stopPropagation()"
+                    onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"
                     title="Allocated hours for ${fullCode} in ${m.label}">`;
           html += allocDualBars(allocated, planned, actual);
           html += `</td>`;
