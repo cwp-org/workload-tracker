@@ -1819,6 +1819,9 @@
     position: relative;
     min-width: 70px;
   }
+  .alloc-month-current { background: rgba(96,165,250,0.08); }
+  [data-theme="light"] .alloc-month-current { background: rgba(59,130,246,0.08); }
+  .alloc-month-past.alloc-hidden { display: none; }
   .alloc-cell input {
     width: 48px;
     background: var(--bg);
@@ -2708,6 +2711,7 @@ if (typeof XLSX === 'undefined') {
         <option value="detail">Detail View</option>
         <option value="summary">Summary Only</option>
       </select>
+      <button class="btn" id="allocPastToggle" onclick="_toggleAllocPastMonths()" style="font-size:10px;padding:3px 8px;" title="Show or hide past months">Hide past</button>
       <button class="btn" onclick="allocCopyForward()" style="font-size:10px;padding:3px 8px;" title="Copy current month allocations to all future empty months">Copy forward →</button>
       <label class="btn" style="font-size:10px;padding:3px 8px;cursor:pointer;margin-left:auto;" title="Import BigTime allocation spreadsheet (.xlsx)">
         ⬆ Import XLS
@@ -8427,6 +8431,15 @@ function exportTimesheetCSV() {
 // ALLOCATIONS TAB
 // =============================================
 
+let _allocHidePast = false;
+
+function _toggleAllocPastMonths() {
+  _allocHidePast = !_allocHidePast;
+  const btn = document.getElementById('allocPastToggle');
+  if (btn) btn.textContent = _allocHidePast ? 'Show past' : 'Hide past';
+  renderAllocations();
+}
+
 function allocYearPrev() { allocYear--; renderAllocations(); }
 function allocYearNext() { allocYear++; renderAllocations(); }
 
@@ -9214,7 +9227,7 @@ function barColor(pct) {
   return 'green';
 }
 
-function allocSummaryCell(allocated, planned, actual, onclick) {
+function allocSummaryCell(allocated, planned, actual, onclick, extraCls) {
   const hasData = allocated > 0 || planned > 0 || actual > 0;
   const plannedPct = allocated > 0 ? Math.min(Math.round((planned / allocated) * 100), 100) : (planned > 0 ? 100 : 0);
   const actualPct = allocated > 0 ? Math.min(Math.round((actual / allocated) * 100), 100) : (actual > 0 ? 100 : 0);
@@ -9238,7 +9251,7 @@ function allocSummaryCell(allocated, planned, actual, onclick) {
   if (allocated > 0 && actual > 0) parts.push(`Used: ${Math.round((actual / allocated) * 100)}%`);
   const tip = parts.length > 0 ? parts.join(' · ') : 'No data';
 
-  let html = `<td class="alloc-cell-summary" onclick="${onclick}" title="${tip}">`;
+  let html = `<td class="alloc-cell-summary ${extraCls || ''}" onclick="${onclick}" title="${tip}">`;
   // Background fills
   html += `<div class="acs-bg">`;
   if (planned > 0 && allocated > 0) {
@@ -9486,10 +9499,25 @@ function renderAllocations() {
     return;
   }
 
+  // Determine current month and past month hiding
+  const currentYM = today().slice(0, 7);
+  const hidePast = _allocHidePast;
+
+  // Helper: month column class
+  function mCls(ym) {
+    const isCurrent = ym === currentYM;
+    const isPast = ym < currentYM;
+    return `${isCurrent ? 'alloc-month-current' : ''} ${isPast ? 'alloc-month-past' : ''} ${isPast && hidePast ? 'alloc-hidden' : ''}`.trim();
+  }
+
   // Build table
   let html = '<table class="alloc-table"><thead><tr>';
   html += '<th>Project / Sub-code</th>';
-  months.forEach(m => { html += `<th>${m.label}</th>`; });
+  months.forEach(m => {
+    const isCurrent = m.ym === currentYM;
+    const isPast = m.ym < currentYM;
+    html += `<th class="${isCurrent ? 'alloc-month-current' : ''} ${isPast ? 'alloc-month-past' : ''} ${isPast && hidePast ? 'alloc-hidden' : ''}">${m.label}</th>`;
+  });
   html += '<th class="alloc-ytd-col">YTD</th>';
   html += '</tr></thead><tbody>';
 
@@ -9539,9 +9567,9 @@ function renderAllocations() {
       grandPlannedTotals[mi] += projPlanned;
 
       if (viewMode === 'summary') {
-        html += allocSummaryCell(projAlloc, projPlanned, projActual, `openAllocDrill('${projKey}','','${m.ym}')`);
+        html += allocSummaryCell(projAlloc, projPlanned, projActual, `openAllocDrill('${projKey}','','${m.ym}')`, mCls(m.ym));
       } else {
-        html += `<td class="alloc-cell alloc-cell-clickable" onclick="openAllocDrill('${projKey}','','${m.ym}')" title="Click to see task breakdown">`;
+        html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','','${m.ym}')" title="Click to see task breakdown">`;
         if (noSubs) {
           html += `<input type="number" min="0" step="1" value="${projAlloc || ''}" placeholder="—"
                     onchange="allocSet('${projKey}','','${m.ym}',this.value)" onclick="event.stopPropagation()"
@@ -9583,7 +9611,7 @@ function renderAllocations() {
           scActualYTD += actual;
           scPlannedYTD += planned;
 
-          html += `<td class="alloc-cell alloc-cell-clickable" onclick="openAllocDrill('${projKey}','${sc.id}','${m.ym}')" title="Click to see task breakdown">`;
+          html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','${sc.id}','${m.ym}')" title="Click to see task breakdown">`;
           html += `<input type="number" min="0" step="1" value="${allocated || ''}" placeholder="—"
                     onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)" onclick="event.stopPropagation()"
                     title="Allocated hours for ${fullCode} in ${m.label}">`;
@@ -9609,9 +9637,9 @@ function renderAllocations() {
     const planned = grandPlannedTotals[mi];
     const actual = grandActualTotals[mi];
     if (viewMode === 'summary') {
-      html += allocSummaryCell(alloc, planned, actual, '');
+      html += allocSummaryCell(alloc, planned, actual, '', mCls(m.ym));
     } else {
-      html += `<td class="alloc-cell">`;
+      html += `<td class="alloc-cell ${mCls(m.ym)}">`;
       html += `<div>${alloc > 0 ? alloc + 'h' : '—'}</div>`;
       html += allocDualBars(alloc, planned, actual);
       html += `</td>`;
