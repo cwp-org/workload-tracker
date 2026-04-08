@@ -6434,6 +6434,12 @@ function _dropScReorder(projKey, targetScId) {
 }
 let _staleSubCodes = new Set(load('wt_stale_subcodes', [])); // "projKey|scId" entries dropped from last import
 
+function _dismissStale(projKey, scId) {
+  _staleSubCodes.delete(projKey + '|' + scId);
+  save('wt_stale_subcodes', [..._staleSubCodes]);
+  renderProjCodeContent(projKey);
+}
+
 function _shiftProjAllocMonth(projKey, dir) {
   const cur = _projAllocMonth[projKey] || today().slice(0, 7);
   const [y, m] = cur.split('-').map(Number);
@@ -6575,7 +6581,7 @@ function renderProjCodeContent(projKey) {
             <span style="color:${loggedColor};" title="Logged hours / allocated">${fmtQ(loggedHrs)}/${allocHrs}h</span>
             <span style="color:var(--accent);opacity:0.7;" title="Logged + planned / allocated">${fmtQ(totalWork)}/${allocHrs}h</span>
           </span>
-          ${isStale ? '<span class="subcode-stale-badge" title="Not in latest allocation import">unallocated</span>' : ''}
+          ${isStale ? `<span class="subcode-stale-badge" style="cursor:pointer;" onclick="event.stopPropagation();_dismissStale('${projKey}','${sec.scId}')" title="Click to dismiss — not in latest allocation import">unallocated ✕</span>` : ''}
         </span>`;
       }
     }
