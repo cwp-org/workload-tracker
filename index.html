@@ -2712,7 +2712,6 @@ if (typeof XLSX === 'undefined') {
         <option value="summary">Summary Only</option>
       </select>
       <button class="btn" id="allocPastToggle" onclick="_toggleAllocPastMonths()" style="font-size:10px;padding:3px 8px;" title="Show or hide past months">Hide past</button>
-      <button class="btn" onclick="allocCopyForward()" style="font-size:10px;padding:3px 8px;" title="Copy current month allocations to all future empty months">Copy forward →</button>
       <label class="btn" style="font-size:10px;padding:3px 8px;cursor:pointer;margin-left:auto;" title="Import BigTime allocation spreadsheet (.xlsx)">
         ⬆ Import XLS
         <input type="file" accept=".xlsx,.xls,.csv" onchange="handleAllocImport(event)" style="display:none;">
@@ -3873,7 +3872,8 @@ const SYNC_KEYS = [
   'wt_collapsed_projs', 'wt_team_group_person', 'wt_ts_capacity',
   'wt_theme', 'wt_api_key',
   'wt_dup_decisions', 'wt_stale_subcodes',
-  'wt_onboarded', 'wt_xlsx_alloc_imported'
+  'wt_onboarded', 'wt_xlsx_alloc_imported',
+  'wt_alloc_rollovers'
 ];
 
 async function cloudSave(key, data) {
@@ -8536,50 +8536,48 @@ function allocSet(projKey, scId, ym, val) {
   renderAllocations();
 }
 
-function allocCopyForward() {
-  const now = new Date();
-  const curMonth = now.getFullYear() === allocYear
-    ? String(allocYear) + '-' + String(now.getMonth() + 1).padStart(2, '0')
-    : String(allocYear) + '-01';
+// Rollover tracking: { "projKey|scId|YYYY-MM": hours } — how much was rolled into this cell
+let _allocRollovers = load('wt_alloc_rollovers', {});
+function _saveRollovers() { save('wt_alloc_rollovers', _allocRollovers); }
 
-  let copied = 0;
-  Object.entries(PROJECTS).forEach(([projKey, proj]) => {
-    const subs = proj.subCodes || [];
-    if (subs.length === 0) {
-      // Project-level allocation (no sub-codes)
-      const srcKey = allocKey(projKey, '', curMonth);
-      const srcVal = allocations[srcKey];
-      if (srcVal) {
-        for (let m = 1; m <= 12; m++) {
-          const ym = String(allocYear) + '-' + String(m).padStart(2, '0');
-          if (ym <= curMonth) continue;
-          const destKey = allocKey(projKey, '', ym);
-          if (!allocations[destKey]) { allocations[destKey] = srcVal; copied++; }
-        }
-      }
-      return;
-    }
-    subs.forEach(sc => {
-      const srcKey = allocKey(projKey, sc.id, curMonth);
-      const srcVal = allocations[srcKey];
-      if (!srcVal) return;
-      for (let m = 1; m <= 12; m++) {
-        const ym = String(allocYear) + '-' + String(m).padStart(2, '0');
-        if (ym <= curMonth) continue;
-        const destKey = allocKey(projKey, sc.id, ym);
-        if (!allocations[destKey]) {
-          allocations[destKey] = srcVal;
-          copied++;
-        }
-      }
-    });
-  });
+function _rollRemainingForward(projKey, scId, fromYM) {
+  const aKey = allocKey(projKey, scId, fromYM);
+  const allocated = allocations[aKey] || 0;
+  const actual = scId ? allocGetActuals(projKey, scId, fromYM) : allocGetAllProjectActuals(projKey, fromYM);
+  const remaining = Math.max(allocated - actual, 0);
 
-  if (copied > 0) {
-    saveAllocations();
-    renderAllocations();
+  if (remaining <= 0) {
+    showSyncToast('No remaining hours to roll forward.', 'warn');
+    return;
   }
-  showSyncToast(copied > 0 ? `Copied allocations to ${copied} empty cells.` : 'No empty future cells to fill.', copied > 0 ? 'success' : 'warn');
+
+  // Compute next month
+  const [y, m] = fromYM.split('-').map(Number);
+  const nd = new Date(y, m, 1); // month is already 1-based, so this gives next month
+  const toYM = nd.getFullYear() + '-' + String(nd.getMonth() + 1).padStart(2, '0');
+  const toKey = allocKey(projKey, scId, toYM);
+
+  // Add remaining to next month
+  allocations[toKey] = (allocations[toKey] || 0) + remaining;
+
+  // Track the rollover amount
+  const roKey = projKey + '|' + (scId || '') + '|' + toYM;
+  _allocRollovers[roKey] = (_allocRollovers[roKey] || 0) + remaining;
+
+  // Zero out source month
+  allocations[aKey] = actual > 0 ? actual : 0;
+  if (allocations[aKey] === 0) delete allocations[aKey];
+
+  saveAllocations();
+  _saveRollovers();
+  renderAllocations();
+  closeAllocDrill();
+
+  const proj = PROJECTS[projKey];
+  const sc = scId ? (proj?.subCodes || []).find(s => s.id === scId) : null;
+  const label = sc ? sc.label : proj?.label || projKey;
+  const toLabel = new Date(toYM + '-01').toLocaleString('default', { month: 'short', year: 'numeric' });
+  showSyncToast(`Rolled ${fmtQ(remaining)}h from ${label} → ${toLabel}`, 'success');
 }
 
 // =============================================
@@ -9377,8 +9375,37 @@ function openAllocDrill(projKey, scId, yearMonth) {
     }
   });
 
-  // Build HTML
+  // Build HTML — allocation summary header
+  const _aKey = scId ? allocKey(projKey, scId, yearMonth) : allocKey(projKey, '', yearMonth);
+  const _allocated = allocations[_aKey] || 0;
+  const _actual = scId ? allocGetActuals(projKey, scId, yearMonth) : allocGetAllProjectActuals(projKey, yearMonth);
+  const _remaining = Math.max(_allocated - _actual, 0);
+  const _roKey = projKey + '|' + (scId || '') + '|' + yearMonth;
+  const _rolloverAmt = _allocRollovers[_roKey] || 0;
+  const _btAmt = _allocated - _rolloverAmt;
+  const _currentYM = today().slice(0, 7);
+  const _canRoll = _remaining > 0 && yearMonth <= _currentYM && (scId || !hasSubs);
+
   let html = '';
+
+  // Allocation source breakdown
+  if (_allocated > 0 || _rolloverAmt > 0) {
+    html += '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11px;">';
+    if (_rolloverAmt > 0) {
+      html += `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--text3);">BigTime Allocation</span><span>${fmtQ(_btAmt)}h</span></div>`;
+      html += `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--accent);">Rolled over</span><span style="color:var(--accent);">${fmtQ(_rolloverAmt)}h</span></div>`;
+      html += `<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:4px;font-weight:700;"><span>Total allocated</span><span>${fmtQ(_allocated)}h</span></div>`;
+    } else {
+      html += `<div style="display:flex;justify-content:space-between;"><span style="color:var(--text3);">BigTime Allocation</span><span>${fmtQ(_allocated)}h</span></div>`;
+    }
+    html += `<div style="display:flex;justify-content:space-between;margin-top:4px;"><span style="color:var(--text3);">Logged</span><span>${fmtQ(_actual)}h</span></div>`;
+    html += `<div style="display:flex;justify-content:space-between;margin-top:2px;font-weight:600;"><span>Remaining</span><span style="color:${_remaining > 0 ? 'var(--success)' : 'var(--text3)'};">${fmtQ(_remaining)}h</span></div>`;
+    if (_canRoll) {
+      html += `<div style="margin-top:8px;"><button class="btn" onclick="_rollRemainingForward('${projKey}','${scId || ''}','${yearMonth}')" style="font-size:11px;padding:4px 12px;width:100%;">Roll ${fmtQ(_remaining)}h remaining → next month</button></div>`;
+    }
+    html += '</div>';
+  }
+
   const totalItems = plannedTasks.length + plannedSessions.length + plannedSubtasks.length + completedItems.length
     + unassignedTasks.length + unassignedSessions.length + unassignedSubtasks.length + unassignedCompleted.length;
 
@@ -9996,6 +10023,7 @@ function reloadStateFromLocalStorage() {
   tsCapacity = load('wt_ts_capacity', 8);
   _dupDecisions = load('wt_dup_decisions', {});
   _staleSubCodes = new Set(load('wt_stale_subcodes', []));
+  _allocRollovers = load('wt_alloc_rollovers', {});
 }
 
 function initApp() {
