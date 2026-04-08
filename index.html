@@ -10320,6 +10320,8 @@ function showPriorityDropdown(e, taskId) {
     task.priority = val;
     save('wt_tasks', tasks);
     renderTasks();
+    renderProjects();
+    renderTimesheet();
   });
 }
 
@@ -10333,6 +10335,7 @@ function showSessionPriorityDropdown(e, projId, sessionId) {
     save('wt_bigprojs', bigProjs);
     renderTasks();
     renderProjects();
+    renderTimesheet();
   });
 }
 
@@ -10347,6 +10350,7 @@ function showSubtaskPriorityDropdown(e, projId, sessionId, subtaskId) {
     save('wt_bigprojs', bigProjs);
     renderTasks();
     renderProjects();
+    renderTimesheet();
   });
 }
 
@@ -10365,6 +10369,7 @@ function showStatusDropdown(e, itemId) {
     save('wt_team', teamItems);
     renderTeam();
     renderProjects();
+    renderTimesheet();
   });
 }
 
@@ -10384,6 +10389,7 @@ function showDelegatedStatusDropdown(e, projId, sessionId, subtaskId) {
     renderTeam();
     renderTasks();
     renderProjects();
+    renderTimesheet();
   });
 }
 
@@ -10399,6 +10405,7 @@ function showDelegatedTaskStatusDropdown(e, taskId) {
     renderTeam();
     renderTasks();
     renderProjects();
+    renderTimesheet();
   });
 }
 
