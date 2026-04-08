@@ -5340,6 +5340,9 @@ function renderTasks() {
       } else if (sortKey === 'est') {
         va = a._type === 'task' ? (a.task.est || 0) : a._type === 'session' ? (a.s.hours || 0) : (a.st.hours || 0);
         vb = b._type === 'task' ? (b.task.est || 0) : b._type === 'session' ? (b.s.hours || 0) : (b.st.hours || 0);
+      } else if (sortKey === 'due') {
+        va = a._date || 'zzz';
+        vb = b._date || 'zzz';
       } else if (sortKey === 'name') {
         va = (a._type === 'task' ? a.task.name : a._type === 'session' ? a.s.desc : a.st.desc).toLowerCase();
         vb = (b._type === 'task' ? b.task.name : b._type === 'session' ? b.s.desc : b.st.desc).toLowerCase();
@@ -5423,7 +5426,7 @@ function renderTasks() {
       <span></span>
       <span class="${activeClass('project')}" onclick="_toggleSectionSort('${sectionId}','project')">Project${sortArrow('project')}</span>
       <span class="${activeClass('priority')}" onclick="_toggleSectionSort('${sectionId}','priority')">Priority${sortArrow('priority')}</span>
-      <span>Due</span>
+      <span class="${activeClass('due')}" onclick="_toggleSectionSort('${sectionId}','due')">Due${sortArrow('due')}</span>
       <span class="${activeClass('est')}" onclick="_toggleSectionSort('${sectionId}','est')">Est${sortArrow('est')}</span>
       <span>Timer</span>
     </div>`;
@@ -5587,7 +5590,7 @@ function renderTasks() {
           <span></span>
           <span class="${activeClass('project')}" onclick="_toggleSectionSort('${sectionId}','project')">Project${sortArrow('project')}</span>
           <span class="${activeClass('priority')}" onclick="_toggleSectionSort('${sectionId}','priority')">Priority${sortArrow('priority')}</span>
-          <span>Due</span>
+          <span class="${activeClass('due')}" onclick="_toggleSectionSort('${sectionId}','due')">Due${sortArrow('due')}</span>
           <span class="${activeClass('est')}" onclick="_toggleSectionSort('${sectionId}','est')">Est${sortArrow('est')}</span>
           <span>Timer</span>
         </div>`;
