@@ -2094,10 +2094,12 @@
   .ct-stage-chevron.open { transform: rotate(90deg); }
 
   .ct-task-row {
-    display: grid; grid-template-columns: 24px 1fr auto 110px 55px 55px 26px; gap: 8px;
+    display: grid; grid-template-columns: 24px 1fr auto 110px 55px 55px 20px; gap: 8px;
     align-items: center; padding: 7px 14px; font-size: 12px; border-top: 1px solid var(--border);
   }
   .ct-task-row:hover { background: var(--bg3); }
+  .ct-task-row:hover span[title="Delete task"] { opacity: 0.7 !important; }
+  .ct-task-done { opacity: 0.55; }
   .ct-task-check {
     width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--border2);
     cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -12435,17 +12437,20 @@ function ctRenderProfile(panel, partner) {
       </div>`;
 
     if (isExpanded) {
-      stagesHtml += st.tasks.map(t => {
+      // Sort: incomplete first, then completed
+      const sortedTasks = [...st.tasks].sort((a, b) => (a.completed ? 1 : 0) - (b.completed ? 1 : 0));
+      stagesHtml += sortedTasks.map(t => {
         const pri = t.priority ? priorityBadge(t.priority) : '';
         const delTags = delegateTagsHtml(t.delegatedTo);
-        const cid = partner.id, tid = t.id;
-        return `<div class="ct-task-row">
-          <div class="ct-task-check${t.completed ? ' done' : ''}" onclick="event.stopPropagation();ctCompleteTask('${cid}','${sid}','${tid}',${!t.completed})">${t.completed ? '✓' : ''}</div>
-          <span class="ct-task-name${t.completed ? ' done' : ''}" onclick="event.stopPropagation();ctInlineEditName(this,'${cid}','${sid}','${tid}')" style="cursor:pointer;" title="Click to edit name">${escHtml(t.name)}${t.waiting ? `<span class="task-waiting" style="font-size:10px;">⏳ ${escHtml(t.waiting)}</span>` : ''}</span>
-          <span style="display:inline-flex;gap:2px;align-items:center;flex-shrink:0;">${delTags}<button class="row-edit-btn" onclick="event.stopPropagation();ctAssignTask(event,'${cid}','${sid}','${tid}')" title="Assign" style="opacity:0.6;font-size:12px;background:none;border:none;cursor:pointer;padding:1px 3px;">↗</button></span>
-          <span class="ct-task-date" onclick="event.stopPropagation();ctInlineEditDate(this,'${cid}','${sid}','${tid}')" style="cursor:pointer;white-space:nowrap;" title="Click to set date">${t.due ? fmtDate(t.due) : '<span style="opacity:0.4">No date</span>'}</span>
-          <span onclick="event.stopPropagation();ctShowPriority(event,'${cid}','${sid}','${tid}')" style="cursor:pointer;" title="Click to change priority">${pri}</span>
-          <span class="ct-task-hrs" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,'${cid}','${sid}','${tid}')" title="Click to edit hours">${t.est ? t.est + 'h' : '—'}</span>
+        const ids = `'${partner.id}','${sid}','${t.id}'`;
+        return `<div class="ct-task-row${t.completed ? ' ct-task-done' : ''}">
+          <div class="ct-task-check${t.completed ? ' done' : ''}" onclick="event.stopPropagation();ctCompleteTask(${ids},${!t.completed})">${t.completed ? '✓' : ''}</div>
+          <div class="ct-task-name${t.completed ? ' done' : ''}" onclick="ctOpenEditTaskModal(${ids})" style="cursor:pointer;" title="Click to edit">${escHtml(t.name)}${t.waiting ? `<span class="task-waiting" style="font-size:10px;margin-left:4px;">⏳ ${escHtml(t.waiting)}</span>` : ''}</div>
+          <span style="display:inline-flex;gap:2px;align-items:center;flex-shrink:0;">${delTags}<button onclick="event.stopPropagation();ctAssignTask(event,${ids})" title="Assign" style="opacity:0.6;font-size:12px;background:none;border:none;cursor:pointer;padding:1px 3px;color:var(--text3);">↗</button></span>
+          <span class="ct-task-date" onclick="event.stopPropagation();ctInlineEditDate(this,${ids})" style="cursor:pointer;white-space:nowrap;" title="Click to set date">${t.due ? fmtDate(t.due) : '<span style="opacity:0.4">No date</span>'}</span>
+          <span onclick="event.stopPropagation();ctShowPriority(event,${ids})" style="cursor:pointer;" title="Change priority">${pri}</span>
+          <span class="ct-task-hrs" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,${ids})" title="Click to edit hours">${t.est ? t.est + 'h' : '—'}</span>
+          <span style="cursor:pointer;color:var(--danger);font-size:13px;opacity:0.4;text-align:center;" onclick="event.stopPropagation();ctQuickDeleteTask(${ids})" title="Delete task">×</span>
         </div>`;
       }).join('');
       stagesHtml += `<div style="padding:6px 14px;border-top:1px solid var(--border);">
@@ -12801,6 +12806,16 @@ function ctDeleteTask() {
   c.stages[_ctEditRef.sid].tasks = c.stages[_ctEditRef.sid].tasks.filter(t => t.id !== _ctEditRef.tid);
   _ctSaveAndRender();
   ctCloseEditModal();
+}
+
+function ctQuickDeleteTask(cid, sid, tid) {
+  const c = contacts.find(c => c.id === cid);
+  if (!c || !c.stages[sid]) return;
+  const t = c.stages[sid].tasks.find(t => t.id === tid);
+  if (!t) return;
+  if (!confirm(`Delete "${t.name}"?`)) return;
+  c.stages[sid].tasks = c.stages[sid].tasks.filter(t => t.id !== tid);
+  _ctSaveAndRender();
 }
 
 
