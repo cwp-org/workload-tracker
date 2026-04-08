@@ -8977,8 +8977,10 @@ function _undoAllocImport() {
   allocations = _allocImportUndo.allocations;
   PROJECTS = _allocImportUndo.projects;
   projOrder = _allocImportUndo.projOrder;
+  _allocRollovers = _allocImportUndo.rollovers || {};
   _staleSubCodes = new Set();
   save('wt_stale_subcodes', []);
+  _saveRollovers();
   saveProjects();
   saveProjOrder();
   saveAllocations();
@@ -9046,6 +9048,13 @@ function handleAllocImport(event) {
         Object.values(monthCols).filter(ym => ym >= currentYM)
       );
 
+      // Clear rollovers for imported months — new BigTime data supersedes old rollovers
+      Object.keys(_allocRollovers).forEach(key => {
+        const ym = key.split('|')[2];
+        if (importMonths.has(ym)) delete _allocRollovers[key];
+      });
+      _saveRollovers();
+
       // Track which proj|sc combos had allocations before clearing (for stale detection)
       const prevAllocatedScs = new Set();
       Object.keys(allocations).forEach(key => {
@@ -9062,6 +9071,7 @@ function handleAllocImport(event) {
       const prevAllocations = JSON.parse(JSON.stringify(allocations));
       const prevPROJECTS = JSON.parse(JSON.stringify(PROJECTS));
       const prevProjOrder = [...projOrder];
+      const prevRollovers = JSON.parse(JSON.stringify(_allocRollovers));
 
       let importedRows = 0;
       const newProjectNames = [];
@@ -9213,7 +9223,7 @@ function handleAllocImport(event) {
       `;
 
       // Store snapshot for undo
-      _allocImportUndo = { allocations: prevAllocations, projects: prevPROJECTS, projOrder: prevProjOrder };
+      _allocImportUndo = { allocations: prevAllocations, projects: prevPROJECTS, projOrder: prevProjOrder, rollovers: prevRollovers };
 
     } catch (err) {
       statusEl.style.display = '';
