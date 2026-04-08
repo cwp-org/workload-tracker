@@ -8548,29 +8548,30 @@ function _rollRemainingForward(projKey, scId, fromYM) {
   const aKey = allocKey(projKey, scId, fromYM);
   const allocated = allocations[aKey] || 0;
   const actual = scId ? allocGetActuals(projKey, scId, fromYM) : allocGetAllProjectActuals(projKey, fromYM);
-  const remaining = Math.max(allocated - actual, 0);
+  const remaining = allocated - actual; // can be negative (over-spend)
 
-  if (remaining <= 0) {
-    showSyncToast('No remaining hours to roll forward.', 'warn');
+  if (remaining === 0) {
+    showSyncToast('Nothing to roll — allocation fully used.', 'warn');
     return;
   }
 
   // Compute next month
   const [y, m] = fromYM.split('-').map(Number);
-  const nd = new Date(y, m, 1); // month is already 1-based, so this gives next month
+  const nd = new Date(y, m, 1);
   const toYM = nd.getFullYear() + '-' + String(nd.getMonth() + 1).padStart(2, '0');
   const toKey = allocKey(projKey, scId, toYM);
 
-  // Add remaining to next month
+  // Add remaining (positive or negative) to next month
   allocations[toKey] = (allocations[toKey] || 0) + remaining;
+  if (allocations[toKey] <= 0) delete allocations[toKey];
 
   // Track the rollover amount
   const roKey = projKey + '|' + (scId || '') + '|' + toYM;
   _allocRollovers[roKey] = (_allocRollovers[roKey] || 0) + remaining;
 
-  // Zero out source month
+  // Set source month allocation to actual (balanced out)
   allocations[aKey] = actual > 0 ? actual : 0;
-  if (allocations[aKey] === 0) delete allocations[aKey];
+  if (allocations[aKey] <= 0) delete allocations[aKey];
 
   saveAllocations();
   _saveRollovers();
@@ -8581,7 +8582,8 @@ function _rollRemainingForward(projKey, scId, fromYM) {
   const sc = scId ? (proj?.subCodes || []).find(s => s.id === scId) : null;
   const label = sc ? sc.label : proj?.label || projKey;
   const toLabel = new Date(toYM + '-01').toLocaleString('default', { month: 'short', year: 'numeric' });
-  showSyncToast(`Rolled ${fmtQ(remaining)}h from ${label} → ${toLabel}`, 'success');
+  const verb = remaining > 0 ? `Rolled ${fmtQ(remaining)}h` : `Rolled ${fmtQ(Math.abs(remaining))}h overspend`;
+  showSyncToast(`${verb} from ${label} → ${toLabel}`, 'success');
 }
 
 // =============================================
@@ -9389,7 +9391,8 @@ function openAllocDrill(projKey, scId, yearMonth) {
   const _rolloverAmt = _allocRollovers[_roKey] || 0;
   const _btAmt = _allocated - _rolloverAmt;
   const _currentYM = today().slice(0, 7);
-  const _canRoll = _remaining > 0 && yearMonth <= _currentYM && (scId || !hasSubs);
+  const _balance = _allocated - _actual; // positive = unspent, negative = overspent
+  const _canRoll = _balance !== 0 && yearMonth <= _currentYM && (scId || !hasSubs);
 
   let html = '';
 
@@ -9404,9 +9407,14 @@ function openAllocDrill(projKey, scId, yearMonth) {
       html += `<div style="display:flex;justify-content:space-between;"><span style="color:var(--text3);">BigTime Allocation</span><span>${fmtQ(_allocated)}h</span></div>`;
     }
     html += `<div style="display:flex;justify-content:space-between;margin-top:4px;"><span style="color:var(--text3);">Logged</span><span>${fmtQ(_actual)}h</span></div>`;
-    html += `<div style="display:flex;justify-content:space-between;margin-top:2px;font-weight:600;"><span>Remaining</span><span style="color:${_remaining > 0 ? 'var(--success)' : 'var(--text3)'};">${fmtQ(_remaining)}h</span></div>`;
+    const _balColor = _balance > 0 ? 'var(--success)' : _balance < 0 ? 'var(--danger)' : 'var(--text3)';
+    const _balLabel = _balance >= 0 ? `${fmtQ(_balance)}h remaining` : `${fmtQ(Math.abs(_balance))}h over`;
+    html += `<div style="display:flex;justify-content:space-between;margin-top:2px;font-weight:600;"><span>${_balance >= 0 ? 'Remaining' : 'Over budget'}</span><span style="color:${_balColor};">${_balLabel}</span></div>`;
     if (_canRoll) {
-      html += `<div style="margin-top:8px;"><button class="btn" onclick="_rollRemainingForward('${projKey}','${scId || ''}','${yearMonth}')" style="font-size:11px;padding:4px 12px;width:100%;">Roll ${fmtQ(_remaining)}h remaining → next month</button></div>`;
+      const _rollLabel = _balance > 0
+        ? `Roll ${fmtQ(_balance)}h remaining → next month`
+        : `Roll ${fmtQ(Math.abs(_balance))}h overspend → next month`;
+      html += `<div style="margin-top:8px;"><button class="btn" onclick="_rollRemainingForward('${projKey}','${scId || ''}','${yearMonth}')" style="font-size:11px;padding:4px 12px;width:100%;">${_rollLabel}</button></div>`;
     }
     html += '</div>';
   }
