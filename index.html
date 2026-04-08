@@ -882,12 +882,17 @@
   .proj-right-code { font-size: 12px; font-family: monospace; color: var(--text3); }
 
   .subcode-section { margin-bottom: 20px; }
+  .subcode-section.drag-over-sc > .subcode-header { outline: 2px dashed var(--accent); outline-offset: -2px; }
   .subcode-header {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px;
     background: var(--bg2); border: 1px solid var(--border2); border-radius: 6px 6px 0 0;
     font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer;
   }
   .subcode-header:hover { background: var(--bg3); }
+  .subcode-drag-handle {
+    cursor: grab; color: var(--text3); font-size: 10px; user-select: none; padding: 0 2px;
+  }
+  .subcode-drag-handle:hover { color: var(--text); }
   .subcode-header .subcode-chevron { transition: transform 0.15s; display: inline-block; font-size: 10px; }
   .subcode-header .subcode-chevron.open { transform: rotate(90deg); }
   .subcode-count { font-size: 10px; font-weight: 400; color: var(--text3); margin-left: auto; }
@@ -6409,6 +6414,24 @@ function renderProjCodeList() {
 // Collapse state for sub-code sections (in-memory)
 const collapsedSubSections = new Set();
 const _projAllocMonth = {}; // per-project month override for allocation meters
+let _dragSrcScId = null;
+let _dragSrcScProj = null;
+
+function _dropScReorder(projKey, targetScId) {
+  if (!_dragSrcScId || _dragSrcScId === targetScId || _dragSrcScProj !== projKey) {
+    _dragSrcScId = null; _dragSrcScProj = null; return;
+  }
+  const proj = PROJECTS[projKey];
+  if (!proj || !proj.subCodes) { _dragSrcScId = null; _dragSrcScProj = null; return; }
+  const fromIdx = proj.subCodes.findIndex(s => s.id === _dragSrcScId);
+  const toIdx = proj.subCodes.findIndex(s => s.id === targetScId);
+  if (fromIdx === -1 || toIdx === -1) { _dragSrcScId = null; _dragSrcScProj = null; return; }
+  const [moved] = proj.subCodes.splice(fromIdx, 1);
+  proj.subCodes.splice(toIdx, 0, moved);
+  saveProjects();
+  _dragSrcScId = null; _dragSrcScProj = null;
+  renderProjCodeContent(projKey);
+}
 let _staleSubCodes = new Set(load('wt_stale_subcodes', [])); // "projKey|scId" entries dropped from last import
 
 function _shiftProjAllocMonth(projKey, dir) {
@@ -6557,8 +6580,15 @@ function renderProjCodeContent(projKey) {
       }
     }
 
-    html += `<div class="subcode-section">
+    const isDraggable = !!sec.scId; // "Unassigned" is not draggable
+    html += `<div class="subcode-section" ${isDraggable ? `draggable="true" data-sc-id="${sec.scId}"
+      ondragstart="_dragSrcScId='${sec.scId}';_dragSrcScProj='${projKey}';event.dataTransfer.effectAllowed='move';this.style.opacity='0.4';"
+      ondragend="this.style.opacity='';"
+      ondragover="event.preventDefault();this.classList.add('drag-over-sc');"
+      ondragleave="this.classList.remove('drag-over-sc');"
+      ondrop="event.preventDefault();this.classList.remove('drag-over-sc');_dropScReorder('${projKey}','${sec.scId}');"` : ''}>
       <div class="subcode-header" style="border-top:3px solid ${color};" onclick="toggleSubSection('${sectionKey}')">
+        ${isDraggable ? '<span class="subcode-drag-handle" title="Drag to reorder">⠿</span>' : ''}
         <span class="subcode-chevron${isCollapsed ? '' : ' open'}">›</span>
         <span style="color:var(--text);">${sec.code ? '<span style="color:' + color + ';font-weight:700;">' + (proj.billingCode || '') + sec.code + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${sec.label}</span>` : sec.label}</span>
         ${meterHtml}
