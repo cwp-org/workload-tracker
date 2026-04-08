@@ -2023,6 +2023,103 @@
     border-radius: 2px; margin-right: 4px; vertical-align: middle;
   }
 
+  /* CONTACTS TAB */
+  .ct-toolbar {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+    border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .ct-stage-tabs { display: flex; gap: 2px; }
+  .ct-stage-tab {
+    padding: 4px 10px; font-size: 11px; font-weight: 500; border-radius: 6px;
+    background: none; border: 1px solid transparent; color: var(--text3); cursor: pointer;
+  }
+  .ct-stage-tab:hover { background: var(--bg3); color: var(--text2); }
+  .ct-stage-tab.active { background: var(--bg2); color: var(--text); border-color: var(--border); font-weight: 600; }
+
+  .ct-split-wrap { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 160px); }
+  .ct-left-panel {
+    width: 260px; min-width: 260px; max-width: 260px;
+    border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0;
+    background: var(--bg); display: flex; flex-direction: column;
+  }
+  .ct-left-header {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 2;
+  }
+  .ct-right-panel { flex: 1; overflow-y: auto; padding: 0; }
+  .ct-empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; height: 100%; color: var(--text3); text-align: center; padding: 40px;
+  }
+
+  .ct-partner-item {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer;
+    font-size: 12px; color: var(--text2); border-left: 3px solid transparent; transition: all 0.12s;
+  }
+  .ct-partner-item:hover { background: var(--bg3); }
+  .ct-partner-item.active { background: var(--bg2); border-left-color: var(--accent, #7c3aed); color: var(--text); font-weight: 600; }
+  .ct-partner-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ct-partner-meta { font-size: 10px; color: var(--text3); }
+  .ct-partner-stage-dots { display: flex; gap: 3px; }
+  .ct-partner-stage-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .ct-profile { padding: 20px; }
+  .ct-profile-header {
+    display: flex; align-items: flex-start; gap: 16px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  }
+  .ct-profile-avatar {
+    width: 48px; height: 48px; border-radius: 12px; background: var(--accent, #7c3aed);
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    font-size: 18px; font-weight: 700; flex-shrink: 0;
+  }
+  .ct-profile-info { flex: 1; }
+  .ct-profile-name { font-size: 16px; font-weight: 700; color: var(--text); }
+  .ct-profile-contact { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .ct-profile-contact a { color: var(--accent); text-decoration: none; }
+
+  .ct-stage-section {
+    margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .ct-stage-header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    background: var(--bg2); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text);
+  }
+  .ct-stage-header:hover { background: var(--bg3); }
+  .ct-stage-badge {
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+  }
+  .ct-stage-progress { font-size: 10px; color: var(--text3); margin-left: auto; }
+  .ct-stage-chevron { font-size: 14px; color: var(--text3); transition: transform 0.15s; }
+  .ct-stage-chevron.open { transform: rotate(90deg); }
+
+  .ct-task-row {
+    display: grid; grid-template-columns: 24px 1fr 70px 60px 50px 30px; gap: 6px;
+    align-items: center; padding: 6px 14px; font-size: 12px; border-top: 1px solid var(--border);
+  }
+  .ct-task-row:hover { background: var(--bg3); }
+  .ct-task-check {
+    width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--border2);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .ct-task-check.done { background: var(--success); border-color: var(--success); color: #fff; font-size: 10px; }
+  .ct-task-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ct-task-name.done { text-decoration: line-through; opacity: 0.5; }
+  .ct-task-date { font-size: 10px; color: var(--text3); }
+  .ct-task-pri { font-size: 10px; }
+  .ct-task-hrs { font-size: 10px; color: var(--text3); text-align: right; }
+
+  .ct-all-grid { padding: 12px; }
+  .ct-all-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .ct-all-table th { background: var(--bg3); color: var(--text2); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+  .ct-all-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .ct-all-table tr:hover { background: var(--bg3); }
+
+  .ct-tpl-task {
+    display: grid; grid-template-columns: 1fr 60px 70px 70px 30px; gap: 6px; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+  }
+
   input[type="color"].color-picker {
     width: 34px;
     height: 28px;
@@ -2533,6 +2630,7 @@ if (typeof XLSX === 'undefined') {
   <div class="tab" data-tab="team" role="tab" aria-selected="false" aria-controls="panel-team" tabindex="-1">Team Deliverables</div>
   <div class="tab" data-tab="timesheet" role="tab" aria-selected="false" aria-controls="panel-timesheet" tabindex="-1">Timesheet</div>
   <div class="tab" data-tab="allocations" role="tab" aria-selected="false" aria-controls="panel-allocations" tabindex="-1">Allocations</div>
+  <div class="tab" data-tab="contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" tabindex="-1">Contacts</div>
 </div>
 
 <div class="main">
@@ -2762,6 +2860,117 @@ if (typeof XLSX === 'undefined') {
     </div>
   </div>
 
+  <!-- CONTACTS -->
+  <div class="panel" id="panel-contacts" role="tabpanel" aria-labelledby="tab-contacts">
+    <div class="ct-toolbar">
+      <div class="ct-stage-tabs">
+        <button class="ct-stage-tab active" data-stage="all" onclick="ctSetStage('all')">All Partners</button>
+        <button class="ct-stage-tab" data-stage="interest" onclick="ctSetStage('interest')">Interest</button>
+        <button class="ct-stage-tab" data-stage="ipp" onclick="ctSetStage('ipp')">IPP</button>
+        <button class="ct-stage-tab" data-stage="new-license" onclick="ctSetStage('new-license')">New License</button>
+        <button class="ct-stage-tab" data-stage="renewal" onclick="ctSetStage('renewal')">Renewals</button>
+        <button class="ct-stage-tab" data-stage="cohort" onclick="ctSetStage('cohort')">Cohort</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
+        <button class="btn" onclick="openCtTemplateModal()" title="Edit stage templates" style="font-size:10px;padding:4px 10px;">⚙ Templates</button>
+        <button class="btn primary" onclick="openCtAddPartnerModal()" style="font-size:10px;padding:4px 10px;">+ Add Partner</button>
+      </div>
+    </div>
+    <div class="ct-split-wrap">
+      <div id="ctLeftPanel" class="ct-left-panel">
+        <div class="ct-left-header">
+          <input class="search-box" type="text" id="ctSearch" placeholder="Search partners..." oninput="renderContacts()" style="flex:1;font-size:11px;padding:5px 8px;">
+          <select class="filter-select" id="ctSort" onchange="renderContacts()" style="font-size:10px;padding:3px 6px;">
+            <option value="name">Name</option>
+            <option value="next-due">Next Due</option>
+            <option value="added">Recently Added</option>
+          </select>
+        </div>
+        <div id="ctPartnerList"></div>
+      </div>
+      <div id="ctRightPanel" class="ct-right-panel">
+        <div id="ctRightContent">
+          <div class="ct-empty-state">
+            <span style="font-size:28px;">👥</span>
+            <span style="font-size:13px;font-weight:600;">Partner Tracking</span>
+            <span style="font-size:11px;color:var(--text3);">Add a partner or select one from the list to see their journey.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CONTACTS: ADD/EDIT PARTNER MODAL -->
+<div class="modal-overlay" id="ctPartnerModal" style="display:none;">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header"><span id="ctPartnerModalTitle">Add Partner</span><button class="modal-close" onclick="closeCtPartnerModal()">×</button></div>
+    <div class="modal-body">
+      <label class="modal-label">Partner / Organization Name</label>
+      <input id="ctPartnerName" class="modal-input" placeholder="e.g. Fletcher Community College">
+      <label class="modal-label">Contact Person</label>
+      <input id="ctPartnerContact" class="modal-input" placeholder="Name">
+      <label class="modal-label">Email</label>
+      <input id="ctPartnerEmail" class="modal-input" type="email" placeholder="email@example.com">
+      <label class="modal-label">Phone</label>
+      <input id="ctPartnerPhone" class="modal-input" placeholder="555-1234">
+      <label class="modal-label">Starting Stage</label>
+      <select id="ctPartnerStage" class="modal-input" onchange="ctPartnerStageChanged()">
+        <option value="">— Select —</option>
+      </select>
+      <div id="ctPartnerAnchorWrap" style="display:none;">
+        <label class="modal-label"><span id="ctPartnerAnchorLabel">Anchor Date</span></label>
+        <input id="ctPartnerAnchor" class="modal-input" type="date">
+      </div>
+      <label class="modal-label">Notes</label>
+      <textarea id="ctPartnerNotes" class="modal-input" rows="2"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeCtPartnerModal()">Cancel</button>
+      <button class="btn primary" onclick="saveCtPartner()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACTS: ADD STAGE TO PARTNER MODAL -->
+<div class="modal-overlay" id="ctAddStageModal" style="display:none;">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header"><span>Add Stage</span><button class="modal-close" onclick="document.getElementById('ctAddStageModal').style.display='none'">×</button></div>
+    <div class="modal-body">
+      <label class="modal-label">Stage</label>
+      <select id="ctAddStageSelect" class="modal-input"></select>
+      <label class="modal-label">Anchor Date (e.g. renewal expiration)</label>
+      <input id="ctAddStageAnchor" class="modal-input" type="date">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="document.getElementById('ctAddStageModal').style.display='none'">Cancel</button>
+      <button class="btn primary" onclick="ctConfirmAddStage()">Add Stage</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACTS: TEMPLATE EDITOR MODAL -->
+<div class="modal-overlay" id="ctTemplateModal" style="display:none;">
+  <div class="modal" style="max-width:640px;max-height:85vh;">
+    <div class="modal-header"><span>Edit Stage Templates</span><button class="modal-close" onclick="document.getElementById('ctTemplateModal').style.display='none'">×</button></div>
+    <div class="modal-body" style="overflow-y:auto;max-height:65vh;">
+      <label class="modal-label">Stage</label>
+      <select id="ctTplStage" class="modal-input" onchange="ctRenderTemplateEditor()"></select>
+      <div style="margin-top:4px;display:flex;gap:6px;align-items:center;">
+        <label class="modal-label" style="margin:0;">Project</label>
+        <input id="ctTplProject" class="modal-input" style="width:80px;" placeholder="CWC">
+        <label class="modal-label" style="margin:0;">Sub-Code</label>
+        <input id="ctTplSubCode" class="modal-input" style="width:100px;" placeholder="e.g. Outreach">
+      </div>
+      <div id="ctTplTaskList" style="margin-top:10px;"></div>
+      <button class="btn" onclick="ctAddTemplateTask()" style="margin-top:8px;font-size:11px;">+ Add Template Task</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="document.getElementById('ctTemplateModal').style.display='none'">Cancel</button>
+      <button class="btn primary" onclick="ctSaveTemplate()">Save Template</button>
+    </div>
+  </div>
 </div>
 
 <!-- RESCHEDULE OCCURRENCE MODAL -->
@@ -3922,7 +4131,8 @@ const SYNC_KEYS = [
   'wt_theme', 'wt_api_key',
   'wt_dup_decisions', 'wt_stale_subcodes',
   'wt_onboarded', 'wt_xlsx_alloc_imported',
-  'wt_alloc_rollovers', 'wt_collapsed_task_sections'
+  'wt_alloc_rollovers', 'wt_collapsed_task_sections',
+  'wt_contacts', 'wt_contact_stages'
 ];
 
 async function cloudSave(key, data) {
@@ -4608,7 +4818,7 @@ function save(key, data) {
     showSyncToast('Local storage full — some changes may not be saved.', 'warn');
   }
   // Invalidate planned items cache when task/project data changes
-  if (key === 'wt_tasks' || key === 'wt_bigprojs') _invalidatePlannedCache();
+  if (key === 'wt_tasks' || key === 'wt_bigprojs' || key === 'wt_contacts') _invalidatePlannedCache();
   // Fire-and-forget cloud sync (non-blocking) with failure notification
   if (_supabase && _currentUser && SYNC_KEYS.includes(key)) {
     cloudSave(key, data).catch(err => {
@@ -5243,8 +5453,18 @@ function renderTasks() {
     });
   });
 
+  // Include contact tasks with due dates in My Tasks
+  if (typeof getContactTasks === 'function') {
+    getContactTasks().forEach(ct => {
+      if (ct.completed || !ct.due) return;
+      if (fProj !== 'all' && ct.project !== fProj) return;
+      if (search && !ct.name.toLowerCase().includes(search) && !ct._partnerName.toLowerCase().includes(search)) return;
+      allItems.push({ _type: 'contact', ct, _date: ct.due });
+    });
+  }
+
   const priorityOrder = { meeting: -1, urgent: 0, high: 1, med: 2, low: 3 };
-  const itemPri = i => i._type === 'task' ? priorityOrder[i.task.priority] : i._type === 'session' ? (priorityOrder[i.s.priority] ?? 2) : (priorityOrder[i.st.priority] ?? 2);
+  const itemPri = i => i._type === 'task' ? priorityOrder[i.task.priority] : i._type === 'contact' ? (priorityOrder[i.ct.priority] ?? 2) : i._type === 'session' ? (priorityOrder[i.s.priority] ?? 2) : (priorityOrder[i.st.priority] ?? 2);
   allItems.sort((a, b) => (a._date || 'zzz').localeCompare(b._date || 'zzz') || itemPri(a) - itemPri(b));
 
   // ── date helpers ──
@@ -5381,6 +5601,21 @@ function renderTasks() {
           <div class="timer-btn${stRunning ? ' running' : ''}" onclick="${stRunning ? `stopSubtaskTimer('${proj.id}','${s.id}','${st.id}')` : `startSubtaskTimer('${proj.id}','${s.id}','${st.id}')`}" title="${stRunning ? 'Stop' : 'Start'} timer">${stRunning ? '⏹' : '▶'}</div>
           <div class="row-del-btn" onclick="event.stopPropagation();deleteSubtask('${proj.id}','${s.id}','${st.id}')" title="Delete subtask">×</div>
         </div>`;
+    } else if (item._type === 'contact') {
+      const ct = item.ct;
+      const dc = dueCls(ct.due);
+      const pColor = projColor(ct.project);
+      row.className = 'task-row';
+      row.innerHTML = `
+        <div class="task-check${ct.completed ? ' done' : ''}" onclick="ctCompleteTask('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}',${!ct.completed})" style="cursor:pointer;"></div>
+        <div class="project-dot" style="background:${pColor};" title="${projLabel(ct.project)}"></div>
+        <div class="task-name">${escHtml(ct.name)} <span style="font-size:10px;color:var(--text3);font-style:italic;">${escHtml(ct._partnerName)}</span></div>
+        <div class="task-recur-actions"></div>
+        <span class="task-category" style="color:var(--text3);font-style:italic;">${escHtml(ct._stageName)}</span>
+        <div>${priorityBadge(ct.priority || 'med')}</div>
+        <div class="task-due ${dc}">${fmtDate(ct.due)}</div>
+        <div class="task-est">${ct.est ? ct.est + 'h' : '—'}</div>
+        <div></div>`;
     }
     return row;
   }
@@ -5390,20 +5625,20 @@ function renderTasks() {
     sorted.sort((a, b) => {
       let va, vb;
       if (sortKey === 'priority') {
-        va = a._type === 'task' ? priorityOrder[a.task.priority] : a._type === 'session' ? (priorityOrder[a.s.priority] ?? 2) : (priorityOrder[a.st.priority] ?? 2);
-        vb = b._type === 'task' ? priorityOrder[b.task.priority] : b._type === 'session' ? (priorityOrder[b.s.priority] ?? 2) : (priorityOrder[b.st.priority] ?? 2);
+        va = a._type === 'task' ? priorityOrder[a.task.priority] : a._type === 'contact' ? (priorityOrder[a.ct.priority] ?? 2) : a._type === 'session' ? (priorityOrder[a.s.priority] ?? 2) : (priorityOrder[a.st.priority] ?? 2);
+        vb = b._type === 'task' ? priorityOrder[b.task.priority] : b._type === 'contact' ? (priorityOrder[b.ct.priority] ?? 2) : b._type === 'session' ? (priorityOrder[b.s.priority] ?? 2) : (priorityOrder[b.st.priority] ?? 2);
       } else if (sortKey === 'project') {
-        va = a._type === 'task' ? (a.task.project || '') : (a.proj?.project || '');
-        vb = b._type === 'task' ? (b.task.project || '') : (b.proj?.project || '');
+        va = a._type === 'task' ? (a.task.project || '') : a._type === 'contact' ? (a.ct.project || '') : (a.proj?.project || '');
+        vb = b._type === 'task' ? (b.task.project || '') : b._type === 'contact' ? (b.ct.project || '') : (b.proj?.project || '');
       } else if (sortKey === 'est') {
-        va = a._type === 'task' ? (a.task.est || 0) : a._type === 'session' ? (a.s.hours || 0) : (a.st.hours || 0);
-        vb = b._type === 'task' ? (b.task.est || 0) : b._type === 'session' ? (b.s.hours || 0) : (b.st.hours || 0);
+        va = a._type === 'task' ? (a.task.est || 0) : a._type === 'contact' ? (a.ct.est || 0) : a._type === 'session' ? (a.s.hours || 0) : (a.st.hours || 0);
+        vb = b._type === 'task' ? (b.task.est || 0) : b._type === 'contact' ? (b.ct.est || 0) : b._type === 'session' ? (b.s.hours || 0) : (b.st.hours || 0);
       } else if (sortKey === 'due') {
         va = a._date || 'zzz';
         vb = b._date || 'zzz';
       } else if (sortKey === 'name') {
-        va = (a._type === 'task' ? a.task.name : a._type === 'session' ? a.s.desc : a.st.desc).toLowerCase();
-        vb = (b._type === 'task' ? b.task.name : b._type === 'session' ? b.s.desc : b.st.desc).toLowerCase();
+        va = (a._type === 'task' ? a.task.name : a._type === 'contact' ? a.ct.name : a._type === 'session' ? a.s.desc : a.st.desc).toLowerCase();
+        vb = (b._type === 'task' ? b.task.name : b._type === 'contact' ? b.ct.name : b._type === 'session' ? b.s.desc : b.st.desc).toLowerCase();
       } else {
         return 0;
       }
@@ -5427,7 +5662,7 @@ function renderTasks() {
     section.className = 'task-group';
     const sectionId = 'tg_' + label.replace(/[^a-zA-Z0-9]/g, '_');
     section.id = sectionId;
-    const est = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+    const est = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'contact' ? (i.ct.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
     let capHtml = '';
     if (dayCap && sectionDates) {
       const logged = loggedHoursForDates(sectionDates);
@@ -5546,7 +5781,7 @@ function renderTasks() {
       hasAny = true;
       const weekWrapper = document.createElement('div');
       weekWrapper.className = 'task-group';
-      const wkEst = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+      const wkEst = items.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'contact' ? (i.ct.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
 
       // Week header with capacity bar
       let wkCapHtml = '';
@@ -5598,7 +5833,7 @@ function renderTasks() {
         // Day sub-header with capacity bar
         const dayHeader = document.createElement('div');
         dayHeader.className = 'week-day-sub-header';
-        const dayEst = dayItems.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
+        const dayEst = dayItems.reduce((a, i) => a + (i._type === 'task' ? (i.task.est || 0) : i._type === 'contact' ? (i.ct.est || 0) : i._type === 'session' ? (i.s.hours || 0) : (i.st.hours || 0)), 0);
         const dayLogged = loggedHoursForDates([d]);
 
         let dayCapBar = '';
@@ -7806,6 +8041,10 @@ function plannedItems(fromDate, toDate) {
       });
     });
   });
+  // Include contact/partner tasks
+  if (typeof ctPlannedItems === 'function') {
+    items.push(...ctPlannedItems(fromDate, toDate));
+  }
   return items;
 }
 
@@ -9910,6 +10149,7 @@ function _switchTab(tab) {
   else if (t === 'team') renderTeam();
   else if (t === 'timesheet') renderTimesheet();
   else if (t === 'allocations') renderAllocations();
+  else if (t === 'contacts') renderContacts();
   updateHeaderMeta();
   // Update help panel context if open
   if (document.getElementById('helpPanel')?.classList.contains('open')) _updateHelpContext();
@@ -11720,6 +11960,627 @@ function confirmImport() {
   }
 }
 
+// =============================================
+// CONTACTS TAB
+// =============================================
+
+const CT_STAGE_COLORS = {
+  'interest': '#3b82f6', 'ipp': '#8b5cf6', 'new-license': '#06b6d4',
+  'renewal': '#f59e0b', 'cohort': '#10b981'
+};
+const CT_STAGE_LABELS = {
+  'interest': 'Interest Meeting', 'ipp': 'IPP Enrollment', 'new-license': 'New License',
+  'renewal': 'License Renewal', 'cohort': 'Cohort in Progress'
+};
+const CT_ANCHOR_LABELS = {
+  'interest': 'Meeting Date', 'ipp': 'Enrollment Date', 'new-license': 'Target Date',
+  'renewal': 'Renewal Expiration Date', 'cohort': 'Cohort Start Date'
+};
+
+let contactStages = load('wt_contact_stages', [
+  { id: 'interest', label: 'Interest Meeting', subCode: 'Outreach', project: 'CWC', tasks: [] },
+  { id: 'ipp', label: 'IPP Enrollment', subCode: 'IPP', project: 'CWC', tasks: [] },
+  { id: 'new-license', label: 'New License', subCode: 'IPP', project: 'CWC', tasks: [] },
+  { id: 'renewal', label: 'License Renewal', subCode: 'Cohort', project: 'CWC', tasks: [] },
+  { id: 'cohort', label: 'Cohort in Progress', subCode: 'Cohort', project: 'CWC', tasks: [] }
+]);
+let contacts = load('wt_contacts', []);
+let _ctActiveStage = 'all';
+let _ctSelectedPartner = null;
+let _ctEditingPartnerId = null;
+let _ctExpandedStages = new Set();
+
+function ctGetStage(id) { return contactStages.find(s => s.id === id); }
+
+function ctNextTask(partner) {
+  let earliest = null;
+  for (const sid in partner.stages) {
+    const st = partner.stages[sid];
+    if (!st.active) continue;
+    for (const t of st.tasks) {
+      if (t.completed) continue;
+      if (t.due && (!earliest || t.due < earliest.due)) earliest = t;
+    }
+  }
+  return earliest;
+}
+
+function ctPartnerHasStage(partner, stageId) {
+  return partner.stages && partner.stages[stageId] && partner.stages[stageId].active;
+}
+
+function ctStageProgress(partner, stageId) {
+  const st = partner.stages?.[stageId];
+  if (!st) return { done: 0, total: 0 };
+  const total = st.tasks.length;
+  const done = st.tasks.filter(t => t.completed).length;
+  return { done, total };
+}
+
+// Set active stage filter tab
+function ctSetStage(stage) {
+  _ctActiveStage = stage;
+  document.querySelectorAll('.ct-stage-tab').forEach(b => b.classList.toggle('active', b.dataset.stage === stage));
+  renderContacts();
+}
+
+// Get all contact tasks as flat array (for My Tasks / Timesheet integration)
+function getContactTasks() {
+  const out = [];
+  contacts.forEach(c => {
+    for (const sid in c.stages) {
+      const st = c.stages[sid];
+      if (!st.active) continue;
+      const stageDef = ctGetStage(sid);
+      if (!stageDef) continue;
+      st.tasks.forEach(t => {
+        out.push({
+          id: '_ct_' + c.id + '_' + sid + '_' + t.id,
+          _contactId: c.id, _stageId: sid, _ctTaskId: t.id,
+          name: t.name, project: stageDef.project || 'CWC',
+          subCode: stageDef.subCode || '', priority: t.priority || 'med',
+          due: t.due || null, est: t.est || 0, notes: t.notes || '',
+          waiting: t.waiting || '', delegatedTo: t.delegatedTo || null,
+          completed: t.completed || false, dateCompleted: t.dateCompleted || null,
+          actualHours: t.actualHours || 0, timer: 0, timerStart: null,
+          _partnerName: c.name, _stageName: stageDef.label,
+          _isContactTask: true
+        });
+      });
+    }
+  });
+  return out;
+}
+
+// Find and update a contact task by composite ID
+function ctFindTask(compositeId) {
+  const m = compositeId.match(/^_ct_(.+?)_(.+?)_(.+)$/);
+  if (!m) return null;
+  const [, cId, sId, tId] = m;
+  const c = contacts.find(c => c.id === cId);
+  if (!c || !c.stages[sId]) return null;
+  const t = c.stages[sId].tasks.find(t => t.id === tId);
+  return t ? { contact: c, stageId: sId, task: t } : null;
+}
+
+function ctCompleteTask(contactId, stageId, taskId, completed) {
+  const c = contacts.find(c => c.id === contactId);
+  if (!c || !c.stages[stageId]) return;
+  const t = c.stages[stageId].tasks.find(t => t.id === taskId);
+  if (!t) return;
+  t.completed = completed;
+  t.dateCompleted = completed ? today() : null;
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
+
+// =============================================
+// CONTACTS: RENDERING
+// =============================================
+
+function renderContacts() {
+  const search = (document.getElementById('ctSearch')?.value || '').toLowerCase();
+  const sort = document.getElementById('ctSort')?.value || 'name';
+  const list = document.getElementById('ctPartnerList');
+  if (!list) return;
+
+  // Filter partners
+  let visible = contacts.filter(c => {
+    if (search && !c.name.toLowerCase().includes(search) && !(c.contactName || '').toLowerCase().includes(search)) return false;
+    if (_ctActiveStage !== 'all' && !ctPartnerHasStage(c, _ctActiveStage)) return false;
+    return true;
+  });
+
+  // Sort
+  if (sort === 'name') visible.sort((a, b) => a.name.localeCompare(b.name));
+  else if (sort === 'next-due') {
+    visible.sort((a, b) => {
+      const aN = ctNextTask(a), bN = ctNextTask(b);
+      if (!aN && !bN) return a.name.localeCompare(b.name);
+      if (!aN) return 1; if (!bN) return -1;
+      return (aN.due || '9999') < (bN.due || '9999') ? -1 : 1;
+    });
+  } else if (sort === 'added') {
+    visible.sort((a, b) => (b._addedDate || '') > (a._addedDate || '') ? 1 : -1);
+  }
+
+  // Render left panel list
+  list.innerHTML = visible.length === 0
+    ? '<div style="padding:20px;text-align:center;font-size:11px;color:var(--text3);">No partners found</div>'
+    : visible.map(c => {
+      const next = ctNextTask(c);
+      const stageDots = Object.keys(c.stages || {}).filter(s => c.stages[s].active).map(s =>
+        `<span class="ct-partner-stage-dot" style="background:${CT_STAGE_COLORS[s] || 'var(--text3)'}" title="${CT_STAGE_LABELS[s] || s}"></span>`
+      ).join('');
+      const nextLabel = next ? (next.due ? fmtDate(next.due) : 'No date') : 'All done';
+      return `<div class="ct-partner-item${_ctSelectedPartner === c.id ? ' active' : ''}" onclick="ctSelectPartner('${c.id}')">
+        <div style="flex:1;min-width:0;">
+          <div class="ct-partner-name">${escHtml(c.name)}</div>
+          <div class="ct-partner-meta">${nextLabel} · <span class="ct-partner-stage-dots">${stageDots}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+
+  // Render right panel
+  ctRenderRightPanel();
+}
+
+function ctSelectPartner(id) {
+  _ctSelectedPartner = _ctSelectedPartner === id ? null : id;
+  renderContacts();
+}
+
+function ctRenderRightPanel() {
+  const panel = document.getElementById('ctRightContent');
+  if (!panel) return;
+
+  // If "All" stage is selected and no partner selected, show grid view
+  if (_ctActiveStage === 'all' && !_ctSelectedPartner) {
+    ctRenderAllGrid(panel);
+    return;
+  }
+
+  const partner = contacts.find(c => c.id === _ctSelectedPartner);
+  if (!partner) {
+    panel.innerHTML = `<div class="ct-empty-state">
+      <span style="font-size:28px;">👤</span>
+      <span style="font-size:11px;color:var(--text3);">Select a partner from the list</span>
+    </div>`;
+    return;
+  }
+
+  ctRenderProfile(panel, partner);
+}
+
+function ctRenderAllGrid(panel) {
+  // Gather all tasks across all partners
+  const allTasks = [];
+  contacts.forEach(c => {
+    for (const sid in c.stages) {
+      const st = c.stages[sid];
+      if (!st.active) continue;
+      st.tasks.forEach(t => {
+        if (!t.completed) {
+          allTasks.push({ partner: c.name, partnerId: c.id, stage: CT_STAGE_LABELS[sid] || sid, stageId: sid,
+            stageColor: CT_STAGE_COLORS[sid] || '#888', task: t });
+        }
+      });
+    }
+  });
+  allTasks.sort((a, b) => (a.task.due || '9999').localeCompare(b.task.due || '9999'));
+
+  if (!allTasks.length) {
+    panel.innerHTML = '<div class="ct-empty-state"><span style="font-size:20px;">✓</span><span>No outstanding tasks across partners</span></div>';
+    return;
+  }
+
+  panel.innerHTML = `<div class="ct-all-grid">
+    <table class="ct-all-table">
+      <thead><tr><th>Partner</th><th>Stage</th><th>Task</th><th>Due</th><th>Priority</th><th>Est</th></tr></thead>
+      <tbody>${allTasks.map(r => `<tr onclick="ctSelectPartner('${r.partnerId}')" style="cursor:pointer;">
+        <td style="font-weight:600;">${escHtml(r.partner)}</td>
+        <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${r.stageColor};margin-right:4px;"></span>${escHtml(r.stage)}</td>
+        <td>${escHtml(r.task.name)}</td>
+        <td style="font-size:10px;color:var(--text3);">${r.task.due ? fmtDate(r.task.due) : '—'}</td>
+        <td>${r.task.priority ? priorityBadge(r.task.priority) : ''}</td>
+        <td style="font-size:10px;color:var(--text3);">${r.task.est ? r.task.est + 'h' : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+
+function ctRenderProfile(panel, partner) {
+  const initials = partner.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const contactParts = [];
+  if (partner.contactName) contactParts.push(escHtml(partner.contactName));
+  if (partner.email) contactParts.push(`<a href="mailto:${escHtml(partner.email)}">${escHtml(partner.email)}</a>`);
+  if (partner.phone) contactParts.push(escHtml(partner.phone));
+
+  let stagesHtml = '';
+  const stageIds = Object.keys(partner.stages || {}).filter(s => partner.stages[s].active);
+  stageIds.forEach(sid => {
+    const stageDef = ctGetStage(sid);
+    const st = partner.stages[sid];
+    const prog = ctStageProgress(partner, sid);
+    const isExpanded = _ctExpandedStages.has(sid);
+    const color = CT_STAGE_COLORS[sid] || '#888';
+    const anchorLabel = st.anchorDate ? `Anchor: ${fmtDate(st.anchorDate)}` : '';
+
+    stagesHtml += `<div class="ct-stage-section">
+      <div class="ct-stage-header" onclick="_ctToggleStage('${sid}')">
+        <span class="ct-stage-badge" style="background:${color}22;color:${color};border:1px solid ${color}44;">${CT_STAGE_LABELS[sid] || sid}</span>
+        <span style="font-size:10px;color:var(--text3);">${anchorLabel}</span>
+        <span class="ct-stage-progress">${prog.done}/${prog.total} done</span>
+        <span class="ct-stage-chevron${isExpanded ? ' open' : ''}">›</span>
+      </div>`;
+
+    if (isExpanded) {
+      stagesHtml += st.tasks.map(t => {
+        const pri = t.priority ? priorityBadge(t.priority) : '';
+        return `<div class="ct-task-row">
+          <div class="ct-task-check${t.completed ? ' done' : ''}" onclick="event.stopPropagation();ctCompleteTask('${partner.id}','${sid}','${t.id}',${!t.completed})">${t.completed ? '✓' : ''}</div>
+          <span class="ct-task-name${t.completed ? ' done' : ''}">${escHtml(t.name)}</span>
+          <span class="ct-task-date">${t.due ? fmtDate(t.due) : '<span style="opacity:0.4">No date</span>'}</span>
+          ${pri}
+          <span class="ct-task-hrs">${t.est ? t.est + 'h' : ''}</span>
+          <span style="cursor:pointer;font-size:11px;opacity:0.5;" onclick="event.stopPropagation();ctEditTaskInline('${partner.id}','${sid}','${t.id}')" title="Edit">✎</span>
+        </div>`;
+      }).join('');
+      stagesHtml += `<div style="padding:6px 14px;border-top:1px solid var(--border);">
+        <button class="btn" onclick="ctAddTaskToStage('${partner.id}','${sid}')" style="font-size:10px;padding:2px 8px;">+ Add Task</button>
+        <button class="btn" onclick="ctSetAnchorDate('${partner.id}','${sid}')" style="font-size:10px;padding:2px 8px;">📅 Set Anchor</button>
+        <button class="btn" onclick="ctApplyAnchorDates('${partner.id}','${sid}')" style="font-size:10px;padding:2px 8px;" title="Recalculate all task dates from anchor">↻ Apply Dates</button>
+      </div>`;
+    }
+    stagesHtml += '</div>';
+  });
+
+  // Available stages to add
+  const availableStages = contactStages.filter(s => !stageIds.includes(s.id));
+
+  panel.innerHTML = `<div class="ct-profile">
+    <div class="ct-profile-header">
+      <div class="ct-profile-avatar">${initials}</div>
+      <div class="ct-profile-info">
+        <div class="ct-profile-name">${escHtml(partner.name)}</div>
+        <div class="ct-profile-contact">${contactParts.join(' · ') || '<span style="opacity:0.4">No contact info</span>'}</div>
+        ${partner.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">${escHtml(partner.notes)}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn" onclick="ctEditPartner('${partner.id}')" style="font-size:10px;padding:3px 8px;">✎ Edit</button>
+        <button class="btn" onclick="ctDeletePartner('${partner.id}')" style="font-size:10px;padding:3px 8px;color:var(--danger);border-color:var(--danger);">× Delete</button>
+      </div>
+    </div>
+    ${stagesHtml}
+    ${availableStages.length ? `<button class="btn" onclick="ctOpenAddStageModal('${partner.id}')" style="font-size:11px;padding:4px 12px;margin-top:8px;">+ Add Stage</button>` : ''}
+  </div>`;
+}
+
+function _ctToggleStage(sid) {
+  if (_ctExpandedStages.has(sid)) _ctExpandedStages.delete(sid);
+  else _ctExpandedStages.add(sid);
+  renderContacts();
+}
+
+
+// =============================================
+// CONTACTS: PARTNER MANAGEMENT
+// =============================================
+
+function openCtAddPartnerModal() {
+  _ctEditingPartnerId = null;
+  document.getElementById('ctPartnerModalTitle').textContent = 'Add Partner';
+  document.getElementById('ctPartnerName').value = '';
+  document.getElementById('ctPartnerContact').value = '';
+  document.getElementById('ctPartnerEmail').value = '';
+  document.getElementById('ctPartnerPhone').value = '';
+  document.getElementById('ctPartnerNotes').value = '';
+  const sel = document.getElementById('ctPartnerStage');
+  sel.innerHTML = '<option value="">— Select Stage —</option>' +
+    contactStages.map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
+  sel.value = '';
+  document.getElementById('ctPartnerAnchorWrap').style.display = 'none';
+  document.getElementById('ctPartnerAnchor').value = '';
+  document.getElementById('ctPartnerModal').style.display = 'flex';
+}
+
+function ctEditPartner(id) {
+  const c = contacts.find(c => c.id === id);
+  if (!c) return;
+  _ctEditingPartnerId = id;
+  document.getElementById('ctPartnerModalTitle').textContent = 'Edit Partner';
+  document.getElementById('ctPartnerName').value = c.name;
+  document.getElementById('ctPartnerContact').value = c.contactName || '';
+  document.getElementById('ctPartnerEmail').value = c.email || '';
+  document.getElementById('ctPartnerPhone').value = c.phone || '';
+  document.getElementById('ctPartnerNotes').value = c.notes || '';
+  const sel = document.getElementById('ctPartnerStage');
+  sel.innerHTML = '<option value="">— No Change —</option>' +
+    contactStages.filter(s => !ctPartnerHasStage(c, s.id)).map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
+  sel.value = '';
+  document.getElementById('ctPartnerAnchorWrap').style.display = 'none';
+  document.getElementById('ctPartnerModal').style.display = 'flex';
+}
+
+function ctPartnerStageChanged() {
+  const sid = document.getElementById('ctPartnerStage').value;
+  const wrap = document.getElementById('ctPartnerAnchorWrap');
+  if (sid) {
+    wrap.style.display = '';
+    document.getElementById('ctPartnerAnchorLabel').textContent = CT_ANCHOR_LABELS[sid] || 'Anchor Date';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function closeCtPartnerModal() {
+  document.getElementById('ctPartnerModal').style.display = 'none';
+  _ctEditingPartnerId = null;
+}
+
+function saveCtPartner() {
+  const name = document.getElementById('ctPartnerName').value.trim();
+  if (!name) return;
+  const contactName = document.getElementById('ctPartnerContact').value.trim();
+  const email = document.getElementById('ctPartnerEmail').value.trim();
+  const phone = document.getElementById('ctPartnerPhone').value.trim();
+  const notes = document.getElementById('ctPartnerNotes').value.trim();
+  const stageId = document.getElementById('ctPartnerStage').value;
+  const anchorDate = document.getElementById('ctPartnerAnchor').value || null;
+
+  if (_ctEditingPartnerId) {
+    // Edit existing
+    const c = contacts.find(c => c.id === _ctEditingPartnerId);
+    if (c) {
+      c.name = name; c.contactName = contactName; c.email = email; c.phone = phone; c.notes = notes;
+      if (stageId) ctAddStageToPartner(c, stageId, anchorDate);
+    }
+  } else {
+    // Create new
+    const c = { id: uid(), name, contactName, email, phone, notes, stages: {}, _addedDate: today() };
+    if (stageId) ctAddStageToPartner(c, stageId, anchorDate);
+    contacts.push(c);
+    _ctSelectedPartner = c.id;
+  }
+
+  save('wt_contacts', contacts);
+  closeCtPartnerModal();
+  renderContacts();
+}
+
+function ctAddStageToPartner(partner, stageId, anchorDate) {
+  const stageDef = ctGetStage(stageId);
+  if (!stageDef) return;
+  // Clone template tasks
+  const tasks = (stageDef.tasks || []).map(t => ({
+    id: uid(), name: t.name, est: t.est || 0, priority: t.priority || 'med',
+    due: null, delegatedTo: t.delegatedTo || null, notes: t.notes || '',
+    waiting: '', completed: false, dateCompleted: null, actualHours: 0,
+    offsetDays: t.offsetDays || 0
+  }));
+  partner.stages[stageId] = { active: true, anchorDate: anchorDate || null, addedDate: today(), tasks };
+  // Auto-calc dates if anchor provided
+  if (anchorDate) ctCalcDatesFromAnchor(partner, stageId);
+  _ctExpandedStages.add(stageId);
+}
+
+function ctCalcDatesFromAnchor(partner, stageId) {
+  const st = partner.stages[stageId];
+  if (!st || !st.anchorDate) return;
+  st.tasks.forEach(t => {
+    if (t.offsetDays !== undefined && t.offsetDays !== null) {
+      t.due = addDays(st.anchorDate, t.offsetDays);
+    }
+  });
+}
+
+function ctDeletePartner(id) {
+  if (!confirm('Delete this partner and all their tasks?')) return;
+  contacts = contacts.filter(c => c.id !== id);
+  if (_ctSelectedPartner === id) _ctSelectedPartner = null;
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
+
+// =============================================
+// CONTACTS: STAGE MANAGEMENT
+// =============================================
+
+function ctOpenAddStageModal(partnerId) {
+  _ctEditingPartnerId = partnerId;
+  const c = contacts.find(c => c.id === partnerId);
+  if (!c) return;
+  const sel = document.getElementById('ctAddStageSelect');
+  sel.innerHTML = contactStages.filter(s => !ctPartnerHasStage(c, s.id))
+    .map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
+  document.getElementById('ctAddStageAnchor').value = '';
+  document.getElementById('ctAddStageModal').style.display = 'flex';
+}
+
+function ctConfirmAddStage() {
+  const stageId = document.getElementById('ctAddStageSelect').value;
+  const anchor = document.getElementById('ctAddStageAnchor').value || null;
+  const c = contacts.find(c => c.id === _ctEditingPartnerId);
+  if (!c || !stageId) return;
+  ctAddStageToPartner(c, stageId, anchor);
+  save('wt_contacts', contacts);
+  document.getElementById('ctAddStageModal').style.display = 'none';
+  renderContacts();
+}
+
+function ctSetAnchorDate(partnerId, stageId) {
+  const c = contacts.find(c => c.id === partnerId);
+  if (!c || !c.stages[stageId]) return;
+  const current = c.stages[stageId].anchorDate || '';
+  const label = CT_ANCHOR_LABELS[stageId] || 'Anchor Date';
+  const val = prompt(`${label} (YYYY-MM-DD):`, current);
+  if (val === null) return;
+  c.stages[stageId].anchorDate = val || null;
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
+function ctApplyAnchorDates(partnerId, stageId) {
+  const c = contacts.find(c => c.id === partnerId);
+  if (!c || !c.stages[stageId]) return;
+  if (!c.stages[stageId].anchorDate) { alert('Set an anchor date first.'); return; }
+  ctCalcDatesFromAnchor(c, stageId);
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
+function ctAddTaskToStage(partnerId, stageId) {
+  const c = contacts.find(c => c.id === partnerId);
+  if (!c || !c.stages[stageId]) return;
+  const name = prompt('Task name:');
+  if (!name) return;
+  c.stages[stageId].tasks.push({
+    id: uid(), name, est: 0, priority: 'med', due: null,
+    delegatedTo: null, notes: '', waiting: '', completed: false,
+    dateCompleted: null, actualHours: 0, offsetDays: 0
+  });
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
+function ctEditTaskInline(partnerId, stageId, taskId) {
+  const c = contacts.find(c => c.id === partnerId);
+  if (!c || !c.stages[stageId]) return;
+  const t = c.stages[stageId].tasks.find(t => t.id === taskId);
+  if (!t) return;
+  const name = prompt('Task name:', t.name);
+  if (name === null) return;
+  t.name = name || t.name;
+  const due = prompt('Due date (YYYY-MM-DD):', t.due || '');
+  if (due !== null) t.due = due || null;
+  const est = prompt('Estimated hours:', t.est || 0);
+  if (est !== null) t.est = parseFloat(est) || 0;
+  const offset = prompt('Offset days from anchor (negative = before, e.g. -60):', t.offsetDays || 0);
+  if (offset !== null) t.offsetDays = parseInt(offset) || 0;
+  const pri = prompt('Priority (urgent/high/med/low):', t.priority || 'med');
+  if (pri !== null && ['urgent','high','med','low'].includes(pri)) t.priority = pri;
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
+
+// =============================================
+// CONTACTS: TEMPLATE EDITOR
+// =============================================
+
+function openCtTemplateModal() {
+  const sel = document.getElementById('ctTplStage');
+  sel.innerHTML = contactStages.map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
+  ctRenderTemplateEditor();
+  document.getElementById('ctTemplateModal').style.display = 'flex';
+}
+
+function ctRenderTemplateEditor() {
+  const sid = document.getElementById('ctTplStage').value;
+  const stage = ctGetStage(sid);
+  if (!stage) return;
+  document.getElementById('ctTplProject').value = stage.project || 'CWC';
+  document.getElementById('ctTplSubCode').value = stage.subCode || '';
+  const list = document.getElementById('ctTplTaskList');
+  list.innerHTML = '<div style="display:grid;grid-template-columns:1fr 60px 70px 70px 30px;gap:6px;padding:4px 0;font-size:10px;font-weight:600;color:var(--text3);">' +
+    '<span>Task Name</span><span>Est (h)</span><span>Priority</span><span>Offset Days</span><span></span></div>';
+  (stage.tasks || []).forEach((t, i) => {
+    list.innerHTML += `<div class="ct-tpl-task" data-idx="${i}">
+      <input class="modal-input" value="${escHtml(t.name)}" data-field="name" style="font-size:11px;padding:4px 6px;">
+      <input class="modal-input" type="number" value="${t.est || 0}" data-field="est" style="font-size:11px;padding:4px 6px;" step="0.25">
+      <select class="modal-input" data-field="priority" style="font-size:11px;padding:4px 6px;">
+        <option value="urgent"${t.priority === 'urgent' ? ' selected' : ''}>Urgent</option>
+        <option value="high"${t.priority === 'high' ? ' selected' : ''}>High</option>
+        <option value="med"${t.priority === 'med' || !t.priority ? ' selected' : ''}>Med</option>
+        <option value="low"${t.priority === 'low' ? ' selected' : ''}>Low</option>
+      </select>
+      <input class="modal-input" type="number" value="${t.offsetDays || 0}" data-field="offsetDays" style="font-size:11px;padding:4px 6px;" title="Days relative to anchor date (negative = before)">
+      <span style="cursor:pointer;color:var(--danger);font-size:14px;" onclick="ctRemoveTemplateTask(${i})" title="Remove">×</span>
+    </div>`;
+  });
+}
+
+function ctAddTemplateTask() {
+  const sid = document.getElementById('ctTplStage').value;
+  const stage = ctGetStage(sid);
+  if (!stage) return;
+  if (!stage.tasks) stage.tasks = [];
+  stage.tasks.push({ id: uid(), name: 'New task', est: 0, priority: 'med', offsetDays: 0, delegatedTo: null, notes: '' });
+  ctRenderTemplateEditor();
+}
+
+function ctRemoveTemplateTask(idx) {
+  const sid = document.getElementById('ctTplStage').value;
+  const stage = ctGetStage(sid);
+  if (!stage || !stage.tasks) return;
+  stage.tasks.splice(idx, 1);
+  ctRenderTemplateEditor();
+}
+
+function ctSaveTemplate() {
+  const sid = document.getElementById('ctTplStage').value;
+  const stage = ctGetStage(sid);
+  if (!stage) return;
+  stage.project = document.getElementById('ctTplProject').value.trim() || 'CWC';
+  stage.subCode = document.getElementById('ctTplSubCode').value.trim() || '';
+  // Read task rows
+  const rows = document.querySelectorAll('#ctTplTaskList .ct-tpl-task');
+  const tasks = [];
+  rows.forEach(row => {
+    const name = row.querySelector('[data-field="name"]').value.trim();
+    if (!name) return;
+    const est = parseFloat(row.querySelector('[data-field="est"]').value) || 0;
+    const priority = row.querySelector('[data-field="priority"]').value || 'med';
+    const offsetDays = parseInt(row.querySelector('[data-field="offsetDays"]').value) || 0;
+    const oldTask = stage.tasks[+row.dataset.idx] || {};
+    tasks.push({ id: oldTask.id || uid(), name, est, priority, offsetDays, delegatedTo: oldTask.delegatedTo || null, notes: oldTask.notes || '' });
+  });
+  stage.tasks = tasks;
+  save('wt_contact_stages', contactStages);
+  document.getElementById('ctTemplateModal').style.display = 'none';
+  renderContacts();
+}
+
+
+// =============================================
+// CONTACTS: INTEGRATION WITH MY TASKS + TIMESHEET
+// =============================================
+
+// Called from plannedItems() to include contact tasks in timesheet
+function ctPlannedItems(fromDate, toDate) {
+  const items = [];
+  contacts.forEach(c => {
+    for (const sid in c.stages) {
+      const st = c.stages[sid];
+      if (!st.active) continue;
+      const stageDef = ctGetStage(sid);
+      if (!stageDef) continue;
+      st.tasks.forEach(t => {
+        if (t.completed || !t.due) return;
+        if (t.due >= fromDate && t.due <= toDate) {
+          items.push({
+            id: '_ct_' + c.id + '_' + sid + '_' + t.id,
+            name: c.name + ': ' + t.name,
+            project: stageDef.project || 'CWC',
+            date: t.due,
+            hours: t.est || 0,
+            subCode: stageDef.subCode || '',
+            _planned: true,
+            _src: 'contact',
+            _contactId: c.id,
+            _stageId: sid
+          });
+        }
+      });
+    }
+  });
+  return items;
+}
+
 </script>
 </body>
 </html>
+
