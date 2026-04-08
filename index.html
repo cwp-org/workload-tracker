@@ -7536,6 +7536,8 @@ function tsPeriodNext() {
 
 function tsPeriodToday() {
   tsAnchor = today();
+  // Re-expand current week so it's visible
+  _tsCurrentWeekAutoExpanded = false;
   renderTimesheet();
 }
 
