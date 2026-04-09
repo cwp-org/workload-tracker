@@ -5570,7 +5570,7 @@ function renderTasks() {
       }
     } catch(e) {
       // Fallback: show task as single item if occurrence generation fails
-      allItems.push({ _type: 'task', task: t, _date: t.due || null, _occurrenceDate: t.due });
+      allItems.push({ _type: 'task', task: t, _date: t.due || (t.allocMonth ? t.allocMonth + '-01' : null), _occurrenceDate: t.due });
     }
   });
   bigProjs.forEach(proj => {
@@ -5580,13 +5580,13 @@ function renderTasks() {
       const delegatees = normDelegated(s.delegatedTo);
       if (delegatees.length && !delegatees.includes('Me')) return;
       if (search && !s.desc.toLowerCase().includes(search) && !proj.name.toLowerCase().includes(search)) return;
-      allItems.push({ _type: 'session', s, proj, _date: s.date || null });
+      allItems.push({ _type: 'session', s, proj, _date: s.date || (s.allocMonth ? s.allocMonth + '-01' : null) });
       (s.subtasks || []).forEach(st => {
         if (st.done) return;
         const stDel = normDelegated(st.delegatedTo);
         if (stDel.length && !stDel.includes('Me')) return;
         if (search && !st.desc.toLowerCase().includes(search)) return;
-        allItems.push({ _type: 'subtask', st, s, proj, _date: st.date || null });
+        allItems.push({ _type: 'subtask', st, s, proj, _date: st.date || (st.allocMonth ? st.allocMonth + '-01' : null) });
       });
     });
   });
@@ -5597,7 +5597,7 @@ function renderTasks() {
       if (ct.completed || !ct.due) return;
       if (fProj !== 'all' && ct.project !== fProj) return;
       if (search && !ct.name.toLowerCase().includes(search) && !ct._partnerName.toLowerCase().includes(search)) return;
-      allItems.push({ _type: 'contact', ct, _date: ct.due });
+      allItems.push({ _type: 'contact', ct, _date: ct.due || (ct.allocMonth ? ct.allocMonth + '-01' : null) });
     });
   }
 
@@ -7019,7 +7019,7 @@ function renderProjCodeContent(projKey) {
     projTasks.forEach(t => {
       const tsc = t.subCode || '';
       if (tsc === (scId || '')) {
-        items.push({ _type: 'task', task: t, _date: t.due || null, _src: 'task' });
+        items.push({ _type: 'task', task: t, _date: t.due || (t.allocMonth ? t.allocMonth + '-01' : null), _src: 'task' });
       }
     });
     // Sessions & subtasks from big projects
@@ -7027,11 +7027,11 @@ function renderProjCodeContent(projKey) {
       bp.sessions.forEach(s => {
         const ssc = s.subCode || bp.defaultSubCode || '';
         if (ssc === (scId || '')) {
-          items.push({ _type: 'session', s, proj: bp, _date: s.date || null, _src: bp.name });
+          items.push({ _type: 'session', s, proj: bp, _date: s.date || (s.allocMonth ? s.allocMonth + '-01' : null), _src: bp.name });
           (s.subtasks || []).forEach(st => {
             const stsc = st.subCode || ssc;
             if (stsc === (scId || '')) {
-              items.push({ _type: 'subtask', st, s, proj: bp, _date: st.date || null, _src: bp.name });
+              items.push({ _type: 'subtask', st, s, proj: bp, _date: st.date || (st.allocMonth ? st.allocMonth + '-01' : null), _src: bp.name });
             }
           });
         }
@@ -7050,7 +7050,7 @@ function renderProjCodeContent(projKey) {
         if (ct.project !== projKey || ct.completed) return;
         const ctsc = ct.subCode || '';
         if (ctsc === (scId || '')) {
-          items.push({ _type: 'contact', ct, _date: ct.due || null, _src: ct._stageName || 'Contact' });
+          items.push({ _type: 'contact', ct, _date: ct.due || (ct.allocMonth ? ct.allocMonth + '-01' : null), _src: ct._stageName || 'Contact' });
         }
       });
     }
