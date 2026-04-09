@@ -2023,7 +2023,7 @@
     border-radius: 2px; margin-right: 4px; vertical-align: middle;
   }
 
-  /* CONTACTS TAB */
+  /* CUSTOMER JOURNEY TAB */
   .ct-toolbar {
     display: flex; align-items: center; gap: 8px; padding: 8px 14px;
     border-bottom: 1px solid var(--border); flex-wrap: wrap;
@@ -2036,7 +2036,27 @@
   .ct-stage-tab:hover { background: var(--bg3); color: var(--text2); }
   .ct-stage-tab.active { background: var(--bg2); color: var(--text); border-color: var(--border); font-weight: 600; }
 
-  .ct-split-wrap { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 160px); }
+  .ct-funnel-bar {
+    display: flex; align-items: center; gap: 0; padding: 0 14px;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    min-height: 0; overflow: hidden;
+  }
+  .ct-funnel-bar:empty { display: none; }
+  .ct-funnel-stage {
+    display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+    font-size: 11px; position: relative; flex: 1; justify-content: center;
+  }
+  .ct-funnel-stage::after {
+    content: '→'; position: absolute; right: -6px; color: var(--text3); font-size: 12px;
+  }
+  .ct-funnel-stage:last-child::after { content: ''; }
+  .ct-funnel-count {
+    font-size: 18px; font-weight: 800; line-height: 1;
+  }
+  .ct-funnel-label { font-size: 10px; color: var(--text3); line-height: 1.2; }
+  .ct-funnel-instances { font-size: 9px; color: var(--text3); opacity: 0.7; }
+
+  .ct-split-wrap { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 200px); }
   .ct-left-panel {
     width: 260px; min-width: 260px; max-width: 260px;
     border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0;
@@ -2649,7 +2669,7 @@ if (typeof XLSX === 'undefined') {
   <div class="tab" data-tab="team" role="tab" aria-selected="false" aria-controls="panel-team" tabindex="-1">Team Deliverables</div>
   <div class="tab" data-tab="timesheet" role="tab" aria-selected="false" aria-controls="panel-timesheet" tabindex="-1">Timesheet</div>
   <div class="tab" data-tab="allocations" role="tab" aria-selected="false" aria-controls="panel-allocations" tabindex="-1">Allocations</div>
-  <div class="tab" data-tab="contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" tabindex="-1">Contacts</div>
+  <div class="tab" data-tab="contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" tabindex="-1">Customer Journey</div>
 </div>
 
 <div class="main">
@@ -2886,19 +2906,20 @@ if (typeof XLSX === 'undefined') {
         <button class="ct-stage-tab active" data-stage="all" onclick="ctSetStage('all')">Quickview</button>
         <button class="ct-stage-tab" data-stage="interest" onclick="ctSetStage('interest')">Interest</button>
         <button class="ct-stage-tab" data-stage="ipp" onclick="ctSetStage('ipp')">IPP</button>
-        <button class="ct-stage-tab" data-stage="new-license" onclick="ctSetStage('new-license')">New License</button>
-        <button class="ct-stage-tab" data-stage="renewal" onclick="ctSetStage('renewal')">Renewals</button>
+        <button class="ct-stage-tab" data-stage="new-license" onclick="ctSetStage('new-license')">License</button>
+        <button class="ct-stage-tab" data-stage="renewal" onclick="ctSetStage('renewal')">Renewal</button>
         <button class="ct-stage-tab" data-stage="cohort" onclick="ctSetStage('cohort')">Cohort</button>
       </div>
       <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
         <button class="btn" onclick="openCtTemplateModal()" title="Edit stage templates" style="font-size:10px;padding:4px 10px;">⚙ Templates</button>
-        <button class="btn primary" onclick="openCtAddPartnerModal()" style="font-size:10px;padding:4px 10px;">+ Add Partner</button>
+        <button class="btn primary" onclick="openCtAddPartnerModal()" style="font-size:10px;padding:4px 10px;">+ Add Organization</button>
       </div>
     </div>
+    <div id="ctFunnelBar" class="ct-funnel-bar"></div>
     <div class="ct-split-wrap">
       <div id="ctLeftPanel" class="ct-left-panel">
         <div class="ct-left-header">
-          <input class="search-box" type="text" id="ctSearch" placeholder="Search partners..." oninput="renderContacts()" style="flex:1;font-size:11px;padding:5px 8px;">
+          <input class="search-box" type="text" id="ctSearch" placeholder="Search organizations..." oninput="renderContacts()" style="flex:1;font-size:11px;padding:5px 8px;">
           <select class="filter-select" id="ctSort" onchange="renderContacts()" style="font-size:10px;padding:3px 6px;">
             <option value="name">Name</option>
             <option value="next-due">Next Due</option>
@@ -2911,8 +2932,8 @@ if (typeof XLSX === 'undefined') {
         <div id="ctRightContent">
           <div class="ct-empty-state">
             <span style="font-size:28px;">👥</span>
-            <span style="font-size:13px;font-weight:600;">Partner Tracking</span>
-            <span style="font-size:11px;color:var(--text3);">Add a partner or select one from the list to see their journey.</span>
+            <span style="font-size:13px;font-weight:600;">Customer Journey</span>
+            <span style="font-size:11px;color:var(--text3);">Add an organization or select one from the list to see their journey.</span>
           </div>
         </div>
       </div>
@@ -2921,24 +2942,28 @@ if (typeof XLSX === 'undefined') {
 
 </div>
 
-<!-- CONTACTS: ADD/EDIT PARTNER MODAL -->
+<!-- CUSTOMER JOURNEY: ADD/EDIT ORGANIZATION MODAL -->
 <div class="modal-overlay" id="ctPartnerModal" style="display:none;">
   <div class="modal" style="max-width:640px;width:90vw;">
-    <div class="modal-header"><span id="ctPartnerModalTitle">Add Partner</span><button class="modal-close" onclick="closeCtPartnerModal()">×</button></div>
+    <div class="modal-header"><span id="ctPartnerModalTitle">Add Organization</span><button class="modal-close" onclick="closeCtPartnerModal()">×</button></div>
     <div class="modal-body">
-      <label class="modal-label">Organization Name</label>
+      <label class="modal-label">Organization / School Name</label>
       <input id="ctPartnerName" class="modal-input" style="font-size:13px;padding:8px 10px;" placeholder="e.g. Fletcher Community College">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
         <label class="modal-label" style="margin:0;font-size:12px;">Contacts</label>
         <button class="btn" onclick="ctAddContactRow()" style="font-size:10px;padding:3px 10px;">+ Add Contact</button>
       </div>
       <div id="ctPartnerContacts" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;">
         <div>
           <label class="modal-label">Starting Stage</label>
           <select id="ctPartnerStage" class="modal-input" style="width:100%;">
             <option value="">— Select —</option>
           </select>
+        </div>
+        <div>
+          <label class="modal-label">License Start Date</label>
+          <input id="ctPartnerLicenseDate" class="modal-input" type="date" style="width:100%;">
         </div>
         <div>
           <label class="modal-label">Notes</label>
@@ -2953,14 +2978,14 @@ if (typeof XLSX === 'undefined') {
   </div>
 </div>
 
-<!-- CONTACTS: ADD STAGE TO PARTNER MODAL -->
+<!-- CUSTOMER JOURNEY: ADD STAGE TO ORGANIZATION MODAL -->
 <div class="modal-overlay" id="ctAddStageModal" style="display:none;">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header"><span>Add Stage</span><button class="modal-close" onclick="document.getElementById('ctAddStageModal').style.display='none'">×</button></div>
     <div class="modal-body">
       <label class="modal-label">Stage</label>
       <select id="ctAddStageSelect" class="modal-input"></select>
-      <label class="modal-label">Tag Contact <span style="font-weight:400;color:var(--text3);">(who is this for?)</span></label>
+      <label class="modal-label">Tag Contact <span style="font-weight:400;color:var(--text3);">(which contact is this for?)</span></label>
       <select id="ctAddStageContact" class="modal-input">
         <option value="">— General (no specific contact) —</option>
       </select>
@@ -2974,7 +2999,7 @@ if (typeof XLSX === 'undefined') {
   </div>
 </div>
 
-<!-- CONTACTS: TEMPLATE EDITOR MODAL -->
+<!-- CUSTOMER JOURNEY: TEMPLATE EDITOR MODAL -->
 <div class="modal-overlay" id="ctTemplateModal" style="display:none;">
   <div class="modal" style="max-width:860px;max-height:85vh;width:95vw;">
     <div class="modal-header"><span>Edit Stage Templates</span><button class="modal-close" onclick="document.getElementById('ctTemplateModal').style.display='none'">×</button></div>
@@ -3003,10 +3028,10 @@ if (typeof XLSX === 'undefined') {
   </div>
 </div>
 
-<!-- CONTACTS: EDIT TASK MODAL -->
+<!-- CUSTOMER JOURNEY: EDIT TASK MODAL -->
 <div class="modal-overlay" id="ctEditTaskDlg">
   <div class="modal">
-    <div class="modal-title">Edit Contact Task</div>
+    <div class="modal-title">Edit Task</div>
     <div class="modal-subtitle" id="ctEditTaskSub"></div>
     <div class="edit-form-grid">
       <div class="edit-form-group full">
@@ -3034,6 +3059,10 @@ if (typeof XLSX === 'undefined') {
       <div class="edit-form-group">
         <label class="edit-label">Due Date</label>
         <input class="edit-input" type="date" id="ctEditDue">
+      </div>
+      <div class="edit-form-group">
+        <label class="edit-label">Hold Month <span style="font-weight:400;font-size:9px;color:var(--text3);">(capacity)</span></label>
+        <input class="edit-input" type="month" id="ctEditAllocMonth">
       </div>
       <div class="edit-form-group">
         <label class="edit-label">Est. Hours</label>
@@ -12110,7 +12139,7 @@ function confirmImport() {
 }
 
 // =============================================
-// CONTACTS TAB
+// CUSTOMER JOURNEY TAB
 // =============================================
 
 const CT_STAGE_COLORS = {
@@ -12118,20 +12147,20 @@ const CT_STAGE_COLORS = {
   'renewal': '#f59e0b', 'cohort': '#10b981'
 };
 const CT_STAGE_LABELS = {
-  'interest': 'Interest Meeting', 'ipp': 'IPP Enrollment', 'new-license': 'New License',
-  'renewal': 'License Renewal', 'cohort': 'Cohort in Progress'
+  'interest': 'Interest', 'ipp': 'IPP Training', 'new-license': 'Curriculum License',
+  'renewal': 'License Renewal', 'cohort': 'Cohort Delivery'
 };
 const CT_ANCHOR_LABELS = {
-  'interest': 'Meeting Date', 'ipp': 'Enrollment Date', 'new-license': 'Target Date',
-  'renewal': 'Renewal Expiration Date', 'cohort': 'Cohort Start Date'
+  'interest': 'Meeting Date', 'ipp': 'Training Start Date', 'new-license': 'License Date',
+  'renewal': 'Renewal Date', 'cohort': 'Cohort Start Date'
 };
 
 let contactStages = load('wt_contact_stages', [
-  { id: 'interest', label: 'Interest Meeting', subCode: '', project: 'cwc', tasks: [] },
-  { id: 'ipp', label: 'IPP Enrollment', subCode: '', project: 'cwc', tasks: [] },
-  { id: 'new-license', label: 'New License', subCode: '', project: 'cwc', tasks: [] },
+  { id: 'interest', label: 'Interest', subCode: '', project: 'cwc', tasks: [] },
+  { id: 'ipp', label: 'IPP Training', subCode: '', project: 'cwc', tasks: [] },
+  { id: 'new-license', label: 'Curriculum License', subCode: '', project: 'cwc', tasks: [] },
   { id: 'renewal', label: 'License Renewal', subCode: '', project: 'cwc', tasks: [] },
-  { id: 'cohort', label: 'Cohort in Progress', subCode: '', project: 'cwc', tasks: [] }
+  { id: 'cohort', label: 'Cohort Delivery', subCode: '', project: 'cwc', tasks: [] }
 ]);
 let contacts = load('wt_contacts', []);
 let _ctActiveStage = 'all';
@@ -12182,6 +12211,36 @@ function ctStageProgress(partner, stageId) {
   return { done, total };
 }
 
+// License date helpers
+function ctCalcLicenseExpiration(startDate) {
+  const d = new Date(startDate + 'T00:00:00');
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function ctDaysUntil(dateStr) {
+  const target = new Date(dateStr + 'T00:00:00');
+  const now = new Date(today() + 'T00:00:00');
+  return Math.round((target - now) / 86400000);
+}
+
+function ctFmtMonth(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(m, 10) - 1] + ' ' + y;
+}
+
+function ctEditLicenseDate(partnerId) {
+  const c = contacts.find(c => c.id === partnerId);
+  if (!c) return;
+  const val = prompt('License Start Date (YYYY-MM-DD):', c.licenseStartDate || '');
+  if (val === null) return;
+  c.licenseStartDate = val || null;
+  save('wt_contacts', contacts);
+  renderContacts();
+}
+
 // Set active stage filter tab
 function ctSetStage(stage) {
   _ctActiveStage = stage;
@@ -12206,11 +12265,11 @@ function getContactTasks() {
           _contactId: c.id, _stageId: sid, _ctTaskId: t.id,
           name: t.name, project: t.project || stageDef.project || 'cwc',
           subCode: t.subCode ?? stageDef.subCode ?? '', priority: t.priority || 'med',
-          due: t.due || null, est: t.est || 0, notes: t.notes || '',
+          due: t.due || null, allocMonth: t.allocMonth || null, est: t.est || 0, notes: t.notes || '',
           waiting: t.waiting || '', delegatedTo: t.delegatedTo || null,
           completed: t.completed || false, dateCompleted: t.dateCompleted || null,
           actualHours: t.actualHours || 0, timer: 0, timerStart: null,
-          _partnerName: c.name, _stageName: stageDef.label,
+          _partnerName: c.name, _orgName: c.name, _stageName: stageDef.label,
           _isContactTask: true
         });
       });
@@ -12310,10 +12369,44 @@ function ctCompleteTask(contactId, stageId, taskId, markCompleted) {
 
 
 // =============================================
-// CONTACTS: RENDERING
+// CUSTOMER JOURNEY: RENDERING
 // =============================================
 
+function ctRenderFunnel() {
+  const bar = document.getElementById('ctFunnelBar');
+  if (!bar) return;
+  // Journey stages in order
+  const stageOrder = ['interest', 'ipp', 'new-license', 'renewal', 'cohort'];
+  const html = stageOrder.map(sid => {
+    // Count unique organizations with at least one active instance of this stage
+    let orgCount = 0;
+    let instanceCount = 0;
+    contacts.forEach(c => {
+      let hasStage = false;
+      for (const k in c.stages) {
+        const baseKey = ctStageKey(c, k);
+        if (baseKey === sid && c.stages[k].active) {
+          instanceCount++;
+          hasStage = true;
+        }
+      }
+      if (hasStage) orgCount++;
+    });
+    const color = CT_STAGE_COLORS[sid] || '#888';
+    const instanceNote = instanceCount > orgCount ? `<div class="ct-funnel-instances">${instanceCount} active</div>` : '';
+    return `<div class="ct-funnel-stage" onclick="ctSetStage('${sid}')" style="cursor:pointer;" title="${CT_STAGE_LABELS[sid]}">
+      <span class="ct-funnel-count" style="color:${color};">${orgCount}</span>
+      <div>
+        <div class="ct-funnel-label">${CT_STAGE_LABELS[sid]}</div>
+        ${instanceNote}
+      </div>
+    </div>`;
+  }).join('');
+  bar.innerHTML = html;
+}
+
 function renderContacts() {
+  ctRenderFunnel();
   const search = (document.getElementById('ctSearch')?.value || '').toLowerCase();
   const sort = document.getElementById('ctSort')?.value || 'name';
   const list = document.getElementById('ctPartnerList');
@@ -12341,7 +12434,7 @@ function renderContacts() {
 
   // Render left panel list
   list.innerHTML = visible.length === 0
-    ? '<div style="padding:20px;text-align:center;font-size:11px;color:var(--text3);">No partners found</div>'
+    ? '<div style="padding:20px;text-align:center;font-size:11px;color:var(--text3);">No organizations found</div>'
     : visible.map(c => {
       const next = ctNextTask(c);
       const stageDots = Object.keys(c.stages || {}).filter(s => c.stages[s].active).map(s => {
@@ -12380,7 +12473,7 @@ function ctRenderRightPanel() {
   if (!partner) {
     panel.innerHTML = `<div class="ct-empty-state">
       <span style="font-size:28px;">👤</span>
-      <span style="font-size:11px;color:var(--text3);">Select a partner from the list</span>
+      <span style="font-size:11px;color:var(--text3);">Select an organization from the list</span>
     </div>`;
     return;
   }
@@ -12389,7 +12482,7 @@ function ctRenderRightPanel() {
 }
 
 function ctRenderAllGrid(panel) {
-  // Quickview: all tasks due in the next 30 days across all partners/stages
+  // Quickview: all tasks due in the next 30 days across all organizations/stages
   const todayStr = today();
   const horizon = addDays(todayStr, 30);
   const allTasks = [];
@@ -12401,7 +12494,7 @@ function ctRenderAllGrid(panel) {
         if (t.completed) return;
         // Only include tasks with a due date within 30 days or overdue
         if (!t.due || t.due > horizon) return;
-        allTasks.push({ partner: c.name, partnerId: c.id, stage: CT_STAGE_LABELS[sid] || sid, stageId: sid,
+        allTasks.push({ partner: c.name, partnerId: c.id, org: c.name, stage: CT_STAGE_LABELS[sid] || sid, stageId: sid,
           stageColor: CT_STAGE_COLORS[sid] || '#888', task: t, cid: c.id, sid, tid: t.id });
       });
     }
@@ -12413,7 +12506,7 @@ function ctRenderAllGrid(panel) {
   });
 
   if (!allTasks.length) {
-    panel.innerHTML = '<div class="ct-empty-state"><span style="font-size:20px;">✓</span><span>No tasks with dates due in the next 30 days</span><span style="font-size:11px;">Set due dates on partner tasks to see them here.</span></div>';
+    panel.innerHTML = '<div class="ct-empty-state"><span style="font-size:20px;">✓</span><span>No tasks with dates due in the next 30 days</span><span style="font-size:11px;">Set due dates on organization tasks to see them here.</span></div>';
     return;
   }
 
@@ -12507,7 +12600,7 @@ function ctRenderProfile(panel, partner) {
           <div class="ct-task-check${t.completed ? ' done' : ''}" onclick="event.stopPropagation();ctCompleteTask(${ids},${!t.completed})">${t.completed ? '✓' : ''}</div>
           <div class="ct-task-name${t.completed ? ' done' : ''} ct-clickable-task" data-ct-cid="${partner.id}" data-ct-sid="${sid}" data-ct-tid="${t.id}" style="cursor:pointer;" title="Click to edit">${escHtml(t.name)}${t.waiting ? `<span class="task-waiting" style="font-size:10px;margin-left:4px;">⏳ ${escHtml(t.waiting)}</span>` : ''}</div>
           <span style="display:inline-flex;gap:2px;align-items:center;flex-shrink:0;">${delTags}<button onclick="event.stopPropagation();ctAssignTask(event,${ids})" title="Assign" style="opacity:0.6;font-size:12px;background:none;border:none;cursor:pointer;padding:1px 3px;color:var(--text3);">↗</button></span>
-          <span class="ct-task-date" onclick="event.stopPropagation();ctInlineEditDate(this,${ids})" style="cursor:pointer;white-space:nowrap;" title="Click to set date">${t.due ? fmtDate(t.due) : '<span style="opacity:0.4">No date</span>'}</span>
+          <span class="ct-task-date" onclick="event.stopPropagation();ctInlineEditDate(this,${ids})" style="cursor:pointer;white-space:nowrap;" title="Click to set date">${t.due ? fmtDate(t.due) : t.allocMonth ? `<span style="background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600;" title="Held for capacity in ${t.allocMonth}">${ctFmtMonth(t.allocMonth)}</span>` : '<span style="opacity:0.4">No date</span>'}</span>
           <span onclick="event.stopPropagation();ctShowPriority(event,${ids})" style="cursor:pointer;" title="Change priority">${pri}</span>
           <span class="ct-task-hrs" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,${ids})" title="Click to edit hours">${t.est ? t.est + 'h' : '—'}</span>
           <button class="ct-edit-btn" onclick="event.stopPropagation();ctOpenEditTaskModal(${ids})" title="Edit task">✎</button>
@@ -12544,6 +12637,32 @@ function ctRenderProfile(panel, partner) {
   const usedStages = [...stageIds, ...closedIds];
   const availableStages = contactStages.filter(s => !usedStages.includes(s.id));
 
+  // License info
+  let licenseHtml = '';
+  if (partner.licenseStartDate) {
+    const lsd = partner.licenseStartDate;
+    const expDate = ctCalcLicenseExpiration(lsd);
+    const renewalDate = expDate; // 1 year from start
+    const daysUntilExp = ctDaysUntil(expDate);
+    const isExpired = daysUntilExp < 0;
+    const isWarning = !isExpired && daysUntilExp <= 60;
+    const expColor = isExpired ? 'var(--danger)' : isWarning ? 'var(--warn, #f59e0b)' : 'var(--success)';
+    const expLabel = isExpired ? `Expired ${Math.abs(daysUntilExp)}d ago` : isWarning ? `Expires in ${daysUntilExp}d` : `Expires ${fmtDate(expDate)}`;
+    licenseHtml = `<div class="ct-license-bar" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;font-size:11px;">
+      <span style="font-weight:600;color:var(--text2);">License</span>
+      <span>Start: <strong>${fmtDate(lsd)}</strong></span>
+      <span>Renewal: <strong>${fmtDate(renewalDate)}</strong></span>
+      <span style="color:${expColor};font-weight:700;">${expLabel}</span>
+      ${isWarning ? '<span style="background:var(--warn, #f59e0b);color:#000;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700;">60-DAY NOTICE</span>' : ''}
+      ${isExpired ? '<span style="background:var(--danger);color:#fff;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700;">EXPIRED</span>' : ''}
+      <button class="btn" onclick="ctEditLicenseDate('${partner.id}')" style="font-size:9px;padding:2px 6px;margin-left:auto;">Edit</button>
+    </div>`;
+  } else {
+    licenseHtml = `<div style="margin-bottom:16px;">
+      <button class="btn" onclick="ctEditLicenseDate('${partner.id}')" style="font-size:10px;padding:4px 10px;">+ Set License Start Date</button>
+    </div>`;
+  }
+
   panel.innerHTML = `<div class="ct-profile">
     <div class="ct-profile-header">
       <div class="ct-profile-avatar">${initials}</div>
@@ -12557,6 +12676,7 @@ function ctRenderProfile(panel, partner) {
         <button class="btn" onclick="ctDeletePartner('${partner.id}')" style="font-size:10px;padding:3px 8px;color:var(--danger);border-color:var(--danger);">× Delete</button>
       </div>
     </div>
+    ${licenseHtml}
     ${stagesHtml}
     ${availableStages.length ? `<button class="btn" onclick="ctOpenAddStageModal('${partner.id}')" style="font-size:11px;padding:4px 12px;margin-top:8px;">+ Add Stage</button>` : ''}
   </div>`;
@@ -12570,7 +12690,7 @@ function _ctToggleStage(sid) {
 
 
 // =============================================
-// CONTACTS: PARTNER MANAGEMENT
+// CUSTOMER JOURNEY: ORGANIZATION MANAGEMENT
 // =============================================
 
 function ctAddContactRow(data) {
@@ -12598,7 +12718,7 @@ function _ctReadContacts() {
 
 function openCtAddPartnerModal() {
   _ctEditingPartnerId = null;
-  document.getElementById('ctPartnerModalTitle').textContent = 'Add Partner';
+  document.getElementById('ctPartnerModalTitle').textContent = 'Add Organization';
   document.getElementById('ctPartnerName').value = '';
   document.getElementById('ctPartnerContacts').innerHTML = '';
   ctAddContactRow(); // Start with one empty contact row
@@ -12607,6 +12727,7 @@ function openCtAddPartnerModal() {
   sel.innerHTML = '<option value="">— Select Stage —</option>' +
     contactStages.map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
   sel.value = '';
+  document.getElementById('ctPartnerLicenseDate').value = '';
   document.getElementById('ctPartnerModal').style.display = 'flex';
 }
 
@@ -12614,7 +12735,7 @@ function ctEditPartner(id) {
   const c = contacts.find(c => c.id === id);
   if (!c) return;
   _ctEditingPartnerId = id;
-  document.getElementById('ctPartnerModalTitle').textContent = 'Edit Partner';
+  document.getElementById('ctPartnerModalTitle').textContent = 'Edit Organization';
   document.getElementById('ctPartnerName').value = c.name;
   document.getElementById('ctPartnerContacts').innerHTML = '';
   (c.contacts || []).forEach(ct => ctAddContactRow(ct));
@@ -12624,6 +12745,7 @@ function ctEditPartner(id) {
     else ctAddContactRow();
   }
   document.getElementById('ctPartnerNotes').value = c.notes || '';
+  document.getElementById('ctPartnerLicenseDate').value = c.licenseStartDate || '';
   const sel = document.getElementById('ctPartnerStage');
   sel.innerHTML = '<option value="">— No Change —</option>' +
     contactStages.filter(s => !ctPartnerHasStage(c, s.id)).map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
@@ -12642,17 +12764,19 @@ function saveCtPartner() {
   const pContacts = _ctReadContacts();
   const notes = document.getElementById('ctPartnerNotes').value.trim();
   const stageId = document.getElementById('ctPartnerStage').value;
+  const licenseDate = document.getElementById('ctPartnerLicenseDate').value || null;
 
   if (_ctEditingPartnerId) {
     const c = contacts.find(c => c.id === _ctEditingPartnerId);
     if (c) {
       c.name = name; c.contacts = pContacts; c.notes = notes;
+      c.licenseStartDate = licenseDate;
       // Migrate: clear legacy fields
       c.contactName = ''; c.email = ''; c.phone = '';
       if (stageId) ctAddStageToPartner(c, stageId, null);
     }
   } else {
-    const c = { id: uid(), name, contacts: pContacts, notes, stages: {}, _addedDate: today() };
+    const c = { id: uid(), name, contacts: pContacts, notes, licenseStartDate: licenseDate, stages: {}, _addedDate: today() };
     if (stageId) ctAddStageToPartner(c, stageId, null);
     contacts.push(c);
     _ctSelectedPartner = c.id;
@@ -12681,7 +12805,7 @@ function ctAddStageToPartner(partner, stageId, anchorDate, contactTag) {
 }
 
 function ctDeletePartner(id) {
-  if (!confirm('Delete this partner and all their tasks?')) return;
+  if (!confirm('Delete this organization and all their tasks?')) return;
   contacts = contacts.filter(c => c.id !== id);
   if (_ctSelectedPartner === id) _ctSelectedPartner = null;
   save('wt_contacts', contacts);
@@ -12690,7 +12814,7 @@ function ctDeletePartner(id) {
 
 
 // =============================================
-// CONTACTS: STAGE MANAGEMENT
+// CUSTOMER JOURNEY: STAGE MANAGEMENT
 // =============================================
 
 function ctOpenAddStageModal(partnerId) {
@@ -12700,7 +12824,7 @@ function ctOpenAddStageModal(partnerId) {
   // All stages available (allow multiple instances)
   const sel = document.getElementById('ctAddStageSelect');
   sel.innerHTML = contactStages.map(s => `<option value="${s.id}">${escHtml(s.label)}</option>`).join('');
-  // Populate contact dropdown from partner's contacts
+  // Populate contact dropdown from organization's contacts
   const contactSel = document.getElementById('ctAddStageContact');
   const pContacts = c.contacts || [];
   contactSel.innerHTML = '<option value="">— General (no specific contact) —</option>' +
@@ -12792,6 +12916,7 @@ function ctOpenEditTaskModal(cid, sid, tid) {
   document.getElementById('ctEditTaskSub').textContent = (c ? c.name : '') + ' — ' + (stageDef ? stageDef.label : sid);
   document.getElementById('ctEditName').value = t.name;
   document.getElementById('ctEditDue').value = t.due || '';
+  document.getElementById('ctEditAllocMonth').value = t.allocMonth || '';
   document.getElementById('ctEditEst').value = t.est || '';
   document.getElementById('ctEditPriority').value = t.priority || 'med';
   document.getElementById('ctEditWaiting').value = t.waiting || '';
@@ -12896,6 +13021,7 @@ function ctSaveEditTask() {
   t.subCode = document.getElementById('ctEditSubCode').value || '';
   t.priority = document.getElementById('ctEditPriority').value || 'med';
   t.due = document.getElementById('ctEditDue').value || null;
+  t.allocMonth = document.getElementById('ctEditAllocMonth').value || null;
   t.est = parseFloat(document.getElementById('ctEditEst').value) || 0;
   t.waiting = document.getElementById('ctEditWaiting').value.trim();
   t.notes = document.getElementById('ctEditNotes').value.trim();
@@ -13086,6 +13212,8 @@ document.addEventListener('click', function(e) {
 // Called from plannedItems() to include contact tasks in timesheet
 function ctPlannedItems(fromDate, toDate) {
   const items = [];
+  const fromYM = fromDate.slice(0, 7);
+  const toYM = toDate.slice(0, 7);
   contacts.forEach(c => {
     for (const sid in c.stages) {
       const st = c.stages[sid];
@@ -13093,19 +13221,26 @@ function ctPlannedItems(fromDate, toDate) {
       const stageDef = ctGetStage(sid);
       if (!stageDef) continue;
       st.tasks.forEach(t => {
-        if (t.completed || !t.due) return;
-        if (t.due >= fromDate && t.due <= toDate) {
+        if (t.completed) return;
+        const proj = t.project || stageDef.project || 'cwc';
+        const sc = t.subCode ?? stageDef.subCode ?? '';
+        // Tasks with a specific due date
+        if (t.due && t.due >= fromDate && t.due <= toDate) {
           items.push({
             id: '_ct_' + c.id + '_' + sid + '_' + t.id,
             name: c.name + ': ' + t.name,
-            project: t.project || stageDef.project || 'cwc',
-            date: t.due,
-            hours: t.est || 0,
-            subCode: t.subCode ?? stageDef.subCode ?? '',
-            _planned: true,
-            _src: 'contact',
-            _contactId: c.id,
-            _stageId: sid
+            project: proj, date: t.due, hours: t.est || 0, subCode: sc,
+            _planned: true, _src: 'contact', _contactId: c.id, _stageId: sid
+          });
+        }
+        // Tasks with allocMonth but no due date — place on the 15th of that month for capacity
+        if (!t.due && t.allocMonth && t.allocMonth >= fromYM && t.allocMonth <= toYM) {
+          items.push({
+            id: '_ct_' + c.id + '_' + sid + '_' + t.id,
+            name: c.name + ': ' + t.name + ' (hold)',
+            project: proj, date: t.allocMonth + '-15', hours: t.est || 0, subCode: sc,
+            _planned: true, _src: 'contact', _contactId: c.id, _stageId: sid,
+            _allocHold: true
           });
         }
       });
