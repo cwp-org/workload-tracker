@@ -5722,10 +5722,12 @@ function renderTasks() {
       const dc = dueCls(ct.due);
       const pColor = projColor(ct.project);
       row.className = 'task-row';
+      row.style.cursor = 'pointer';
+      row.onclick = () => ctOpenEditTaskModal(ct._contactId, ct._stageId, ct._ctTaskId);
       row.innerHTML = `
-        <div class="task-check${ct.completed ? ' done' : ''}" onclick="ctCompleteTask('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}',${!ct.completed})" style="cursor:pointer;"></div>
+        <div class="task-check${ct.completed ? ' done' : ''}" onclick="event.stopPropagation();ctCompleteTask('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}',${!ct.completed})" style="cursor:pointer;"></div>
         <div class="project-dot" style="background:${pColor};" title="${projLabel(ct.project)}"></div>
-        <div class="task-name">${escHtml(ct.name)} <span style="font-size:10px;color:var(--text3);font-style:italic;">${escHtml(ct._partnerName)}</span></div>
+        <div class="task-name">${escHtml(ct.name)} <span style="font-size:10px;color:var(--text3);font-style:italic;">${escHtml(ct._orgName || ct._partnerName)}</span></div>
         <div class="task-recur-actions"></div>
         <span class="task-category" style="color:var(--text3);font-style:italic;">${escHtml(ct._stageName)}</span>
         <div>${priorityBadge(ct.priority || 'med')}</div>
@@ -7350,9 +7352,9 @@ function renderProjItemRow(item, projKey, scId) {
       <div class="session-check${ct.completed ? ' done' : ''}" onclick="ctCompleteTask('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}',${!ct.completed})" style="cursor:pointer;">
         ${ct.completed ? '<span style="color:var(--check-fg);font-size:11px;">✓</span>' : ''}
       </div>
-      <div class="session-desc" style="${ct.completed ? 'text-decoration:line-through;color:var(--text3);' : ''}">
+      <div class="session-desc" style="cursor:pointer;${ct.completed ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="ctOpenEditTaskModal('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">
         ${escHtml(ct.name)}
-        <span style="font-size:10px;color:var(--text3);font-style:italic;margin-left:4px;">${escHtml(ct._partnerName)}</span>
+        <span style="font-size:10px;color:var(--text3);font-style:italic;margin-left:4px;">${escHtml(ct._orgName || ct._partnerName)}</span>
         ${ct.waiting ? `<span class="task-waiting">⏳ ${escHtml(ct.waiting)}</span>` : ''}
       </div>
       <div>${priorityBadge(ct.priority || 'med')}</div>
@@ -12264,7 +12266,7 @@ function getContactTasks() {
           id: '_ct_' + c.id + '_' + sid + '_' + t.id,
           _contactId: c.id, _stageId: sid, _ctTaskId: t.id,
           name: t.name, project: t.project || stageDef.project || 'cwc',
-          subCode: t.subCode ?? stageDef.subCode ?? '', priority: t.priority || 'med',
+          subCode: t.subCode || stageDef.subCode || '', priority: t.priority || 'med',
           due: t.due || null, allocMonth: t.allocMonth || null, est: t.est || 0, notes: t.notes || '',
           waiting: t.waiting || '', delegatedTo: t.delegatedTo || null,
           completed: t.completed || false, dateCompleted: t.dateCompleted || null,
@@ -13239,7 +13241,7 @@ function ctPlannedItems(fromDate, toDate) {
       st.tasks.forEach(t => {
         if (t.completed) return;
         const proj = t.project || stageDef.project || 'cwc';
-        const sc = t.subCode ?? stageDef.subCode ?? '';
+        const sc = t.subCode || stageDef.subCode || '';
         // Tasks with a specific due date
         if (t.due && t.due >= fromDate && t.due <= toDate) {
           items.push({
