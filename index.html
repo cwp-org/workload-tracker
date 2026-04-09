@@ -13079,15 +13079,20 @@ function ctSetAnchorDate(partnerId, stageId) {
 function ctAddTaskToStage(partnerId, stageId) {
   const c = contacts.find(c => c.id === partnerId);
   if (!c || !c.stages[stageId]) return;
-  const name = prompt('Task name:');
-  if (!name) return;
-  c.stages[stageId].tasks.push({
-    id: uid(), name, est: 0, priority: 'med', due: null,
+  const stageDef = ctGetStage(stageId);
+  const newTask = {
+    id: uid(), name: '', est: 0, priority: 'med', due: null,
+    project: stageDef?.project || 'cwc', subCode: stageDef?.subCode || '',
     delegatedTo: null, notes: '', waiting: '', completed: false,
-    dateCompleted: null, actualHours: 0, offsetDays: 0
-  });
+    dateCompleted: null, actualHours: 0, allocMonth: null
+  };
+  c.stages[stageId].tasks.push(newTask);
   save('wt_contacts', contacts);
   renderContacts();
+  // Open edit modal for the new task so user can fill in details
+  ctOpenEditTaskModal(partnerId, stageId, newTask.id);
+  // Focus the name field
+  setTimeout(() => document.getElementById('ctEditName')?.focus(), 50);
 }
 
 // Helper to get a contact task by IDs
@@ -13209,8 +13214,20 @@ function ctEditTaskModal(cid, sid, tid) {
 }
 
 function ctCloseEditModal() {
+  // If closing with an empty-name task (user cancelled an add), remove it
+  if (_ctEditRef) {
+    const t = _ctTask(_ctEditRef.cid, _ctEditRef.sid, _ctEditRef.tid);
+    if (t && !t.name) {
+      const c = contacts.find(c => c.id === _ctEditRef.cid);
+      if (c && c.stages[_ctEditRef.sid]) {
+        c.stages[_ctEditRef.sid].tasks = c.stages[_ctEditRef.sid].tasks.filter(t => t.id !== _ctEditRef.tid);
+        save('wt_contacts', contacts);
+      }
+    }
+  }
   document.getElementById('ctEditTaskDlg').classList.remove('open');
   _ctEditRef = null;
+  renderContacts();
 }
 
 function ctSaveEditTask() {
