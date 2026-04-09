@@ -13188,6 +13188,22 @@ function ctSaveTemplate() {
   });
   stage.tasks = tasks;
   save('wt_contact_stages', contactStages);
+
+  // Backfill: update existing org tasks in this stage that have empty project/subCode
+  let backfilled = 0;
+  contacts.forEach(c => {
+    for (const k in c.stages) {
+      const baseKey = ctStageKey(c, k);
+      if (baseKey !== sid) continue;
+      const st = c.stages[k];
+      st.tasks.forEach(t => {
+        if (!t.subCode && stage.subCode) { t.subCode = stage.subCode; backfilled++; }
+        if (!t.project || t.project === 'cwc') { t.project = stage.project; }
+      });
+    }
+  });
+  if (backfilled > 0) save('wt_contacts', contacts);
+
   document.getElementById('ctTemplateModal').style.display = 'none';
   renderContacts();
 }
