@@ -1363,7 +1363,7 @@
   .cap-proj-hours { font-size: 11px; text-align: right; white-space: nowrap; }
   .cap-item-list { background: var(--bg); }
   .cap-item-row {
-    display: grid; grid-template-columns: 24px 90px 1fr 60px 100px;
+    display: grid; grid-template-columns: 24px 90px 1fr 60px auto;
     gap: 8px; align-items: center;
     padding: 7px 32px; border-bottom: 1px solid var(--border); font-size: 11px;
   }
@@ -9485,22 +9485,25 @@ function _renderCapItemList(container, projKey, ym, data) {
     const sorted = [...items].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     sorted.forEach(item => {
       const baseId = item.id.includes('_') ? item.id.split('_').slice(0, -1).join('_') : item.id;
-      let editFn = '', delegateFn = '', moveFn = '';
+      let editFn = '', delegateFn = '', moveFn = '', doneFn = '';
       if (item._src === 'task') {
         const taskObj = tasks.find(t => t.id === baseId || t.id === item.id);
         if (taskObj) {
           editFn = `openEditModal('${taskObj.id}')`;
           delegateFn = `capDelegateItem('task','${taskObj.id}')`;
           moveFn = `capMoveItem('task','${taskObj.id}')`;
+          doneFn = `openCompletionModal('${taskObj.id}')`;
         }
       } else if (item._src === 'session' && item._projId) {
         editFn = `openEditSessionModal('${item._projId}','${baseId}')`;
         delegateFn = `capDelegateItem('session','${item._projId}','${baseId}')`;
         moveFn = `capMoveItem('session','${item._projId}','${baseId}')`;
+        doneFn = `openSessionCompletionModal('${item._projId}','${baseId}')`;
       } else if (item._src === 'subtask' && item._projId) {
         editFn = `openEditSubtaskModal('${item._projId}','${item._sessionId}','${baseId}')`;
         delegateFn = `capDelegateItem('subtask','${item._projId}','${item._sessionId}','${baseId}')`;
         moveFn = `capMoveItem('subtask','${item._projId}','${item._sessionId}','${baseId}')`;
+        doneFn = `openSubtaskCompletionModal('${item._projId}','${item._sessionId}','${baseId}')`;
       }
 
       const row = document.createElement('div');
@@ -9512,6 +9515,7 @@ function _renderCapItemList(container, projKey, ym, data) {
         <span class="cap-item-name${item._recur ? ' recur' : ''}" ${editFn ? `onclick="${editFn}" style="cursor:pointer;"` : ''}>${escHtml(displayName)}${item._allocHold ? ' <span style="color:var(--warn);font-size:9px;font-weight:600;">⟡ month hold</span>' : ''}</span>
         <span class="cap-item-hours" style="color:var(--text3);">${item.hours > 0 ? fmtQ(item.hours) + 'h' : '—'}</span>
         <span class="cap-item-actions">
+          ${doneFn ? `<button class="btn primary" onclick="event.stopPropagation();${doneFn}" title="Log time / Mark complete" style="background:var(--success);border-color:var(--success);">✓ Done</button>` : ''}
           ${editFn ? `<button class="btn" onclick="event.stopPropagation();${editFn}" title="Edit">Edit</button>` : ''}
           ${moveFn ? `<button class="btn" onclick="event.stopPropagation();${moveFn}" title="Move to another month">Move</button>` : ''}
           ${delegateFn ? `<button class="btn" onclick="event.stopPropagation();${delegateFn}" title="Delegate to free capacity">Delegate</button>` : ''}
