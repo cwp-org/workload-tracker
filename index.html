@@ -2519,9 +2519,10 @@
   }
 </style>
 <!-- Supabase JS Client (v2) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- TODO: Add integrity="sha384-..." SRI hashes when deploying. Generate with: curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 <!-- SheetJS for Excel import (with CDN fallback) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script>
 if (typeof XLSX === 'undefined') {
   var s = document.createElement('script');
@@ -4222,6 +4223,23 @@ const SYNC_KEYS = [
   'wt_contacts', 'wt_contact_stages'
 ];
 
+// Per-key debounce for cloud saves — prevents concurrent writes and batches rapid changes
+const _cloudSaveTimers = {};
+const _cloudSavePending = {};
+function debouncedCloudSave(key, data) {
+  _cloudSavePending[key] = data;
+  if (_cloudSaveTimers[key]) clearTimeout(_cloudSaveTimers[key]);
+  return new Promise((resolve, reject) => {
+    _cloudSaveTimers[key] = setTimeout(async () => {
+      delete _cloudSaveTimers[key];
+      const latestData = _cloudSavePending[key];
+      delete _cloudSavePending[key];
+      try { await cloudSave(key, latestData); resolve(); }
+      catch (e) { reject(e); }
+    }, 1500);
+  });
+}
+
 async function cloudSave(key, data) {
   if (!_supabase || !_currentUser) return;
   const { error } = await _supabase.from('user_data').upsert({
@@ -4896,19 +4914,21 @@ function load(key, fallback) {
   catch(e) { return fallback; }
 }
 
+let _localStorageFull = false;
 function save(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
     if (SYNC_KEYS.includes(key)) _setLocalTimestamp(key, Date.now());
+    _localStorageFull = false;
   } catch (e) {
-    console.error('localStorage save failed for', key, e);
-    showSyncToast('Local storage full — some changes may not be saved.', 'warn');
+    _localStorageFull = true;
+    showSyncToast('Local storage full — export a backup and clear old data. Changes will sync to cloud only.', 'error');
   }
   // Invalidate planned items cache when task/project data changes
   if (key === 'wt_tasks' || key === 'wt_bigprojs' || key === 'wt_contacts') _invalidatePlannedCache();
-  // Fire-and-forget cloud sync (non-blocking) with failure notification
+  // Fire-and-forget cloud sync (debounced, non-blocking) with failure notification
   if (_supabase && _currentUser && SYNC_KEYS.includes(key)) {
-    cloudSave(key, data).catch(err => {
+    debouncedCloudSave(key, data).catch(err => {
       console.warn('Cloud save failed for', key, err);
       _syncFailCount = (_syncFailCount || 0) + 1;
       // Show toast on first failure, then throttle to avoid spam
@@ -5175,6 +5195,23 @@ function updateActiveStrip() {
     strip.classList.remove('visible');
   }
 }
+
+// ── Persist running timers on page unload ──
+window.addEventListener('beforeunload', () => {
+  const running = _allRunningTimers();
+  if (!running.length) return;
+  let tasksDirty = false, projsDirty = false;
+  running.forEach(r => {
+    const elapsed = Math.floor((Date.now() - r.target.timerStart) / 1000);
+    r.target.timer = (r.target.timer || 0) + elapsed;
+    r.target.timerStart = Date.now(); // reset start to now so next load picks up cleanly
+    if (r.type === 'task') tasksDirty = true;
+    else projsDirty = true;
+  });
+  // Use synchronous localStorage writes (save() would trigger async cloud sync)
+  if (tasksDirty) try { localStorage.setItem('wt_tasks', JSON.stringify(tasks)); } catch(e) {}
+  if (projsDirty) try { localStorage.setItem('wt_bigprojs', JSON.stringify(bigProjs)); } catch(e) {}
+});
 
 // =============================================
 // DATE HELPERS
@@ -5632,10 +5669,10 @@ function renderTasks() {
       row.dataset.id = task.id;
       row.innerHTML = `
         <div class="task-check" onclick="openCompletionModal('${task.id}')" title="Complete task"></div>
-        <div class="project-dot" style="background:${projColor(task.project)};" title="${projLabel(task.project)}"></div>
+        <div class="project-dot" style="background:${projColor(task.project)};" title="${escHtml(projLabel(task.project))}"></div>
         <div class="task-name" onclick="openEditModal('${task.id}')"><span class="task-name-text">${escHtml(task.name)}</span>${delegateTagsHtml(task.delegatedTo)}${task.waiting ? `<span class="task-waiting">⏳ ${escHtml(task.waiting)}</span>` : ''}${task.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('task','${task.id}')" title="View notes">📝</span>` : ''}${task.recurrence ? `<span class="recur-badge" style="flex-shrink:0;">${recurLabel(task)}</span>` : ''}</div>
         <div class="task-recur-actions"><button class="row-edit-btn" onclick="event.stopPropagation();showTaskAssignDropdown(event,'${task.id}')" title="Assign" style="font-size:11px;padding:2px 4px;">↗</button>${task.recurrence ? `<button class="row-edit-btn" onclick="event.stopPropagation();skipRecurOccurrence('${task.id}','${item._occurrenceDate || task.due}')" title="Skip this occurrence" style="font-size:11px;padding:2px 4px;">⏭</button><button class="row-edit-btn" onclick="event.stopPropagation();openRescheduleModal('${task.id}','${item._occurrenceDate || task.due}')" title="Reschedule this occurrence" style="font-size:11px;padding:2px 4px;">📅</button>` : ''}</div>
-        <span class="task-category">${projLabel(task.project)}</span>
+        <span class="task-category">${escHtml(projLabel(task.project))}</span>
         <div onclick="showPriorityDropdown(event,'${task.id}')" style="cursor:pointer;" title="Change priority">${priorityBadge(task.priority)}</div>
         <div class="task-due ${dc}" onclick="openDueDatePicker(this, '${task.id}')">${fmtDate(item._date)}</div>
         <div class="task-est" onclick="event.stopPropagation();inlineEditEst(this,'task','${task.id}')" style="cursor:pointer;" title="Click to edit">${task.est ? task.est + 'h' : '—'}</div>
@@ -5653,7 +5690,7 @@ function renderTasks() {
       row.className = `task-row${sRunning ? ' running' : ''}`;
       row.innerHTML = `
         <div class="task-check${s.done ? ' done' : ''}" onclick="openSessionCompletionModal('${proj.id}','${s.id}')" title="Mark complete" style="cursor:pointer;"></div>
-        <div class="project-dot" style="background:${proj.color || projColor(proj.project)};" title="${projLabel(proj.project)}"></div>
+        <div class="project-dot" style="background:${proj.color || projColor(proj.project)};" title="${escHtml(projLabel(proj.project))}"></div>
         <div class="task-name" onclick="openEditSessionModal('${proj.id}','${s.id}')">${escHtml(s.desc)}${delegateTagsHtml(s.delegatedTo)}${s.waiting ? `<span class="task-waiting">⏳ ${escHtml(s.waiting)}</span>` : ''}${s.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('session','${s.id}','${proj.id}')" title="View notes">📝</span>` : ''}</div>
         <div class="task-recur-actions"></div>
         <span class="task-category" style="color:var(--text3);font-style:italic;">${escHtml(proj.name)}</span>
@@ -5695,7 +5732,7 @@ function renderTasks() {
       row.className = 'task-row';
       row.innerHTML = `
         <div class="task-check${ct.completed ? ' done' : ''}" onclick="ctCompleteTask('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}',${!ct.completed})" style="cursor:pointer;"></div>
-        <div class="project-dot" style="background:${pColor};" title="${projLabel(ct.project)}"></div>
+        <div class="project-dot" style="background:${pColor};" title="${escHtml(projLabel(ct.project))}"></div>
         <div class="task-name">${escHtml(ct.name)} <span style="font-size:10px;color:var(--text3);font-style:italic;">${escHtml(ct._partnerName)}</span></div>
         <div class="task-recur-actions"></div>
         <span class="task-category" style="color:var(--text3);font-style:italic;">${escHtml(ct._stageName)}</span>
@@ -6842,7 +6879,7 @@ function renderProjCodeList() {
       ondragleave="this.classList.remove('drag-over-code');"
       ondrop="event.preventDefault();this.classList.remove('drag-over-code');dropCodeReorder('${key}');">
       <div class="proj-code-dot" style="background:${p.color || '#666'};"></div>
-      <span class="proj-code-label">${p.label || key}</span>
+      <span class="proj-code-label">${escHtml(p.label || key)}</span>
       <button class="proj-eye-btn" onclick="event.stopPropagation();toggleProjHidden('${key}')" title="Hide this code">👁</button>
     </div>`;
   });
@@ -6865,7 +6902,7 @@ function renderProjCodeList() {
           ondragleave="this.classList.remove('drag-over-code');"
           ondrop="event.preventDefault();this.classList.remove('drag-over-code');dropCodeReorder('${key}');">
           <div class="proj-code-dot" style="background:${p.color || '#666'};"></div>
-          <span class="proj-code-label">${p.label || key}</span>
+          <span class="proj-code-label">${escHtml(p.label || key)}</span>
           <button class="proj-eye-btn" onclick="event.stopPropagation();toggleProjHidden('${key}')" title="Show this code">👁‍🗨</button>
         </div>`;
       });
@@ -7054,8 +7091,8 @@ function renderProjCodeContent(projKey) {
   // Header
   let html = `<div class="proj-right-header">
     <div class="proj-code-dot" style="background:${color};width:12px;height:12px;border-radius:50%;"></div>
-    <span class="proj-right-title">${proj.label || projKey}</span>
-    <span class="proj-right-code">${proj.billingCode || ''}</span>
+    <span class="proj-right-title">${escHtml(proj.label || projKey)}</span>
+    <span class="proj-right-code">${escHtml(proj.billingCode || '')}</span>
     <div style="margin-left:auto;display:flex;gap:6px;">
       <button class="btn" onclick="openManagePersonsModal()" style="font-size:11px;padding:3px 10px;">Manage Persons</button>
       <button class="btn primary" onclick="openAddProjectModal()" style="font-size:11px;padding:3px 10px;">+ Add Project</button>
@@ -7142,7 +7179,7 @@ function renderProjCodeContent(projKey) {
       <div class="subcode-header" style="border-top:3px solid ${color};" onclick="toggleSubSection('${sectionKey}')">
         ${isDraggable ? '<span class="subcode-drag-handle" title="Drag to reorder">⠿</span>' : ''}
         <span class="subcode-chevron${isCollapsed ? '' : ' open'}">›</span>
-        <span style="color:var(--text);">${sec.code ? '<span style="color:' + color + ';font-weight:700;">' + (proj.billingCode || '') + sec.code + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${sec.label}</span>` : sec.label}</span>
+        <span style="color:var(--text);">${sec.code ? '<span style="color:' + color + ';font-weight:700;">' + escHtml((proj.billingCode || '') + sec.code) + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${escHtml(sec.label)}</span>` : escHtml(sec.label)}</span>
         ${meterHtml}
         <span class="subcode-count">${openCount} open / ${totalCount} total</span>
       </div>`;
@@ -7295,15 +7332,15 @@ function renderProjItemRow(item, projKey, scId) {
     const owners = ti.owners || [ti.owner];
     const ownerTags = owners.map(o => {
       const pc = personColor(o || '—');
-      return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 5px;border-radius:10px;font-size:9px;font-weight:600;white-space:nowrap;">${o}</span>`;
+      return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 5px;border-radius:10px;font-size:9px;font-weight:600;white-space:nowrap;">${escHtml(o)}</span>`;
     }).join('');
     return `<div class="proj-item-row">
       <div class="bulk-select-check${_selectedProjItems.has('team:'+ti.id) ? ' selected' : ''}" onclick="event.stopPropagation();_toggleProjItemSelect('team','${ti.id}')" title="Select for bulk action">${_selectedProjItems.has('team:'+ti.id) ? '<span style="color:#fff;font-size:10px;">✓</span>' : ''}</div>
       <div style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;opacity:0.6;" title="Team deliverable">👤</div>
       <div class="session-desc" style="${isDone ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditTeamModal('${ti.id}')">
-        ${ti.name}
+        ${escHtml(ti.name)}
         <span style="display:inline-flex;gap:3px;margin-left:4px;">${ownerTags}</span>
-        ${ti.waiting ? `<span class="task-waiting">⏳ ${ti.waiting}</span>` : ''}
+        ${ti.waiting ? `<span class="task-waiting">⏳ ${escHtml(ti.waiting)}</span>` : ''}
         ${ti.notes ? '<span class="notes-icon" title="Has notes">📝</span>' : ''}
       </div>
       <div></div>
@@ -7762,7 +7799,7 @@ function renderTeam() {
     if (!others.length) return '';
     return '<span class="team-coassignee-tags">' + others.map(o => {
       const pc = personColor(o);
-      return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 5px;border-radius:10px;font-size:9px;font-weight:600;white-space:nowrap;">+${o}</span>`;
+      return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 5px;border-radius:10px;font-size:9px;font-weight:600;white-space:nowrap;">+${escHtml(o)}</span>`;
     }).join('') + '</span>';
   }
 
@@ -7778,7 +7815,7 @@ function renderTeam() {
       ? `<div class="team-owner" style="display:flex;flex-wrap:wrap;gap:3px;">${coAssigneeTags(owners, forPerson) || '<span style="font-size:10px;color:var(--text3);">Solo</span>'}</div>`
       : `<div class="team-owner" style="display:flex;flex-wrap:wrap;gap:3px;">${owners.map(o => {
           const pc = personColor(o || '—');
-          return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;">${o}</span>`;
+          return `<span style="color:${pc.text};background:${pc.bg};border:1px solid ${pc.border};padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;">${escHtml(o)}</span>`;
         }).join('')}</div>`;
 
     if (item._delegated) {
@@ -7797,7 +7834,7 @@ function renderTeam() {
       row.innerHTML = `
         <div class="team-task-name" onclick="${editFn}">${item._isSubtask ? '<span style="color:var(--text3);margin-right:4px;">╰</span>' : ''}${escHtml(item.name)}${_s?.waiting ? `<span class="task-waiting">⏳ ${escHtml(_s.waiting)}</span>` : ''}${_s?.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('${item._isSubtask ? 'subtask' : 'session'}','${item._isSubtask ? item._subtaskId : item._sessionId}','${item._projId}'${item._isSubtask ? `,'${item._sessionId}'` : ''})" title="View notes">📝</span>` : ''} <span class="delegate-tag">↗</span></div>
         ${ownerHtml}
-        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(projLabel(item.project))}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="${dateFn}">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}" onclick="${statusDropFn}" style="cursor:pointer;" title="${STATUS_LABELS[item.status]||item.status}">${STATUS_LABELS[item.status]||item.status}</span>
@@ -7806,7 +7843,7 @@ function renderTeam() {
       row.innerHTML = `
         <div class="team-task-name" onclick="openEditModal('${item._taskId}')">${escHtml(item.name)} <span class="delegate-tag" style="background:var(--bg3);color:var(--text3);font-size:9px;">task</span></div>
         ${ownerHtml}
-        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(projLabel(item.project))}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openDueDatePicker(this,'${item._taskId}')">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showDelegatedTaskStatusDropdown(event,'${item._taskId}')" style="cursor:pointer;" title="${STATUS_LABELS[item.status]||item.status}">${STATUS_LABELS[item.status]||item.status}</span>
@@ -7815,7 +7852,7 @@ function renderTeam() {
       row.innerHTML = `
         <div class="team-task-name" onclick="openEditTeamModal('${item.id}')">${escHtml(item.name)}${item.waiting ? `<span class="task-waiting">⏳ ${escHtml(item.waiting)}</span>` : ''}${item.notes ? `<span class="notes-icon" onclick="event.stopPropagation();openNotesFor('team','${item.id}')" title="View notes">📝</span>` : ''}</div>
         ${ownerHtml}
-        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(projLabel(item.project))}</span>
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openTeamDueDatePicker(this,'${item.id}')">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showStatusDropdown(event,'${item.id}')" style="cursor:pointer;" title="${STATUS_LABELS[item.status]}">${STATUS_LABELS[item.status]}</span>
@@ -8402,7 +8439,7 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
         grpHdr.className = 'ts-entry-row ts-group-header';
         grpHdr.style.paddingLeft = '32px';
         grpHdr.innerHTML = `
-          <span class="ts-entry-code" title="${projLabel(first.project)}" style="font-weight:700;">${parentCode}</span>
+          <span class="ts-entry-code" title="${escHtml(projLabel(first.project))}" style="font-weight:700;">${escHtml(parentCode)}</span>
           <span class="ts-entry-subcode" style="font-weight:700;">${scLabel || '—'}</span>
           <span style="font-size:11px;color:var(--text3);">${group.length} entries</span>
           <span class="ts-entry-hours" style="font-weight:800;">${fmtQ(subtotal)}h</span>
@@ -8428,8 +8465,8 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
           `;
         } else {
           row.innerHTML = `
-            <span class="ts-entry-code" title="${projLabel(item.project)}">${parentCode}</span>
-            <span class="ts-entry-subcode">${scLabel || '—'}</span>
+            <span class="ts-entry-code" title="${escHtml(projLabel(item.project))}">${escHtml(parentCode)}</span>
+            <span class="ts-entry-subcode">${escHtml(scLabel || '—')}</span>
             <span class="ts-entry-name" onclick="openEditTsEntry('${item.id}')">${escHtml(item.name)}</span>
             <span class="ts-entry-hours">${item.actualHours}h</span>
             <div class="ts-entry-actions">
@@ -8480,8 +8517,8 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
           <span onclick="event.stopPropagation();openRescheduleModal('${taskObj.id}','${item.date}')" title="Reschedule this occurrence" style="cursor:pointer;font-size:12px;opacity:0.6;padding:0 2px;">📅</span>`;
       }
       row.innerHTML = `
-        <span class="ts-entry-code" title="${projLabel(item.project)}">${parentCode}</span>
-        <span class="ts-entry-subcode">${scLabel || '—'}</span>
+        <span class="ts-entry-code" title="${escHtml(projLabel(item.project))}">${escHtml(parentCode)}</span>
+        <span class="ts-entry-subcode">${escHtml(scLabel || '—')}</span>
         <span class="ts-entry-name ts-entry-planned" ${editFn ? `onclick="${editFn}" style="cursor:pointer;"` : ''}>${escHtml(item.name)}${item._recur ? ' <span class="recur-badge">↻</span>' : ''}</span>
         ${recurActions ? `<span class="ts-entry-hours" style="color:var(--text3);display:flex;align-items:center;gap:3px;justify-content:flex-end;">${recurActions}<span>${item.hours}h</span></span>` : `<span class="ts-entry-hours" style="color:var(--text3);">${item.hours}h</span>`}
         <div class="ts-entry-actions" style="opacity:1;">
@@ -8806,8 +8843,8 @@ function renderTimesheet() {
               <span onclick="event.stopPropagation();openRescheduleModal('${item._taskId}','${item.date}')" title="Reschedule this occurrence" style="cursor:pointer;font-size:12px;opacity:0.6;padding:0 2px;">📅</span>`;
           }
           row.innerHTML = `
-            <span class="ts-entry-code" title="${projLabel(item.project)}">${pCode}</span>
-            <span class="ts-entry-subcode">${scLbl || '—'}</span>
+            <span class="ts-entry-code" title="${escHtml(projLabel(item.project))}">${escHtml(pCode)}</span>
+            <span class="ts-entry-subcode">${escHtml(scLbl || '—')}</span>
             <span class="ts-entry-name ts-entry-planned" ${editFn ? `onclick="${editFn}" style="cursor:pointer;"` : ''}>${escHtml(item.name)}${recurBadge}</span>
             ${recurActions ? `<span class="ts-entry-hours" style="color:var(--text3);display:flex;align-items:center;gap:3px;justify-content:flex-end;">${recurActions}<span>${item.hours}h</span></span>` : `<span class="ts-entry-hours" style="color:var(--text3);">${item.hours}h</span>`}
             <div class="ts-entry-actions" style="opacity:1;">
@@ -8844,7 +8881,7 @@ function renderTimesheet() {
       block.innerHTML = `
         <div class="ts-project-header">
           <div class="project-dot" style="background:${projColor(projKey)};width:9px;height:9px;border-radius:50%;"></div>
-          <div class="ts-project-name">${projLabel(projKey)}</div>
+          <div class="ts-project-name">${escHtml(projLabel(projKey))}</div>
           <span style="font-size:11px;color:var(--text3);margin-right:8px;">${items.length} entries</span>
           <span style="font-size:11px;font-weight:700;color:var(--text);margin-right:12px;">${fmtQ(projActual)}h logged</span>
         </div>
@@ -8855,8 +8892,8 @@ function renderTimesheet() {
               const code = projBillingCode(item.project) || projLabel(item.project);
               const sc = item.subCode ? getSubCodeLabel(item.project, item.subCode) : '—';
               return `<tr>
-                <td style="color:var(--text3);font-size:11px;font-family:monospace;">${code}</td>
-                <td style="color:var(--accent);font-size:11px;opacity:0.8;">${sc}</td>
+                <td style="color:var(--text3);font-size:11px;font-family:monospace;">${escHtml(code)}</td>
+                <td style="color:var(--accent);font-size:11px;opacity:0.8;">${escHtml(sc)}</td>
                 <td style="cursor:pointer;color:var(--text);" onclick="openEditTsEntry('${item.id}')" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${escHtml(item.name)}</td>
                 <td style="color:var(--text3)">${fmtDate(item.date)}</td>
                 <td style="font-weight:600;text-align:right;">${item.actualHours}h</td>
@@ -9747,20 +9784,20 @@ function handleAllocImport(event) {
           dupeProjects.forEach((d, idx) => {
             detailHtml += `<div id="dupe-proj-${idx}" style="padding:3px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               <span style="color:var(--warn);">⚠</span>
-              <span>Project: "<strong>${d.a.label}</strong>" and "<strong>${d.b.label}</strong>"</span>
+              <span>Project: "<strong>${escHtml(d.a.label)}</strong>" and "<strong>${escHtml(d.b.label)}</strong>"</span>
               <span style="margin-left:auto;display:flex;gap:4px;">
-                <button class="btn" onclick="_mergeProjects('${d.aKey}','${d.bKey}');document.getElementById('dupe-proj-${idx}').innerHTML='<span style=\\'color:var(--success);\\'>✓ Merged into ${d.a.label.replace(/'/g, "\\'")}</span>';" style="font-size:9px;padding:2px 8px;">Merge</button>
-                <button class="btn" onclick="_dismissDup('${d.aKey}','${d.bKey}');document.getElementById('dupe-proj-${idx}').innerHTML='<span style=\\'color:var(--text3);\\'>✓ Kept as separate projects</span>';" style="font-size:9px;padding:2px 8px;color:var(--text3);">Keep separate</button>
+                <button class="btn" onclick="_mergeProjects('${d.aKey}','${d.bKey}');document.getElementById('dupe-proj-${idx}').textContent='✓ Merged into ${escHtml(d.a.label)}';document.getElementById('dupe-proj-${idx}').style.color='var(--success)';" style="font-size:9px;padding:2px 8px;">Merge</button>
+                <button class="btn" onclick="_dismissDup('${d.aKey}','${d.bKey}');document.getElementById('dupe-proj-${idx}').textContent='✓ Kept as separate projects';document.getElementById('dupe-proj-${idx}').style.color='var(--text3)';" style="font-size:9px;padding:2px 8px;color:var(--text3);">Keep separate</button>
               </span>
             </div>`;
           });
           dupeSubs.forEach((d, idx) => {
             detailHtml += `<div id="dupe-sc-${idx}" style="padding:3px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               <span style="color:var(--warn);">⚠</span>
-              <span>${PROJECTS[d.projKey]?.label}: "<strong>${d.a.label}</strong>" and "<strong>${d.b.label}</strong>"</span>
+              <span>${escHtml(PROJECTS[d.projKey]?.label || '')}: "<strong>${escHtml(d.a.label)}</strong>" and "<strong>${escHtml(d.b.label)}</strong>"</span>
               <span style="margin-left:auto;display:flex;gap:4px;">
-                <button class="btn" onclick="_mergeSubCodes('${d.projKey}','${d.aId}','${d.bId}');document.getElementById('dupe-sc-${idx}').innerHTML='<span style=\\'color:var(--success);\\'>✓ Merged into ${d.a.label.replace(/'/g, "\\'")}</span>';" style="font-size:9px;padding:2px 8px;">Merge</button>
-                <button class="btn" onclick="_dismissDup('${d.projKey}:${d.aId}','${d.projKey}:${d.bId}');document.getElementById('dupe-sc-${idx}').innerHTML='<span style=\\'color:var(--text3);\\'>✓ Kept as separate sub-codes</span>';" style="font-size:9px;padding:2px 8px;color:var(--text3);">Keep separate</button>
+                <button class="btn" onclick="_mergeSubCodes('${d.projKey}','${d.aId}','${d.bId}');document.getElementById('dupe-sc-${idx}').textContent='✓ Merged into ${escHtml(d.a.label)}';document.getElementById('dupe-sc-${idx}').style.color='var(--success)';" style="font-size:9px;padding:2px 8px;">Merge</button>
+                <button class="btn" onclick="_dismissDup('${d.projKey}:${d.aId}','${d.projKey}:${d.bId}');document.getElementById('dupe-sc-${idx}').textContent='✓ Kept as separate sub-codes';document.getElementById('dupe-sc-${idx}').style.color='var(--text3)';" style="font-size:9px;padding:2px 8px;color:var(--text3);">Keep separate</button>
               </span>
             </div>`;
           });
@@ -10142,7 +10179,7 @@ function renderAllocations() {
     const codeStr = proj.billingCode ? ` (${proj.billingCode})` : '';
     const allocCollapsed = collapsedAllocProjs.has(projKey);
     const chevron = subs.length > 0 ? `<span class="alloc-collapse-btn ${allocCollapsed ? '' : 'open'}" onclick="toggleAllocProjCollapse('${projKey}')" title="${allocCollapsed ? 'Expand' : 'Collapse'} sub-codes">›</span>` : '';
-    html += `<tr class="alloc-proj-header"><td>${chevron}<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${proj.label}${codeStr}</td>`;
+    html += `<tr class="alloc-proj-header"><td>${chevron}<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${escHtml(proj.label)}${escHtml(codeStr)}</td>`;
 
     // Project-level summary per month
     const noSubs = subs.length === 0;
@@ -10179,7 +10216,7 @@ function renderAllocations() {
         if (noSubs) {
           html += `<input type="number" min="0" step="1" value="${projAlloc || ''}" placeholder="—"
                     onchange="allocSet('${projKey}','','${m.ym}',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"
-                    title="Allocated hours for ${proj.label} in ${m.label}">`;
+                    title="Allocated hours for ${escHtml(proj.label)} in ${escHtml(m.label)}">`;
         } else {
           html += `<div style="font-weight:600;font-size:11px;">${projAlloc > 0 ? projAlloc + 'h' : '—'}</div>`;
         }
@@ -10205,7 +10242,7 @@ function renderAllocations() {
     if (viewMode === 'detail' && subs.length > 0 && !collapsedAllocProjs.has(projKey)) {
       subs.forEach(sc => {
         const fullCode = (proj.billingCode || '') + sc.code;
-        html += `<tr class="alloc-sc-row"><td>${sc.code} ${sc.label}</td>`;
+        html += `<tr class="alloc-sc-row"><td>${escHtml(sc.code)} ${escHtml(sc.label)}</td>`;
         let scAllocYTD = 0, scActualYTD = 0;
         let scPlannedYTD = 0;
         months.forEach((m, mi) => {
@@ -10220,7 +10257,7 @@ function renderAllocations() {
           html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','${sc.id}','${m.ym}')" title="Click to see task breakdown">`;
           html += `<input type="number" min="0" step="1" value="${allocated || ''}" placeholder="—"
                     onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"
-                    title="Allocated hours for ${fullCode} in ${m.label}">`;
+                    title="Allocated hours for ${escHtml(fullCode)} in ${escHtml(m.label)}">`;
           html += allocDualBars(allocated, planned, actual);
           html += `</td>`;
         });
@@ -10718,7 +10755,7 @@ function showDropdown(anchorEl, items, currentVal, callback) {
   const rect = anchorEl.getBoundingClientRect();
   menu.innerHTML = items.map(it =>
     `<div class="dropdown-item${it.value === currentVal ? ' current' : ''}" onclick="_ddSelect('${it.value}')">
-      ${it.swatch ? `<span class="dd-swatch" style="background:${it.swatch}"></span>` : ''}${it.label}
+      ${it.swatch ? `<span class="dd-swatch" style="background:${it.swatch}"></span>` : ''}${escHtml(it.label)}
     </div>`
   ).join('');
   // Position below anchor (fixed positioning — use viewport coords, no scrollY)
@@ -11469,11 +11506,11 @@ function renderProjectMetaList() {
     // Sub-code rows HTML
     const subRows = subs.map(sc => `
       <div class="subcode-row">
-        <input class="proj-meta-input sc-code-input" type="text" value="${sc.code}"
+        <input class="proj-meta-input sc-code-input" type="text" value="${escHtml(sc.code)}"
                onblur="updateSubCode('${key}','${sc.id}','code',this.value)"
                onkeydown="if(event.key==='Enter') this.blur()"
                placeholder=".01">
-        <input class="proj-meta-input sc-label-input" type="text" value="${sc.label}"
+        <input class="proj-meta-input sc-label-input" type="text" value="${escHtml(sc.label)}"
                onblur="updateSubCode('${key}','${sc.id}','label',this.value)"
                onkeydown="if(event.key==='Enter') this.blur()"
                placeholder="Sub-code description">
@@ -11488,10 +11525,10 @@ function renderProjectMetaList() {
       <span class="proj-meta-key">${key}</span>
       <input type="color" class="color-picker" value="${proj.color}"
              onchange="updateProjectColor('${key}', this.value)" title="Pick color">
-      <input class="proj-meta-input" type="text" value="${proj.label}"
+      <input class="proj-meta-input" type="text" value="${escHtml(proj.label)}"
              onblur="updateProjectLabel('${key}', this.value)"
              onkeydown="if(event.key==='Enter') this.blur()">
-      <input class="proj-meta-input" type="text" value="${proj.billingCode || ''}"
+      <input class="proj-meta-input" type="text" value="${escHtml(proj.billingCode || '')}"
              placeholder="Billing code"
              style="width:100px;flex:none;"
              onblur="updateProjectBillingCode('${key}', this.value)"
@@ -11998,12 +12035,12 @@ function renderReviewContent() {
 
   makeSection('New Tasks', new_tasks, 'new', item => {
     const tags = [
-      item.project ? `<span class="review-tag">${PROJECTS[item.project]?.label || item.project}</span>` : '',
-      item.priority ? `<span class="review-tag">${item.priority}</span>` : '',
+      item.project ? `<span class="review-tag">${escHtml(PROJECTS[item.project]?.label || item.project)}</span>` : '',
+      item.priority ? `<span class="review-tag">${escHtml(item.priority)}</span>` : '',
       item.due      ? `<span class="review-tag">Due ${fmtDate(item.due)}</span>` : '',
       item.est      ? `<span class="review-tag">${item.est}h</span>` : '',
-      item.category ? `<span class="review-tag">${item.category}</span>` : '',
-      item.waiting  ? `<span class="review-tag">⏳ ${item.waiting}</span>` : ''
+      item.category ? `<span class="review-tag">${escHtml(item.category)}</span>` : '',
+      item.waiting  ? `<span class="review-tag">⏳ ${escHtml(item.waiting)}</span>` : ''
     ].filter(Boolean).join('');
     return `<div class="review-item-name">${escHtml(item.name || '(unnamed)')}</div>
             <div class="review-item-meta">${tags}</div>
