@@ -9505,10 +9505,11 @@ function _renderCapItemList(container, projKey, ym, data) {
 
       const row = document.createElement('div');
       row.className = 'cap-item-row';
+      const displayName = item._allocHold ? item.name.replace(/ \(hold\)$/, '') : item.name;
       row.innerHTML = `
-        <span style="font-size:10px;color:var(--accent);">${item._recur ? '↻' : '○'}</span>
-        <span style="font-size:10px;color:var(--text3);">${fmtDate(item.date)}</span>
-        <span class="cap-item-name${item._recur ? ' recur' : ''}" ${editFn ? `onclick="${editFn}" style="cursor:pointer;"` : ''}>${escHtml(item.name)}${item._allocHold ? ' <span style="color:var(--text3);font-size:9px;">(hold)</span>' : ''}</span>
+        <span style="font-size:10px;color:var(--accent);">${item._recur ? '↻' : item._allocHold ? '◇' : '○'}</span>
+        <span style="font-size:10px;color:var(--text3);">${item._allocHold ? '<span style="color:var(--warn);font-style:italic;">Hold</span>' : fmtDate(item.date)}</span>
+        <span class="cap-item-name${item._recur ? ' recur' : ''}" ${editFn ? `onclick="${editFn}" style="cursor:pointer;"` : ''}>${escHtml(displayName)}${item._allocHold ? ' <span style="color:var(--warn);font-size:9px;font-weight:600;">⟡ month hold</span>' : ''}</span>
         <span class="cap-item-hours" style="color:var(--text3);">${item.hours > 0 ? fmtQ(item.hours) + 'h' : '—'}</span>
         <span class="cap-item-actions">
           ${editFn ? `<button class="btn" onclick="event.stopPropagation();${editFn}" title="Edit">Edit</button>` : ''}
