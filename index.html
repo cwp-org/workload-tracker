@@ -7338,7 +7338,7 @@ function renderProjItemRow(item, projKey, scId) {
       ondragleave="this.classList.remove('drag-over-row');"
       ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('drag-over-row');reorderItemInSection('${projKey}','${scId}','task','${t.id}');">
       <div class="bulk-select-check${_selectedProjItems.has('task:'+t.id) ? ' selected' : ''}" onclick="event.stopPropagation();_toggleProjItemSelect('task','${t.id}')" title="Select for bulk action">${_selectedProjItems.has('task:'+t.id) ? '<span style="color:#fff;font-size:10px;">✓</span>' : ''}</div>
-      <div class="session-check${isDone ? ' done' : ''}" onclick="toggleTaskFromProjects('${t.id}')" style="cursor:pointer;">
+      <div class="session-check${isDone ? ' done' : ''}" onclick="openCompletionModal('${t.id}')" style="cursor:pointer;">
         ${isDone ? '<span style="color:var(--check-fg);font-size:11px;">✓</span>' : ''}
       </div>
       <div class="session-desc" style="${isDone ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="openEditModal('${t.id}')">
