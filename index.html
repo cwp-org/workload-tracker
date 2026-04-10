@@ -8420,15 +8420,14 @@ function renderWeekEntriesInline(container, wStart, wEnd, allEntries, wPlanned) 
     // Day capacity bar
     let dayCapHtml = '';
     if (dayCap > 0) {
-      const dayPct = Math.min(Math.round((dayTotal / dayCap) * 100), 100);
-      const dayCls = dayTotal > dayCap ? 'over' : dayTotal > dayCap * 0.8 ? 'warn' : 'ok';
-      const dayStatus = dayTotal > dayCap
-        ? `<span style="color:var(--danger);font-weight:700;">+${fmtQ(dayTotal - dayCap)}h over</span>`
-        : `<span style="color:${dayCls === 'warn' ? 'var(--warn)' : 'var(--success)'};font-weight:600;">${fmtQ(dayCap - dayTotal)}h left</span>`;
+      const dayLoggedPct = Math.min(Math.round((dayLogged / dayCap) * 100), 100);
+      const dayBarColor = dayLogged > dayCap ? '#3b82f6' : dayLogged >= dayCap - 0.01 ? 'var(--success)' : 'var(--text3)';
+      const dayLabelColor = dayLogged > dayCap ? '#3b82f6' : dayLogged >= dayCap - 0.01 ? 'var(--success)' : 'var(--text)';
+      const dayStatusText = dayLogged > dayCap ? `+${fmtQ(dayLogged - dayCap)}H OVER` : dayLogged >= dayCap - 0.01 ? 'ON TARGET' : `${fmtQ(dayCap - dayLogged)}H LEFT`;
       dayCapHtml = `<div class="ts-day-cap" style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-        <div class="ts-cap-bar-wrap" style="width:80px;margin-top:0;"><div class="ts-cap-bar-fill ${dayCls}" style="width:${dayPct}%;"></div></div>
-        <span style="font-size:9px;color:var(--text3);white-space:nowrap;">${fmtQ(dayLogged)}h${dayPlanned > 0 ? ' + ' + fmtQ(dayPlanned) + 'h' : ''} / ${dayCap}h</span>
-        ${dayStatus}
+        <div class="ts-cap-bar-wrap" style="width:80px;margin-top:0;"><div style="width:${dayLoggedPct}%;height:100%;border-radius:3px;background:${dayBarColor};" class="ts-cap-bar-fill"></div></div>
+        <span style="font-size:9px;color:var(--text);white-space:nowrap;">${fmtQ(dayLogged)}H / ${dayCap}H</span>
+        <span style="font-size:9px;color:${dayLabelColor};white-space:nowrap;font-weight:700;">${dayStatusText}</span>
       </div>`;
     } else {
       dayCapHtml = `<span class="ts-day-total">${dayLogged > 0 ? fmtQ(dayLogged) + 'h logged' : ''}</span>`;
