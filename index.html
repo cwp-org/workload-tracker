@@ -4975,7 +4975,7 @@ function getFullCode(projKey, scId) {
   if (!scId) return proj.billingCode || '';
   const sc = (proj.subCodes || []).find(s => s.id === scId);
   if (!sc) return proj.billingCode || '';
-  return (proj.billingCode || '') + sc.code;
+  return proj.billingCode || '';
 }
 
 function getSubCodeLabel(projKey, scId) {
@@ -7299,7 +7299,7 @@ function renderProjCodeContent(projKey) {
       <div class="subcode-header" style="border-top:3px solid ${sec._inactive ? 'var(--border)' : color};" onclick="toggleSubSection('${sectionKey}')">
         ${isDraggable ? '<span class="subcode-drag-handle" title="Drag to reorder">⠿</span>' : ''}
         <span class="subcode-chevron${isCollapsed ? '' : ' open'}">›</span>
-        <span style="color:${sec._inactive ? 'var(--text3)' : 'var(--text)'};">${sec.code ? '<span style="color:' + (sec._inactive ? 'var(--text3)' : color) + ';font-weight:700;">' + (proj.billingCode || '') + sec.code + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${sec.label}</span>` : sec.label}${sec._inactive ? ' <span style="font-size:9px;color:var(--text3);font-style:italic;">(inactive)</span>' : ''}</span>
+        <span style="color:${sec._inactive ? 'var(--text3)' : 'var(--text)'};">${sec.scId && proj.billingCode ? '<span style="color:' + (sec._inactive ? 'var(--text3)' : color) + ';font-weight:700;">' + proj.billingCode + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${sec.label}</span>` : sec.label}${sec._inactive ? ' <span style="font-size:9px;color:var(--text3);font-style:italic;">(inactive)</span>' : ''}</span>
         ${meterHtml}
         <span class="subcode-count">${openCount} open / ${totalCount} total</span>
       </div>`;
@@ -10258,8 +10258,6 @@ function _renderScManager(projKey) {
     if (idx < subs.length - 1) html += `<span onclick="_scMgrMove('${projKey}',${idx},1)" style="cursor:pointer;font-size:11px;color:var(--text3);padding:0 2px;" title="Move down">▼</span>`;
     else html += `<span style="font-size:11px;color:transparent;padding:0 2px;">▼</span>`;
     html += `</div>`;
-    // Code badge
-    html += `<span style="font-size:10px;font-weight:700;color:var(--text3);min-width:18px;text-align:center;">${sc.code}</span>`;
     // Editable name
     html += `<input type="text" value="${escHtml(sc.label)}" onchange="_scMgrRename('${projKey}','${sc.id}',this.value)" style="flex:1;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);" title="Rename">`;
     // Active toggle
@@ -10682,7 +10680,7 @@ function openAllocDrill(projKey, scId, yearMonth) {
   if (!proj) return;
   const sc = scId ? (proj.subCodes || []).find(s => s.id === scId) : null;
   const monthLabel = new Date(yearMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' });
-  const codeLabel = sc ? `${sc.code} ${sc.label}` : proj.label;
+  const codeLabel = sc ? sc.label : proj.label;
   const hasSubs = proj.subCodes && proj.subCodes.length > 0;
   const matchAllSubs = !scId && hasSubs;
 
@@ -10790,7 +10788,7 @@ function openAllocDrill(projKey, scId, yearMonth) {
   function scBadge(subCodeId) {
     if (!matchAllSubs || !subCodeId) return '';
     const found = (proj.subCodes || []).find(s => s.id === subCodeId);
-    return found ? `<span class="adi-type" style="background:var(--bg3);">${found.code}</span>` : '';
+    return found ? `<span class="adi-type" style="background:var(--bg3);">${found.label}</span>` : '';
   }
 
   function renderTaskItem(t) {
@@ -11005,9 +11003,9 @@ function renderAllocations() {
     // Sub-code rows (detail view only, respects per-project collapse)
     if (viewMode === 'detail' && subs.length > 0 && !collapsedAllocProjs.has(projKey)) {
       subs.forEach(sc => {
-        const fullCode = (proj.billingCode || '') + sc.code;
+        const fullCode = proj.billingCode || '';
         const scIsActive = sc.active !== false;
-        html += `<tr class="alloc-sc-row"${scIsActive ? '' : ' style="opacity:0.45;"'}><td>${sc.code} ${sc.label}${scIsActive ? '' : ' <span style="font-size:9px;color:var(--text3);font-style:italic;">(inactive)</span>'}</td>`;
+        html += `<tr class="alloc-sc-row"${scIsActive ? '' : ' style="opacity:0.45;"'}><td>${sc.label}${scIsActive ? '' : ' <span style="font-size:9px;color:var(--text3);font-style:italic;">(inactive)</span>'}</td>`;
         let scAllocYTD = 0, scActualYTD = 0;
         let scPlannedYTD = 0;
         months.forEach((m, mi) => {
@@ -12310,14 +12308,11 @@ function renderProjectMetaList() {
     // Sub-code rows HTML
     const subRows = subs.map(sc => `
       <div class="subcode-row">
-        <input class="proj-meta-input sc-code-input" type="text" value="${sc.code}"
-               onblur="updateSubCode('${key}','${sc.id}','code',this.value)"
-               onkeydown="if(event.key==='Enter') this.blur()"
-               placeholder=".01">
         <input class="proj-meta-input sc-label-input" type="text" value="${sc.label}"
                onblur="updateSubCode('${key}','${sc.id}','label',this.value)"
                onkeydown="if(event.key==='Enter') this.blur()"
-               placeholder="Sub-code description">
+               placeholder="Sub-code description"
+               style="flex:1;">
         <button class="row-edit-btn" onclick="deleteSubCode('${key}','${sc.id}')" style="color:var(--danger);font-size:10px;" title="Delete sub-code">✕</button>
       </div>
     `).join('');
