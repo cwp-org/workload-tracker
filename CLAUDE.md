@@ -30,7 +30,8 @@ Single-file app: everything lives in `index.html` (~9800 lines of inline HTML, C
 2. **Projects** — browse/manage project codes and metadata
 3. **Team Deliverables** — cross-team task assignments with ownership and status
 4. **Timesheet** — time entries per project, actual vs estimated hours
-5. **Allocations** — monthly workload allocation per person/project
+5. **Capacity** — forward-looking 12-month personal workload planner (logged + planned vs capacity)
+6. **Allocations** — monthly workload allocation per person/project (budget tracking)
 
 ## Key Data Structures
 
@@ -60,7 +61,7 @@ Single-file app: everything lives in `index.html` (~9800 lines of inline HTML, C
 
 These are intentionally different metrics. Do not unify them.
 
-### Planned: Capacity Tab (not yet built)
+### Capacity Tab
 A dedicated main tab called **Capacity** for forward-looking workload planning:
 - Shows 12-month capacity meters (logged + planned vs total capacity per month)
 - Answers the question: "Someone says we need this done by May — do I have time?"
@@ -69,6 +70,7 @@ A dedicated main tab called **Capacity** for forward-looking workload planning:
 - From drill-down, user can: edit task dates, move items to a different alloc month, delegate items to free up capacity
 - All recurrences should be expanded so the user sees true future load
 - This is distinct from the existing Allocations tab (which tracks budgeted vs actual by project). Capacity is about personal workload headroom.
+- Key functions: `renderCapacity()`, `_renderCapMonthDetail()`, `_renderCapItemList()`, `capMoveItem()`, `capDelegateItem()`
 
 ## Conventions
 - **IDs**: `uid()` = `'_' + Math.random().toString(36).slice(2, 11)`
