@@ -3529,6 +3529,18 @@ if (typeof XLSX === 'undefined') {
   </div>
 </div>
 
+<!-- SUBCODE MANAGER MODAL (allocations project-level) -->
+<div class="modal-overlay" id="scManagerModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title" id="scManagerTitle">Manage Sub-Codes</div>
+    <div class="modal-subtitle" id="scManagerSub"></div>
+    <div id="scManagerBody" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeScManager()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- FLOATING ASSIGN DROPDOWN (multi-select for session delegation) -->
 <div id="assignDropdown" class="assign-dropdown"></div>
 
@@ -7198,6 +7210,7 @@ function renderProjCodeContent(projKey) {
         <button onclick="_setProjHorizon('30d')" style="padding:3px 10px;border:none;border-left:1px solid var(--border);cursor:pointer;font-size:10px;font-weight:600;${_projHorizon === '30d' ? 'background:var(--accent);color:#fff;' : 'background:var(--bg2);color:var(--text3);'}">Next 30 Days</button>
       </div>
       <button class="btn" onclick="openManagePersonsModal()" style="font-size:11px;padding:3px 10px;">Manage Persons</button>
+      ${subCodes.length > 0 ? `<button class="btn" onclick="openScManager('${projKey}')" style="font-size:11px;padding:3px 10px;" title="Manage sub-codes">✎ Sub-Codes</button>` : ''}
       <button class="btn primary" onclick="openAddProjectModal()" style="font-size:11px;padding:3px 10px;">+ Add Project</button>
     </div>
   </div>`;
@@ -7213,13 +7226,16 @@ function renderProjCodeContent(projKey) {
     <button class="btn" onclick="_clearBulkSelection()" style="margin-left:auto;">Cancel</button>
   </div>`;
 
-  // Build sub-code sections: "Unassigned" first, then each sub-code
+  // Build sub-code sections: "Unassigned" first, then active sub-codes, then inactive
   const sections = [];
   const unassignedItems = getItemsForSubCode('');
   if (unassignedItems.length > 0) {
     sections.push({ scId: '', label: 'Unassigned (no sub-code)', code: '' });
   }
-  subCodes.forEach(sc => sections.push({ scId: sc.id, label: sc.label || sc.code, code: sc.code }));
+  const activeSubs = subCodes.filter(sc => sc.active !== false);
+  const inactiveSubs = subCodes.filter(sc => sc.active === false);
+  activeSubs.forEach(sc => sections.push({ scId: sc.id, label: sc.label || sc.code, code: sc.code }));
+  inactiveSubs.forEach(sc => sections.push({ scId: sc.id, label: sc.label || sc.code, code: sc.code, _inactive: true }));
 
   // Allocation meter state (per project view)
   const _allocMeterMonth = _projAllocMonth[projKey] || today().slice(0, 7);
@@ -7236,15 +7252,16 @@ function renderProjCodeContent(projKey) {
     let meterHtml = '';
     if (sec.scId) {
       // Check allocation by subcode ID; also fall back to project-level (empty scId)
-      // if this is the first/default subcode and no ID-specific allocation exists
+      // if this is the only active subcode and no ID-specific allocation exists
+      const _activeCount = activeSubs.length;
       let allocHrs = allocations[allocKey(projKey, sec.scId, _allocMeterMonth)] || 0;
-      if (!allocHrs && subCodes.length === 1) {
+      if (!allocHrs && _activeCount === 1) {
         allocHrs = allocations[allocKey(projKey, '', _allocMeterMonth)] || 0;
       }
       const loggedHrs = allocGetActuals(projKey, sec.scId, _allocMeterMonth) +
-        (subCodes.length === 1 ? allocGetActuals(projKey, '', _allocMeterMonth) : 0);
+        (_activeCount === 1 && !sec._inactive ? allocGetActuals(projKey, '', _allocMeterMonth) : 0);
       const plannedHrs = allocGetPlanned(projKey, sec.scId, _allocMeterMonth) +
-        (subCodes.length === 1 ? allocGetPlanned(projKey, '', _allocMeterMonth) : 0);
+        (_activeCount === 1 && !sec._inactive ? allocGetPlanned(projKey, '', _allocMeterMonth) : 0);
       const totalWork = loggedHrs + plannedHrs;
       const loggedPct = allocHrs > 0 ? Math.min(Math.round((loggedHrs / allocHrs) * 100), 100) : 0;
       const totalPct = allocHrs > 0 ? Math.min(Math.round((totalWork / allocHrs) * 100), 100) : 0;
@@ -7278,11 +7295,11 @@ function renderProjCodeContent(projKey) {
       ondragend="this.style.opacity='';"
       ondragover="event.preventDefault();this.classList.add('drag-over-sc');"
       ondragleave="this.classList.remove('drag-over-sc');"
-      ondrop="event.preventDefault();this.classList.remove('drag-over-sc');_dropScReorder('${projKey}','${sec.scId}');"` : ''}>
-      <div class="subcode-header" style="border-top:3px solid ${color};" onclick="toggleSubSection('${sectionKey}')">
+      ondrop="event.preventDefault();this.classList.remove('drag-over-sc');_dropScReorder('${projKey}','${sec.scId}');"` : ''}${sec._inactive ? ' style="opacity:0.45;"' : ''}>
+      <div class="subcode-header" style="border-top:3px solid ${sec._inactive ? 'var(--border)' : color};" onclick="toggleSubSection('${sectionKey}')">
         ${isDraggable ? '<span class="subcode-drag-handle" title="Drag to reorder">⠿</span>' : ''}
         <span class="subcode-chevron${isCollapsed ? '' : ' open'}">›</span>
-        <span style="color:var(--text);">${sec.code ? '<span style="color:' + color + ';font-weight:700;">' + (proj.billingCode || '') + sec.code + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${sec.label}</span>` : sec.label}</span>
+        <span style="color:${sec._inactive ? 'var(--text3)' : 'var(--text)'};">${sec.code ? '<span style="color:' + (sec._inactive ? 'var(--text3)' : color) + ';font-weight:700;">' + (proj.billingCode || '') + sec.code + '</span> — ' : ''}${sec.scId ? `<span class="subcode-label-clickable" onclick="event.stopPropagation();_openScPopup(event,'${projKey}','${sec.scId}')">${sec.label}</span>` : sec.label}${sec._inactive ? ' <span style="font-size:9px;color:var(--text3);font-style:italic;">(inactive)</span>' : ''}</span>
         ${meterHtml}
         <span class="subcode-count">${openCount} open / ${totalCount} total</span>
       </div>`;
@@ -7308,11 +7325,13 @@ function renderProjCodeContent(projKey) {
         });
       }
 
-      // Inline add
-      html += `<div class="subcode-inline-add">
-        <button class="btn" onclick="openAddTaskForProject('${projKey}','${sec.scId}')" style="font-size:10px;padding:2px 8px;flex-shrink:0;" title="Add with full details">+ Detail</button>
-        <input type="text" placeholder="Quick add — type and hit enter" id="inlineAdd_${projKey}_${sec.scId}" onkeydown="if(event.key==='Enter')inlineAddTask('${projKey}','${sec.scId}')">
-      </div>`;
+      // Inline add (not for inactive sub-codes)
+      if (!sec._inactive) {
+        html += `<div class="subcode-inline-add">
+          <button class="btn" onclick="openAddTaskForProject('${projKey}','${sec.scId}')" style="font-size:10px;padding:2px 8px;flex-shrink:0;" title="Add with full details">+ Detail</button>
+          <input type="text" placeholder="Quick add — type and hit enter" id="inlineAdd_${projKey}_${sec.scId}" onkeydown="if(event.key==='Enter')inlineAddTask('${projKey}','${sec.scId}')">
+        </div>`;
+      }
       html += '</div>'; // .subcode-body
     }
     html += '</div>'; // .subcode-section
@@ -10198,6 +10217,121 @@ function _scPopupDelete() {
   });
 }
 
+// ── Sub-code Manager (allocations project-level) ──
+function openScManager(projKey) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return;
+  document.getElementById('scManagerTitle').textContent = proj.label + (proj.billingCode ? ' (' + proj.billingCode + ')' : '');
+  document.getElementById('scManagerSub').textContent = 'Manage sub-codes — toggle active/inactive, reorder, or rename';
+  _renderScManager(projKey);
+  document.getElementById('scManagerModal').classList.add('open');
+}
+
+function closeScManager() {
+  document.getElementById('scManagerModal').classList.remove('open');
+  renderAllocations();
+  renderProjects();
+}
+
+function _renderScManager(projKey) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return;
+  const subs = proj.subCodes || [];
+  const orphanedIds = _getOrphanedSubCodes(projKey, allocYear);
+  let html = '';
+
+  if (subs.length === 0 && orphanedIds.length === 0) {
+    html = '<div style="padding:16px;color:var(--text3);font-size:12px;text-align:center;">No sub-codes for this project.</div>';
+    document.getElementById('scManagerBody').innerHTML = html;
+    return;
+  }
+
+  // Active + inactive sub-codes
+  subs.forEach((sc, idx) => {
+    const isActive = sc.active !== false;
+    const bgStyle = isActive ? '' : 'opacity:0.45;';
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);${bgStyle}">`;
+    // Reorder arrows
+    html += `<div style="display:flex;flex-direction:column;gap:0;line-height:1;">`;
+    if (idx > 0) html += `<span onclick="_scMgrMove('${projKey}',${idx},-1)" style="cursor:pointer;font-size:11px;color:var(--text3);padding:0 2px;" title="Move up">▲</span>`;
+    else html += `<span style="font-size:11px;color:transparent;padding:0 2px;">▲</span>`;
+    if (idx < subs.length - 1) html += `<span onclick="_scMgrMove('${projKey}',${idx},1)" style="cursor:pointer;font-size:11px;color:var(--text3);padding:0 2px;" title="Move down">▼</span>`;
+    else html += `<span style="font-size:11px;color:transparent;padding:0 2px;">▼</span>`;
+    html += `</div>`;
+    // Code badge
+    html += `<span style="font-size:10px;font-weight:700;color:var(--text3);min-width:18px;text-align:center;">${sc.code}</span>`;
+    // Editable name
+    html += `<input type="text" value="${escHtml(sc.label)}" onchange="_scMgrRename('${projKey}','${sc.id}',this.value)" style="flex:1;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);" title="Rename">`;
+    // Active toggle
+    html += `<button class="btn" onclick="_scMgrToggle('${projKey}','${sc.id}')" style="font-size:10px;padding:2px 8px;min-width:70px;${isActive ? 'color:var(--success);border-color:var(--success);' : 'color:var(--text3);border-color:var(--border);'}" title="${isActive ? 'Deactivate this sub-code' : 'Reactivate this sub-code'}">${isActive ? 'Active' : 'Inactive'}</button>`;
+    html += `</div>`;
+  });
+
+  // Orphaned sub-codes (fully deleted but have logged hours)
+  if (orphanedIds.length > 0) {
+    html += `<div style="padding:8px 4px 4px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Deleted sub-codes with logged hours</div>`;
+    orphanedIds.forEach(oScId => {
+      // Count total logged hours for this orphaned sub-code
+      const idx = _getActualsIndex();
+      let totalHrs = 0;
+      Object.entries(idx.bySubCode).forEach(([key, hrs]) => {
+        if (key.startsWith(projKey + '|' + oScId + '|')) totalHrs += hrs;
+      });
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);opacity:0.45;">`;
+      html += `<span style="font-size:10px;color:var(--text3);min-width:18px;text-align:center;">—</span>`;
+      html += `<span style="font-size:10px;color:var(--text3);min-width:18px;text-align:center;">?</span>`;
+      html += `<span style="flex:1;font-size:12px;color:var(--text3);">Unknown (${fmtQ(totalHrs)}h logged)</span>`;
+      html += `<button class="btn" onclick="_scMgrRestore('${projKey}','${oScId}')" style="font-size:10px;padding:2px 8px;color:var(--accent);border-color:var(--accent);" title="Re-add this sub-code with a name">Restore</button>`;
+      html += `</div>`;
+    });
+  }
+
+  document.getElementById('scManagerBody').innerHTML = html;
+}
+
+function _scMgrToggle(projKey, scId) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return;
+  const sc = (proj.subCodes || []).find(s => s.id === scId);
+  if (!sc) return;
+  sc.active = sc.active === false ? true : false;
+  saveProjects();
+  _renderScManager(projKey);
+}
+
+function _scMgrRename(projKey, scId, newName) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return;
+  const sc = (proj.subCodes || []).find(s => s.id === scId);
+  if (sc && newName.trim()) {
+    sc.label = newName.trim();
+    saveProjects();
+  }
+}
+
+function _scMgrMove(projKey, idx, dir) {
+  const proj = PROJECTS[projKey];
+  if (!proj || !proj.subCodes) return;
+  const subs = proj.subCodes;
+  const target = idx + dir;
+  if (target < 0 || target >= subs.length) return;
+  [subs[idx], subs[target]] = [subs[target], subs[idx]];
+  saveProjects();
+  _renderScManager(projKey);
+}
+
+function _scMgrRestore(projKey, oScId) {
+  const proj = PROJECTS[projKey];
+  if (!proj) return;
+  const label = prompt('Enter a name for this sub-code:');
+  if (!label) return;
+  if (!proj.subCodes) proj.subCodes = [];
+  const num = proj.subCodes.length + 1;
+  proj.subCodes.push({ id: oScId, code: String(num), label: label, active: true });
+  saveProjects();
+  _renderScManager(projKey);
+}
+
 let _allocImportUndo = null;
 
 function _undoAllocImport() {
@@ -10808,7 +10942,8 @@ function renderAllocations() {
     const codeStr = proj.billingCode ? ` (${proj.billingCode})` : '';
     const allocCollapsed = collapsedAllocProjs.has(projKey);
     const chevron = subs.length > 0 ? `<span class="alloc-collapse-btn ${allocCollapsed ? '' : 'open'}" onclick="toggleAllocProjCollapse('${projKey}')" title="${allocCollapsed ? 'Expand' : 'Collapse'} sub-codes">›</span>` : '';
-    html += `<tr class="alloc-proj-header"><td>${chevron}<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${proj.label}${codeStr}</td>`;
+    const editBtn = subs.length > 0 ? `<span onclick="event.stopPropagation();openScManager('${projKey}')" style="cursor:pointer;font-size:11px;opacity:0.5;margin-left:4px;" title="Manage sub-codes">✎</span>` : '';
+    html += `<tr class="alloc-proj-header"><td>${chevron}<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${proj.color};margin-right:6px;"></span>${proj.label}${codeStr}${editBtn}</td>`;
 
     // Project-level summary per month
     const noSubs = subs.length === 0;
@@ -10871,7 +11006,8 @@ function renderAllocations() {
     if (viewMode === 'detail' && subs.length > 0 && !collapsedAllocProjs.has(projKey)) {
       subs.forEach(sc => {
         const fullCode = (proj.billingCode || '') + sc.code;
-        html += `<tr class="alloc-sc-row"><td>${sc.code} ${sc.label}</td>`;
+        const scIsActive = sc.active !== false;
+        html += `<tr class="alloc-sc-row"${scIsActive ? '' : ' style="opacity:0.45;"'}><td>${sc.code} ${sc.label}${scIsActive ? '' : ' <span style="font-size:9px;color:var(--text3);font-style:italic;">(inactive)</span>'}</td>`;
         let scAllocYTD = 0, scActualYTD = 0;
         let scPlannedYTD = 0;
         months.forEach((m, mi) => {
@@ -10883,11 +11019,20 @@ function renderAllocations() {
           scActualYTD += actual;
           scPlannedYTD += planned;
 
-          html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','${sc.id}','${m.ym}')" title="Click to see task breakdown">`;
-          html += `<input type="number" min="0" step="1" value="${allocated || ''}" placeholder="—"
-                    onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"
-                    title="Allocated hours for ${fullCode} in ${m.label}">`;
-          html += allocDualBars(allocated, planned, actual);
+          if (scIsActive) {
+            html += `<td class="alloc-cell alloc-cell-clickable ${mCls(m.ym)}" onclick="openAllocDrill('${projKey}','${sc.id}','${m.ym}')" title="Click to see task breakdown">`;
+            html += `<input type="number" min="0" step="1" value="${allocated || ''}" placeholder="—"
+                      onchange="allocSet('${projKey}','${sc.id}','${m.ym}',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"
+                      title="Allocated hours for ${fullCode} in ${m.label}">`;
+            html += allocDualBars(allocated, planned, actual);
+          } else {
+            html += `<td class="alloc-cell ${mCls(m.ym)}">`;
+            if (actual > 0) {
+              html += `<div class="alloc-actual" style="font-size:10px;">${fmtQ(actual)}h logged</div>`;
+            } else {
+              html += `<span style="color:var(--text3);font-size:10px;">—</span>`;
+            }
+          }
           html += `</td>`;
         });
         // YTD
@@ -10900,10 +11045,10 @@ function renderAllocations() {
         html += `</td></tr>`;
       });
 
-      // Show discontinued (orphaned) sub-codes that still have logged hours or allocations
+      // Show orphaned sub-codes (fully deleted but still have logged hours)
       const orphanedIds = _getOrphanedSubCodes(projKey, allocYear);
       orphanedIds.forEach(oScId => {
-        html += `<tr class="alloc-sc-row" style="opacity:0.5;"><td><span onclick="reactivateSubCode('${projKey}','${oScId}')" style="cursor:pointer;text-decoration:underline dotted;color:var(--text3);" title="Click to reactivate this sub-code">Discontinued</span></td>`;
+        html += `<tr class="alloc-sc-row" style="opacity:0.4;"><td><span onclick="openScManager('${projKey}')" style="cursor:pointer;text-decoration:underline dotted;color:var(--text3);" title="Open sub-code manager to restore">Deleted sub-code</span></td>`;
         let oScAllocYTD = 0, oScActualYTD = 0;
         months.forEach((m, mi) => {
           const oAlloc = allocations[allocKey(projKey, oScId, m.ym)] || 0;
