@@ -5648,7 +5648,11 @@ function renderTasks() {
 
   let visible = tasks.filter(t => !t.completed);
 
-  if (search) visible = visible.filter(t => t.name.toLowerCase().includes(search) || t.notes?.toLowerCase().includes(search));
+  if (search) visible = visible.filter(t =>
+    t.name.toLowerCase().includes(search)
+    || t.notes?.toLowerCase().includes(search)
+    || t.waiting?.toLowerCase().includes(search)
+  );
   if (fDate !== 'all') visible = visible.filter(t => {
     const g = dateGroup(t.due);
     if (fDate === 'today') return g === 'today';
@@ -5696,24 +5700,40 @@ function renderTasks() {
       if (s.done) return;
       const delegatees = normDelegated(s.delegatedTo);
       if (delegatees.length && !delegatees.includes('Me')) return;
-      if (search && !s.desc.toLowerCase().includes(search) && !proj.name.toLowerCase().includes(search)) return;
+      const sMatch = !search
+        || s.desc.toLowerCase().includes(search)
+        || proj.name.toLowerCase().includes(search)
+        || s.waiting?.toLowerCase().includes(search);
+      if (!sMatch) return;
       allItems.push({ _type: 'session', s, proj, _date: s.date || (s.allocMonth ? s.allocMonth + '-01' : null) });
       (s.subtasks || []).forEach(st => {
         if (st.done) return;
         const stDel = normDelegated(st.delegatedTo);
         if (stDel.length && !stDel.includes('Me')) return;
-        if (search && !st.desc.toLowerCase().includes(search)) return;
+        if (search
+          && !st.desc.toLowerCase().includes(search)
+          && !s.desc.toLowerCase().includes(search)
+          && !proj.name.toLowerCase().includes(search)
+          && !(st.waiting || '').toLowerCase().includes(search)
+        ) return;
         allItems.push({ _type: 'subtask', st, s, proj, _date: st.date || (st.allocMonth ? st.allocMonth + '-01' : null) });
       });
     });
   });
 
-  // Include contact tasks with due dates in My Tasks
+  // Include contact tasks with due dates in My Tasks (stay visible even when
+  // delegated, so the delegation tag is readable — matches tasks[] behavior)
   if (typeof getContactTasks === 'function') {
     getContactTasks().forEach(ct => {
       if (ct.completed || !ct.due) return;
       if (fProj !== 'all' && ct.project !== fProj) return;
-      if (search && !ct.name.toLowerCase().includes(search) && !ct._partnerName.toLowerCase().includes(search)) return;
+      if (search
+        && !ct.name.toLowerCase().includes(search)
+        && !(ct._partnerName || '').toLowerCase().includes(search)
+        && !(ct._stageName || '').toLowerCase().includes(search)
+        && !(ct.waiting || '').toLowerCase().includes(search)
+        && !(ct.notes || '').toLowerCase().includes(search)
+      ) return;
       allItems.push({ _type: 'contact', ct, _date: ct.due || (ct.allocMonth ? ct.allocMonth + '-01' : null) });
     });
   }
@@ -5866,12 +5886,12 @@ function renderTasks() {
       row.innerHTML = `
         <div class="task-check${ct.completed ? ' done' : ''}" onclick="event.stopPropagation();ctCompleteTask('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}',${!ct.completed})" style="cursor:pointer;"></div>
         <div class="project-dot" style="background:${pColor};" title="${projLabel(ct.project)}"></div>
-        <div class="task-name">${escHtml(ct.name)} <span style="font-size:10px;color:var(--text3);font-style:italic;">${escHtml(ct._orgName || ct._partnerName)}</span></div>
+        <div class="task-name">${escHtml(ct.name)} <span style="font-size:10px;color:var(--text3);font-style:italic;">${escHtml(ct._orgName || ct._partnerName)}</span>${delegateTagsHtml(ct.delegatedTo)}</div>
         <div class="task-recur-actions"></div>
         <span class="task-category" style="color:var(--text3);font-style:italic;">${escHtml(ct._stageName)}</span>
         <div>${priorityBadge(ct.priority || 'med')}</div>
-        <div class="task-due ${dc}">${fmtDate(ct.due)}</div>
-        <div class="task-est">${ct.est ? ct.est + 'h' : '—'}</div>
+        <div class="task-due ${dc}" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditDate(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${fmtDate(ct.due)}</div>
+        <div class="task-est" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${ct.est ? ct.est + 'h' : '—'}</div>
         <div></div>`;
     }
     return row;
@@ -7488,11 +7508,12 @@ function renderProjItemRow(item, projKey, scId) {
       <div class="session-desc" style="cursor:pointer;${ct.completed ? 'text-decoration:line-through;color:var(--text3);' : ''}" onclick="ctOpenEditTaskModal('${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">
         ${escHtml(ct.name)}
         <span style="font-size:10px;color:var(--text3);font-style:italic;margin-left:4px;">${escHtml(ct._orgName || ct._partnerName)}</span>
+        ${delegateTagsHtml(ct.delegatedTo)}
         ${ct.waiting ? `<span class="task-waiting">⏳ ${escHtml(ct.waiting)}</span>` : ''}
       </div>
       <div>${priorityBadge(ct.priority || 'med')}</div>
-      <div class="session-date" style="display:flex;align-items:center;gap:4px;">${fmtDate(ct.due)} ${holdMonthPill(ct.allocMonth)}</div>
-      <div class="session-hours">${ct.est ? ct.est + 'h' : '—'}</div>
+      <div class="session-date" style="display:flex;align-items:center;gap:4px;cursor:pointer;" onclick="event.stopPropagation();ctInlineEditDate(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${fmtDate(ct.due)} ${holdMonthPill(ct.allocMonth)}</div>
+      <div class="session-hours" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${ct.est ? ct.est + 'h' : '—'}</div>
       <div></div>
       <div></div>
     </div>`;
@@ -7854,7 +7875,24 @@ function renderTeam() {
     });
   });
 
-  let allItems = [...teamItems.map(t => ({ ...t, owners: [t.owner] })), ...delegatedItems, ...delegatedTasks];
+  // Collect delegated contact (Customer Journey) tasks
+  const delegatedContactTasks = [];
+  if (typeof getContactTasks === 'function') {
+    getContactTasks().forEach(ct => {
+      const people = normDelegated(ct.delegatedTo);
+      if (!people.length) return;
+      delegatedContactTasks.push({
+        id: ct.id + '_ctdel',
+        name: ct.name, owners: people, owner: people.join(', '), project: ct.project,
+        due: ct.due, status: ct.completed ? 'complete' : (ct.status || 'need-delegate'),
+        _contactDelegated: true,
+        _contactId: ct._contactId, _stageId: ct._stageId, _ctTaskId: ct._ctTaskId,
+        _partnerName: ct._partnerName || ct._orgName
+      });
+    });
+  }
+
+  let allItems = [...teamItems.map(t => ({ ...t, owners: [t.owner] })), ...delegatedItems, ...delegatedTasks, ...delegatedContactTasks];
 
   // Populate person filter from all unique people
   const personSelect = document.getElementById('teamFilterPerson');
@@ -7974,6 +8012,16 @@ function renderTeam() {
         <div class="project-dot" style="background:${projColor(item.project)};"></div>
         <span class="team-due ${dc}" style="cursor:pointer;" onclick="openDueDatePicker(this,'${item._taskId}')">${fmtDate(item.due)}</span>
         <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showDelegatedTaskStatusDropdown(event,'${item._taskId}')" style="cursor:pointer;" title="${STATUS_LABELS[item.status]||item.status}">${STATUS_LABELS[item.status]||item.status}</span>
+        `;
+    } else if (item._contactDelegated) {
+      const partner = item._partnerName ? `<span style="font-size:10px;color:var(--text3);font-style:italic;margin-left:4px;">${escHtml(item._partnerName)}</span>` : '';
+      row.innerHTML = `
+        <div class="team-task-name" onclick="ctOpenEditTaskModal('${item._contactId}','${item._stageId}','${item._ctTaskId}')">${escHtml(item.name)}${partner} <span class="delegate-tag" style="background:var(--bg3);color:var(--text3);font-size:9px;">journey</span></div>
+        ${ownerHtml}
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${projLabel(item.project)}</span>
+        <div class="project-dot" style="background:${projColor(item.project)};"></div>
+        <span class="team-due ${dc}">${fmtDate(item.due)}</span>
+        <span class="status-badge ${STATUS_CLS[item.status]}" onclick="showDelegatedContactStatusDropdown(event,'${item._contactId}','${item._stageId}','${item._ctTaskId}')" style="cursor:pointer;" title="${STATUS_LABELS[item.status]||item.status}">${STATUS_LABELS[item.status]||item.status}</span>
         `;
     } else {
       row.innerHTML = `
@@ -11830,6 +11878,22 @@ function showDelegatedTaskStatusDropdown(e, taskId) {
   });
 }
 
+function showDelegatedContactStatusDropdown(e, contactId, stageId, taskId) {
+  e.stopPropagation();
+  const ref = ctFindTask('_ct_' + contactId + '_' + stageId + '_' + taskId);
+  if (!ref) return;
+  const t = ref.task;
+  const curStatus = t.completed ? 'complete' : (t.status || 'need-delegate');
+  showDropdown(e.currentTarget, STATUS_OPTS, curStatus, val => {
+    t.status = val;
+    t.completed = (val === 'complete');
+    if (val === 'complete' && !t.dateCompleted) t.dateCompleted = today();
+    if (val !== 'complete') t.dateCompleted = null;
+    _ctSaveAndRender();
+    renderTeam();
+  });
+}
+
 // =============================================
 // EDIT BIG PROJECT
 // =============================================
@@ -13014,9 +13078,8 @@ function _ctBulkSetMonth() {
     const t = c.stages[sid].tasks.find(t => t.id === tid);
     if (t) t.allocMonth = month;
   });
-  save('wt_contacts', contacts);
   _ctBulkSelected.clear();
-  renderContacts();
+  _ctSaveAndRender();
 }
 
 function ctGetStage(id) {
@@ -13120,7 +13183,7 @@ function getContactTasks() {
           name: t.name, project: t.project || stageDef.project || 'cwc',
           subCode: t.subCode || stageDef.subCode || '', priority: t.priority || 'med',
           due: t.due || null, allocMonth: t.allocMonth || null, est: t.est || 0, notes: t.notes || '',
-          waiting: t.waiting || '', delegatedTo: t.delegatedTo || null,
+          waiting: t.waiting || '', delegatedTo: t.delegatedTo || null, status: t.status || null,
           completed: t.completed || false, dateCompleted: t.dateCompleted || null,
           actualHours: t.actualHours || 0, timer: 0, timerStart: null,
           _partnerName: c.name, _orgName: c.name, _stageName: stageDef.label,
@@ -13177,9 +13240,8 @@ function _ctToggleAssign(contactId, stageId, taskId, name) {
   if (current.includes(name)) current = current.filter(n => n !== name);
   else current.push(name);
   t.delegatedTo = current.length ? current : null;
-  save('wt_contacts', contacts);
   document.getElementById('assignDropdown').classList.remove('open');
-  renderContacts();
+  _ctSaveAndRender();
 }
 
 function ctCompleteTask(contactId, stageId, taskId, markCompleted) {
@@ -13195,8 +13257,7 @@ function ctCompleteTask(contactId, stageId, taskId, markCompleted) {
     t.dateCompleted = null;
     const idx = completed.findIndex(e => e.name === c.name + ': ' + t.name && e.project === (stageDef?.project || 'cwc'));
     if (idx !== -1) { completed.splice(idx, 1); save('wt_completed', completed); }
-    save('wt_contacts', contacts);
-    renderContacts();
+    _ctSaveAndRender();
     return;
   }
 
@@ -13845,7 +13906,21 @@ function _ctTask(cid, sid, tid) {
 
 function _ctSaveAndRender() {
   save('wt_contacts', contacts);
-  renderContacts();
+  // Contact tasks surface into My Tasks, Projects, Team Deliverables, Capacity,
+  // and Timesheet — re-render those too so edits (delegation, due date,
+  // priority, etc.) from any tab propagate live. Wrap each render in its own
+  // try/catch so a throw in one view can't abort the rest of the chain and
+  // leave the visible tab stale.
+  const _render = (name, fn) => {
+    try { if (typeof fn === 'function') fn(); }
+    catch (e) { console.error('[_ctSaveAndRender] ' + name + ' threw:', e); }
+  };
+  _render('renderContacts', typeof renderContacts === 'function' ? renderContacts : null);
+  _render('renderTasks', typeof renderTasks === 'function' ? renderTasks : null);
+  _render('renderProjects', typeof renderProjects === 'function' ? renderProjects : null);
+  _render('renderTeam', typeof renderTeam === 'function' ? renderTeam : null);
+  _render('renderCapacity', typeof renderCapacity === 'function' ? renderCapacity : null);
+  _render('renderTimesheet', typeof renderTimesheet === 'function' ? renderTimesheet : null);
 }
 
 // Inline edit: task name
@@ -13893,9 +13968,20 @@ function ctOpenEditTaskModal(cid, sid, tid) {
     const pc = personColor(p);
     return '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid ' + (active ? pc.border : 'var(--border)') + ';background:' + (active ? pc.bg : 'transparent') + ';color:' + (active ? pc.text : 'var(--text3)') + ';"><input type="checkbox" value="' + escHtml(p) + '" ' + (active ? 'checked' : '') + ' style="display:none;">' + escHtml(p) + '</label>';
   }).join('');
-  wrap.querySelectorAll('label').forEach(function(l) {
-    l.onclick = function() { var cb = l.querySelector('input'); cb.checked = !cb.checked; var a = cb.checked;
-      var pc = personColor(cb.value); l.style.border = '1px solid ' + (a ? pc.border : 'var(--border)'); l.style.background = a ? pc.bg : 'transparent'; l.style.color = a ? pc.text : 'var(--text3)'; };
+  // Don't manually toggle cb.checked in a label onclick — the browser already
+  // fires an implicit click on the nested checkbox from the label, which would
+  // cancel out a manual flip. Instead, listen to the checkbox's change event
+  // and restyle the parent label from there.
+  wrap.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+    cb.onchange = function() {
+      const l = cb.closest('label');
+      if (!l) return;
+      const a = cb.checked;
+      const pc = personColor(cb.value);
+      l.style.border = '1px solid ' + (a ? pc.border : 'var(--border)');
+      l.style.background = a ? pc.bg : 'transparent';
+      l.style.color = a ? pc.text : 'var(--text3)';
+    };
   });
 
   document.getElementById('ctEditTaskDlg').classList.add('open');
@@ -13910,10 +13996,16 @@ function ctInlineEditDate(el, cid, sid, tid) {
   input.type = 'date';
   input.value = t.due || '';
   input.style.cssText = 'width:100%;max-width:110px;font-size:11px;padding:2px 3px;border:1px solid var(--accent);border-radius:3px;background:var(--bg);color:var(--text);';
-  function commit() { t.due = input.value || null; _ctSaveAndRender(); }
+  let committed = false;
+  function commit() {
+    if (committed) return;
+    committed = true;
+    t.due = input.value || null;
+    _ctSaveAndRender();
+  }
   input.addEventListener('blur', commit);
   input.addEventListener('change', commit);
-  input.addEventListener('keydown', e => { if (e.key === 'Escape') renderContacts(); });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') { committed = true; renderContacts(); } });
   el.textContent = '';
   el.appendChild(input);
   input.focus();
@@ -13930,9 +14022,15 @@ function ctInlineEditEst(el, cid, sid, tid) {
   input.step = '0.25';
   input.value = t.est || '';
   input.style.cssText = 'width:50px;font-size:12px;padding:2px 4px;border:1px solid var(--accent);border-radius:3px;background:var(--bg);color:var(--text);text-align:center;';
-  function commit() { t.est = parseFloat(input.value) || 0; _ctSaveAndRender(); }
+  let committed = false;
+  function commit() {
+    if (committed) return;
+    committed = true;
+    t.est = parseFloat(input.value) || 0;
+    _ctSaveAndRender();
+  }
   input.addEventListener('blur', commit);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') renderContacts(); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { committed = true; renderContacts(); } });
   el.textContent = '';
   el.appendChild(input);
   input.focus();
