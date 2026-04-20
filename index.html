@@ -5871,8 +5871,8 @@ function renderTasks() {
         <div class="task-recur-actions"></div>
         <span class="task-category" style="color:var(--text3);font-style:italic;">${escHtml(ct._stageName)}</span>
         <div>${priorityBadge(ct.priority || 'med')}</div>
-        <div class="task-due ${dc}">${fmtDate(ct.due)}</div>
-        <div class="task-est">${ct.est ? ct.est + 'h' : '—'}</div>
+        <div class="task-due ${dc}" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditDate(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${fmtDate(ct.due)}</div>
+        <div class="task-est" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${ct.est ? ct.est + 'h' : '—'}</div>
         <div></div>`;
     }
     return row;
@@ -7493,8 +7493,8 @@ function renderProjItemRow(item, projKey, scId) {
         ${ct.waiting ? `<span class="task-waiting">⏳ ${escHtml(ct.waiting)}</span>` : ''}
       </div>
       <div>${priorityBadge(ct.priority || 'med')}</div>
-      <div class="session-date" style="display:flex;align-items:center;gap:4px;">${fmtDate(ct.due)} ${holdMonthPill(ct.allocMonth)}</div>
-      <div class="session-hours">${ct.est ? ct.est + 'h' : '—'}</div>
+      <div class="session-date" style="display:flex;align-items:center;gap:4px;cursor:pointer;" onclick="event.stopPropagation();ctInlineEditDate(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${fmtDate(ct.due)} ${holdMonthPill(ct.allocMonth)}</div>
+      <div class="session-hours" style="cursor:pointer;" onclick="event.stopPropagation();ctInlineEditEst(this,'${ct._contactId}','${ct._stageId}','${ct._ctTaskId}')">${ct.est ? ct.est + 'h' : '—'}</div>
       <div></div>
       <div></div>
     </div>`;
@@ -13059,9 +13059,8 @@ function _ctBulkSetMonth() {
     const t = c.stages[sid].tasks.find(t => t.id === tid);
     if (t) t.allocMonth = month;
   });
-  save('wt_contacts', contacts);
   _ctBulkSelected.clear();
-  renderContacts();
+  _ctSaveAndRender();
 }
 
 function ctGetStage(id) {
