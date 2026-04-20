@@ -5708,13 +5708,11 @@ function renderTasks() {
     });
   });
 
-  // Include contact tasks with due dates in My Tasks
+  // Include contact tasks with due dates in My Tasks (stay visible even when
+  // delegated, so the delegation tag is readable — matches tasks[] behavior)
   if (typeof getContactTasks === 'function') {
     getContactTasks().forEach(ct => {
       if (ct.completed || !ct.due) return;
-      // Hide from My Tasks if delegated to someone other than Me (mirrors session behavior)
-      const ctDel = normDelegated(ct.delegatedTo);
-      if (ctDel.length && !ctDel.includes('Me')) return;
       if (fProj !== 'all' && ct.project !== fProj) return;
       if (search && !ct.name.toLowerCase().includes(search) && !ct._partnerName.toLowerCase().includes(search)) return;
       allItems.push({ _type: 'contact', ct, _date: ct.due || (ct.allocMonth ? ct.allocMonth + '-01' : null) });
@@ -13946,9 +13944,20 @@ function ctOpenEditTaskModal(cid, sid, tid) {
     const pc = personColor(p);
     return '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid ' + (active ? pc.border : 'var(--border)') + ';background:' + (active ? pc.bg : 'transparent') + ';color:' + (active ? pc.text : 'var(--text3)') + ';"><input type="checkbox" value="' + escHtml(p) + '" ' + (active ? 'checked' : '') + ' style="display:none;">' + escHtml(p) + '</label>';
   }).join('');
-  wrap.querySelectorAll('label').forEach(function(l) {
-    l.onclick = function() { var cb = l.querySelector('input'); cb.checked = !cb.checked; var a = cb.checked;
-      var pc = personColor(cb.value); l.style.border = '1px solid ' + (a ? pc.border : 'var(--border)'); l.style.background = a ? pc.bg : 'transparent'; l.style.color = a ? pc.text : 'var(--text3)'; };
+  // Don't manually toggle cb.checked in a label onclick — the browser already
+  // fires an implicit click on the nested checkbox from the label, which would
+  // cancel out a manual flip. Instead, listen to the checkbox's change event
+  // and restyle the parent label from there.
+  wrap.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+    cb.onchange = function() {
+      const l = cb.closest('label');
+      if (!l) return;
+      const a = cb.checked;
+      const pc = personColor(cb.value);
+      l.style.border = '1px solid ' + (a ? pc.border : 'var(--border)');
+      l.style.background = a ? pc.bg : 'transparent';
+      l.style.color = a ? pc.text : 'var(--text3)';
+    };
   });
 
   document.getElementById('ctEditTaskDlg').classList.add('open');
