@@ -1253,7 +1253,10 @@
   }
   .ts-entry-row:hover { background: var(--bg3); }
   .ts-entry-row:hover .ts-entry-actions { opacity: 1; }
-  .ts-group-header { background: var(--bg2); border-bottom: 1px solid var(--border2); }
+  .ts-group-header { background: rgba(79, 156, 249, 0.22); border-top: 1px solid rgba(79, 156, 249, 0.4); border-bottom: 1px solid rgba(79, 156, 249, 0.4); }
+  .ts-group-header:hover { background: rgba(79, 156, 249, 0.28); }
+  [data-theme="light"] .ts-group-header { background: rgba(79, 156, 249, 0.14); border-top-color: rgba(79, 156, 249, 0.3); border-bottom-color: rgba(79, 156, 249, 0.3); }
+  [data-theme="light"] .ts-group-header:hover { background: rgba(79, 156, 249, 0.2); }
   .ts-subgroup-header { background: var(--bg2); border-top: 1px solid var(--border2); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
   .ts-subgroup-header:hover { background: var(--bg2); }
   .ts-subgroup-header .ts-entry-subcode { font-size: 11px; opacity: 1; letter-spacing: 0.4px; }
