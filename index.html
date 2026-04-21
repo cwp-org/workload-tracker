@@ -5663,6 +5663,11 @@ function renderTasks() {
   if (clearBtn) clearBtn.style.display = hasActiveFilters ? '' : 'none';
 
   let visible = tasks.filter(t => !t.completed);
+  // Hide tasks delegated to someone other than Me — they live in Team Deliverables
+  visible = visible.filter(t => {
+    const del = normDelegated(t.delegatedTo);
+    return !del.length || del.includes('Me');
+  });
 
   if (search) visible = visible.filter(t =>
     t.name.toLowerCase().includes(search)
@@ -5737,11 +5742,13 @@ function renderTasks() {
     });
   });
 
-  // Include contact tasks with due dates in My Tasks (stay visible even when
-  // delegated, so the delegation tag is readable — matches tasks[] behavior)
+  // Include contact tasks with due dates in My Tasks — hide those delegated
+  // to someone other than Me so only personal work appears here
   if (typeof getContactTasks === 'function') {
     getContactTasks().forEach(ct => {
       if (ct.completed || !ct.due) return;
+      const ctDel = normDelegated(ct.delegatedTo);
+      if (ctDel.length && !ctDel.includes('Me')) return;
       if (fProj !== 'all' && ct.project !== fProj) return;
       if (search
         && !ct.name.toLowerCase().includes(search)
@@ -8415,6 +8422,9 @@ function plannedItems(fromDate, toDate) {
   const fromYM = fromDate.slice(0, 7);
   const toYM = toDate.slice(0, 7);
   tasks.forEach(t => {
+    // Skip tasks delegated to someone else — they aren't my personal workload
+    const tDel = normDelegated(t.delegatedTo);
+    if (tDel.length && !tDel.includes('Me')) return;
     if (!t.recurrence) {
       if (t.due && t.due >= fromDate && t.due <= toDate) {
         items.push({ id: t.id, name: t.name, project: t.project, date: t.due, hours: t.est || 0, subCode: t.subCode || '', _planned: true, _src: 'task' });
@@ -14401,6 +14411,8 @@ function ctPlannedItems(fromDate, toDate) {
       if (!stageDef) continue;
       st.tasks.forEach(t => {
         if (t.completed) return;
+        const ctDel = normDelegated(t.delegatedTo);
+        if (ctDel.length && !ctDel.includes('Me')) return;
         const proj = t.project || stageDef.project || 'cwc';
         const sc = t.subCode || stageDef.subCode || '';
         // Tasks with a specific due date
