@@ -1229,6 +1229,8 @@
   .cap-bar-planned.warn { background: var(--warn); }
   .cap-bar-planned.over { background: var(--danger); }
   .cap-bar-logged  { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; background: rgba(255,255,255,0.28); transition: width 0.3s; }
+  .cap-bar-planned-hint { position: absolute; top: 0; left: 0; height: 100%; border-radius: 3px; background: rgba(79, 156, 249, 0.28); transition: width 0.3s; }
+  [data-theme="light"] .cap-bar-planned-hint { background: rgba(79, 156, 249, 0.18); }
 
   .ts-day-header {
     display: flex; align-items: center; gap: 8px;
@@ -5957,17 +5959,22 @@ function renderTasks() {
     let capHtml = '';
     if (dayCap && sectionDates) {
       const logged = loggedHoursForDates(sectionDates);
-      const loggedPct  = Math.min(Math.round((logged / dayCap) * 100), 100);
+      const planned = est;
+      const total = logged + planned;
+      const loggedPct   = Math.min(Math.round((logged / dayCap) * 100), 100);
+      const plannedPct  = Math.min(Math.round((total / dayCap) * 100), 100);
       const barColor = logged > dayCap ? '#3b82f6' : logged >= dayCap - 0.01 ? 'var(--success)' : 'var(--text3)';
-      const labelColor = logged > dayCap ? '#3b82f6' : logged >= dayCap - 0.01 ? 'var(--success)' : 'var(--text)';
-      const statusText = logged > dayCap ? `+${fmtQ(logged - dayCap)}H OVER` : logged >= dayCap - 0.01 ? 'ON TARGET' : `${fmtQ(dayCap - logged)}H LEFT`;
+      const labelColor = total > dayCap ? 'var(--danger)' : total >= dayCap - 0.01 ? 'var(--success)' : 'var(--text)';
+      const statusText = total > dayCap ? `+${fmtQ(total - dayCap)}H OVER` : total >= dayCap - 0.01 ? 'ON TARGET' : `${fmtQ(dayCap - total)}H LEFT`;
+      const hoursText = `${fmtQ(logged)}h${planned > 0 ? ` + ${fmtQ(planned)}h planned` : ''} / ${dayCap.toFixed(0)}h`;
 
       capHtml = `
         <div style="padding:5px 8px;display:flex;align-items:center;gap:10px;background:var(--bg2);">
           <div class="cap-bar-dual" style="flex:1;">
+            <div class="cap-bar-planned-hint" style="width:${plannedPct}%;"></div>
             <div style="width:${loggedPct}%;height:100%;border-radius:3px;background:${barColor};position:absolute;top:0;left:0;"></div>
           </div>
-          <span style="font-size:10px;color:var(--text);white-space:nowrap;">${fmtQ(logged)}h / ${dayCap.toFixed(0)}h</span>
+          <span style="font-size:10px;color:var(--text);white-space:nowrap;">${hoursText}</span>
           <span style="font-size:10px;color:${labelColor};white-space:nowrap;font-weight:700;">${statusText}</span>
         </div>`;
     }
@@ -6054,13 +6061,20 @@ function renderTasks() {
       let wkCapHtml = '';
       if (wkCapF) {
         const logged = loggedHoursForDates(wkDates);
+        const planned = wkEst;
+        const total = logged + planned;
         const loggedPct  = Math.min(Math.round((logged / wkCapF) * 100), 100);
+        const plannedPct = Math.min(Math.round((total / wkCapF) * 100), 100);
         const barColor = logged > wkCapF ? '#3b82f6' : logged >= wkCapF - 0.01 ? 'var(--success)' : 'var(--text3)';
-        const labelColor = logged > wkCapF ? '#3b82f6' : logged >= wkCapF - 0.01 ? 'var(--success)' : 'var(--text)';
-        const statusText = logged > wkCapF ? `+${fmtQ(logged - wkCapF)}H OVER` : logged >= wkCapF - 0.01 ? 'ON TARGET' : `${fmtQ(wkCapF - logged)}H LEFT`;
+        const labelColor = total > wkCapF ? 'var(--danger)' : total >= wkCapF - 0.01 ? 'var(--success)' : 'var(--text)';
+        const statusText = total > wkCapF ? `+${fmtQ(total - wkCapF)}H OVER` : total >= wkCapF - 0.01 ? 'ON TARGET' : `${fmtQ(wkCapF - total)}H LEFT`;
+        const hoursText = `${fmtQ(logged)}h${planned > 0 ? ` + ${fmtQ(planned)}h planned` : ''} / ${wkCapF.toFixed(0)}h`;
         wkCapHtml = `<div style="padding:5px 8px;display:flex;align-items:center;gap:10px;background:var(--bg2);">
-          <div class="cap-bar-dual" style="flex:1;"><div style="width:${loggedPct}%;height:100%;border-radius:3px;background:${barColor};position:absolute;top:0;left:0;"></div></div>
-          <span style="font-size:10px;color:var(--text);white-space:nowrap;">${fmtQ(logged)}h / ${wkCapF.toFixed(0)}h</span>
+          <div class="cap-bar-dual" style="flex:1;">
+            <div class="cap-bar-planned-hint" style="width:${plannedPct}%;"></div>
+            <div style="width:${loggedPct}%;height:100%;border-radius:3px;background:${barColor};position:absolute;top:0;left:0;"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text);white-space:nowrap;">${hoursText}</span>
           <span style="font-size:10px;color:${labelColor};white-space:nowrap;font-weight:700;">${statusText}</span>
         </div>`;
       }
@@ -6093,20 +6107,24 @@ function renderTasks() {
 
         let dayCapBar = '';
         if (dayCap > 0) {
+          const dayTotal = dayLogged + dayEst;
           const loggedPct  = Math.min(Math.round((dayLogged / dayCap) * 100), 100);
+          const plannedPct = Math.min(Math.round((dayTotal / dayCap) * 100), 100);
           const barColor = dayLogged > dayCap ? '#3b82f6' : dayLogged >= dayCap - 0.01 ? 'var(--success)' : 'var(--text3)';
-          const labelColor = dayLogged > dayCap ? '#3b82f6' : dayLogged >= dayCap - 0.01 ? 'var(--success)' : 'var(--text)';
-          const statusText = dayLogged > dayCap ? `+${fmtQ(dayLogged - dayCap)}H OVER` : dayLogged >= dayCap - 0.01 ? 'ON TARGET' : `${fmtQ(dayCap - dayLogged)}H LEFT`;
+          const labelColor = dayTotal > dayCap ? 'var(--danger)' : dayTotal >= dayCap - 0.01 ? 'var(--success)' : 'var(--text)';
+          const statusText = dayTotal > dayCap ? `+${fmtQ(dayTotal - dayCap)}H OVER` : dayTotal >= dayCap - 0.01 ? 'ON TARGET' : `${fmtQ(dayCap - dayTotal)}H LEFT`;
+          const hoursText = `${fmtQ(dayLogged)}h${dayEst > 0 ? ` + ${fmtQ(dayEst)}h planned` : ''} / ${dayCap}h`;
 
           dayCapBar = `<div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
             <div class="cap-bar-dual" style="width:100px;">
+              <div class="cap-bar-planned-hint" style="width:${plannedPct}%;"></div>
               <div style="width:${loggedPct}%;height:100%;border-radius:3px;background:${barColor};position:absolute;top:0;left:0;"></div>
             </div>
-            <span style="font-size:9px;color:var(--text);white-space:nowrap;">${fmtQ(dayLogged)}h / ${dayCap}h</span>
+            <span style="font-size:9px;color:var(--text);white-space:nowrap;">${hoursText}</span>
             <span style="font-size:9px;color:${labelColor};white-space:nowrap;font-weight:700;">${statusText}</span>
           </div>`;
         } else if (dayEst > 0) {
-          dayCapBar = `<span style="margin-left:auto;font-size:9px;color:var(--text3);">${fmtQ(dayEst)}h</span>`;
+          dayCapBar = `<span style="margin-left:auto;font-size:9px;color:var(--text3);">${fmtQ(dayEst)}h planned</span>`;
         }
 
         dayHeader.innerHTML = `${dayLabel} <span class="group-count">${dayItems.length}</span>${dayCapBar}`;
