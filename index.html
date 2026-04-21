@@ -5950,10 +5950,15 @@ function renderTasks() {
     return sorted;
   }
 
-  // Get logged hours for a date range (from completed entries)
+  // Get logged hours for a date range (from completed entries) — respects
+  // the active project filter so totals stay consistent with the task list
   function loggedHoursForDates(dates) {
     const dateSet = new Set(Array.isArray(dates) ? dates : [dates]);
-    return completed.reduce((sum, c) => dateSet.has(c.dateCompleted) ? sum + (c.actualHours || 0) : sum, 0);
+    return completed.reduce((sum, c) => {
+      if (!dateSet.has(c.dateCompleted)) return sum;
+      if (fProj !== 'all' && c.project !== fProj) return sum;
+      return sum + (c.actualHours || 0);
+    }, 0);
   }
 
   function renderSection(label, items, headerCls, dayCap, sectionDates) {
