@@ -10658,37 +10658,30 @@ function handleAllocImport(event) {
       if (jobCol === -1) throw new Error('Could not find "Job" column in header row.');
       if (Object.keys(monthCols).length === 0) throw new Error('Could not find any month columns (e.g. "MAR 2026").');
 
-      // Clear existing allocations for current + future months in this spreadsheet
-      // Past months are left untouched to preserve historical data
+      // Snapshot state BEFORE any mutation so Undo can restore the true pre-import state
+      const prevAllocations = JSON.parse(JSON.stringify(allocations));
+      const prevPROJECTS = JSON.parse(JSON.stringify(PROJECTS));
+      const prevProjOrder = [...projOrder];
+      const prevRollovers = JSON.parse(JSON.stringify(_allocRollovers));
+
+      // Months this spreadsheet targets (current + future only;
+      // past months are left untouched to preserve historical data)
       const currentYM = today().slice(0, 7); // 'YYYY-MM'
       const importMonths = new Set(
         Object.values(monthCols).filter(ym => ym >= currentYM)
       );
 
-      // Clear rollovers for imported months — new BigTime data supersedes old rollovers
-      Object.keys(_allocRollovers).forEach(key => {
-        const ym = key.split('|')[2];
-        if (importMonths.has(ym)) delete _allocRollovers[key];
-      });
-      _saveRollovers();
-
-      // Track which proj|sc combos had allocations before clearing (for stale detection)
+      // Track proj|sc combos with non-zero allocations in imported months BEFORE import
       const prevAllocatedScs = new Set();
       Object.keys(allocations).forEach(key => {
         const [pk, sc, ym] = key.split('|');
-        if (importMonths.has(ym) && sc) prevAllocatedScs.add(pk + '|' + sc);
+        if (importMonths.has(ym) && sc && allocations[key] > 0) prevAllocatedScs.add(pk + '|' + sc);
       });
 
-      Object.keys(allocations).forEach(key => {
-        const ym = key.split('|')[2];
-        if (importMonths.has(ym)) delete allocations[key];
-      });
-
-      // Snapshot state for undo
-      const prevAllocations = JSON.parse(JSON.stringify(allocations));
-      const prevPROJECTS = JSON.parse(JSON.stringify(PROJECTS));
-      const prevProjOrder = [...projOrder];
-      const prevRollovers = JSON.parse(JSON.stringify(_allocRollovers));
+      // Non-destructive merge: only touch cells for (proj|sc) combos that appear in the
+      // spreadsheet. Existing allocations for un-imported sub-codes in imported months
+      // are preserved. This is tracked as we walk the rows.
+      const importedScs = new Set();
 
       let importedRows = 0;
       const newProjectNames = [];
@@ -10710,30 +10703,44 @@ function handleAllocImport(event) {
 
         const projKey = _findOrCreateProject(billingCode, jobLabel);
 
-        // If there's a task/sub-code name, ensure sub-code exists
+        // If there's a task/sub-code name, ensure sub-code exists (matches existing or creates)
         let scId = '';
         if (taskName) {
           scId = _ensureSubCode(projKey, '', taskName);
         }
 
-        // Write allocations for current + future month columns only
+        importedScs.add(projKey + '|' + scId);
+
+        // Merge allocations for current + future month columns.
+        //   numeric > 0  → overwrite cell with new value
+        //   explicit 0   → clear cell (BigTime says "no planned work")
+        //   blank / NaN  → leave existing value untouched
         let hasData = false;
         Object.entries(monthCols).forEach(([colIdx, ym]) => {
-          if (ym < currentYM) return; // skip past months — preserve historical data
+          if (ym < currentYM) return; // preserve historical data
           const val = row[Number(colIdx)];
-          if (val !== null && val !== undefined && val !== '' && !isNaN(Number(val))) {
-            const hrs = Number(val);
-            const key = allocKey(projKey, scId, ym);
-            if (hrs > 0) {
-              allocations[key] = hrs;
-              hasData = true;
-            }
-            // Zero values: already cleared above, so no-op (stays deleted)
+          if (val === null || val === undefined || val === '') return;
+          if (isNaN(Number(val))) return;
+          const hrs = Number(val);
+          const key = allocKey(projKey, scId, ym);
+          if (hrs > 0) {
+            allocations[key] = hrs;
+            hasData = true;
+          } else {
+            delete allocations[key];
           }
         });
 
         if (hasData) importedRows++;
       }
+
+      // Clear rollovers only for sub-codes that appeared in this import, in imported months.
+      // Un-imported sub-codes keep their rollovers intact.
+      Object.keys(_allocRollovers).forEach(key => {
+        const [pk, sc, ym] = key.split('|');
+        if (importMonths.has(ym) && importedScs.has(pk + '|' + sc)) delete _allocRollovers[key];
+      });
+      _saveRollovers();
 
       // Collect names of new projects and sub-codes
       Object.entries(PROJECTS).forEach(([key, proj]) => {
@@ -10743,13 +10750,16 @@ function handleAllocImport(event) {
         });
       });
 
-      // Detect stale subcodes: had allocations before but not after import
+      // Stale = sub-code WAS in this import but BigTime zeroed it out across all imported months.
+      // Sub-codes not in the import are preserved and never marked stale.
       const nowAllocatedScs = new Set();
       Object.keys(allocations).forEach(key => {
         const [pk, sc, ym] = key.split('|');
-        if (importMonths.has(ym) && sc) nowAllocatedScs.add(pk + '|' + sc);
+        if (importMonths.has(ym) && sc && allocations[key] > 0) nowAllocatedScs.add(pk + '|' + sc);
       });
-      _staleSubCodes = new Set([...prevAllocatedScs].filter(k => !nowAllocatedScs.has(k)));
+      _staleSubCodes = new Set(
+        [...prevAllocatedScs].filter(k => importedScs.has(k) && !nowAllocatedScs.has(k))
+      );
       save('wt_stale_subcodes', [..._staleSubCodes]);
 
       // Save everything
@@ -10777,10 +10787,10 @@ function handleAllocImport(event) {
 
       // Build status with action buttons
       const monthList = [...importMonths].sort().join(', ');
-      const parts = [`<strong>${importedRows} rows</strong> imported for ${monthList}`];
+      const parts = [`<strong>${importedRows} rows</strong> merged for ${monthList}`];
       if (newProjectNames.length) parts.push(`<strong>${newProjectNames.length}</strong> new project${newProjectNames.length > 1 ? 's' : ''}`);
       if (newSubCodeNames.length) parts.push(`<strong>${newSubCodeNames.length}</strong> new sub-code${newSubCodeNames.length > 1 ? 's' : ''}`);
-      if (staleNames.length) parts.push(`<strong style="color:var(--danger);">${staleNames.length}</strong> <span style="color:var(--danger);">removed from allocations</span>`);
+      if (staleNames.length) parts.push(`<strong style="color:var(--danger);">${staleNames.length}</strong> <span style="color:var(--danger);">zeroed by import</span>`);
       if (dupeProjects.length || dupeSubs.length) parts.push(`<strong style="color:var(--warn);">${dupeProjects.length + dupeSubs.length}</strong> <span style="color:var(--warn);">possible duplicates</span>`);
 
       const hasDetails = newProjectNames.length || newSubCodeNames.length || staleNames.length || dupeProjects.length || dupeSubs.length;
@@ -10819,8 +10829,8 @@ function handleAllocImport(event) {
           detailHtml += newSubCodeNames.map(n => `<div style="padding:1px 0;color:var(--text2);">+ ${n}</div>`).join('');
         }
         if (staleNames.length) {
-          detailHtml += `<div style="font-weight:700;margin:8px 0 4px;color:var(--danger);">Removed from Allocations:</div>`;
-          detailHtml += `<div style="padding:2px 0;color:var(--text3);font-style:italic;margin-bottom:4px;">These sub-codes had allocations before but are no longer in the import. Check the Projects tab for an "unallocated" badge.</div>`;
+          detailHtml += `<div style="font-weight:700;margin:8px 0 4px;color:var(--danger);">Zeroed by Import:</div>`;
+          detailHtml += `<div style="padding:2px 0;color:var(--text3);font-style:italic;margin-bottom:4px;">These sub-codes were in the import but BigTime set their hours to zero for all imported months. Manual allocations for sub-codes NOT in this spreadsheet were preserved.</div>`;
           detailHtml += staleNames.map(n => `<div style="padding:1px 0;color:var(--danger);">− ${n}</div>`).join('');
         }
         detailHtml += `</div>`;
