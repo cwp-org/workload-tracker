@@ -10099,7 +10099,8 @@ function _rollRemainingForward(projKey, scId, fromYM) {
   const proj = PROJECTS[projKey];
   const sc = scId ? (proj?.subCodes || []).find(s => s.id === scId) : null;
   const label = sc ? sc.label : proj?.label || projKey;
-  const toLabel = new Date(toYM + '-01').toLocaleString('default', { month: 'short', year: 'numeric' });
+  const [_toY, _toM] = toYM.split('-').map(Number);
+  const toLabel = new Date(_toY, _toM - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
   const verb = remaining > 0 ? `Rolled ${fmtQ(remaining)}h` : `Rolled ${fmtQ(Math.abs(remaining))}h overspend`;
   showSyncToast(`${verb} from ${label} → ${toLabel}`, 'success');
 }
@@ -11348,7 +11349,8 @@ function openAllocDrill(projKey, scId, yearMonth) {
   const proj = PROJECTS[projKey];
   if (!proj) return;
   const sc = scId ? (proj.subCodes || []).find(s => s.id === scId) : null;
-  const monthLabel = new Date(yearMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' });
+  const [_drillY, _drillM] = yearMonth.split('-').map(Number);
+  const monthLabel = new Date(_drillY, _drillM - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
   const codeLabel = sc ? sc.label : proj.label;
   const hasSubs = proj.subCodes && proj.subCodes.length > 0;
   const matchAllSubs = !scId && hasSubs;
@@ -11372,7 +11374,7 @@ function openAllocDrill(projKey, scId, yearMonth) {
     const matched = !scId || isc === scId;
     const unassigned = scId && isc === '';
 
-    if (i._src === 'task') {
+    if (i._src === 'task' || i._src === 'contact') {
       const item = { name: i.name, est: i.hours, priority: '', subCode: isc, _recur: i._recur };
       if (matched) plannedTasks.push(item);
       else if (unassigned) unassignedTasks.push(item);
