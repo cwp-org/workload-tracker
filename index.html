@@ -11084,6 +11084,7 @@ function _aipRenderRow(row, idx) {
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:10px;color:${badgeColor};font-weight:700;text-transform:uppercase;letter-spacing:0.3px;min-width:90px;">${badge}</span>
         <span style="color:var(--text);font-weight:600;">${_aipEsc(row.projLabelDisplay)}${projSuffix}</span>
+        ${row.taskName ? `<span style="color:var(--text3);font-style:italic;font-size:11px;">imported: &ldquo;${_aipEsc(row.taskName)}&rdquo;</span>` : ''}
         <span style="color:var(--text3);">→</span>
         ${scControl}
       </div>
