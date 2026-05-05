@@ -11410,8 +11410,8 @@ function _aipRenderPreviewBody() {
   if (clearedCount) summaryParts.push(`<strong style="color:var(--danger);">${clearedCount}</strong> zeroed`);
   if (preserved.length) {
     const detail = [];
-    if (clearPresCount) detail.push(`${clearPresCount} clear`);
-    if (deactPresCount) detail.push(`${deactPresCount} deactivate`);
+    if (clearPresCount) detail.push(`${clearPresCount} zero`);
+    if (deactPresCount) detail.push(`${deactPresCount} retire`);
     summaryParts.push(`<strong style="color:var(--text2);">${preserved.length}</strong> preserved${detail.length ? ` (${detail.join(', ')})` : ''}`);
   }
   if (archProjCount) summaryParts.push(`<strong style="color:var(--danger);">${archProjCount}</strong> project${archProjCount > 1 ? 's' : ''} to archive`);
@@ -11428,12 +11428,19 @@ function _aipRenderPreviewBody() {
 
   // ── Preserved section ──
   if (preserved.length) {
+    const monthList = plan.importMonths.join(', ');
     html += `
       <div style="font-weight:700;font-size:11px;color:var(--text2);margin:18px 0 6px;text-transform:uppercase;letter-spacing:0.5px;">
         Preserved — Not in Import (${preserved.length})
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">
-        These sub-codes have allocations in imported months but aren't in the spreadsheet. Pick an action per row, or archive the whole project if every sub-code is missing.
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px 10px;">
+        These sub-codes had allocations for <strong>${_aipEsc(monthList)}</strong> but the spreadsheet has no row for them this time.
+        <strong style="color:var(--success);">Past months and existing time logs are never touched</strong> — these actions only affect the imported months above.
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:10px;font-size:10px;color:var(--text3);">
+          <span><span style="display:inline-block;width:8px;height:8px;background:var(--success);border-radius:2px;margin-right:3px;"></span><strong>Keep</strong> — leave the hours alone (default)</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:var(--danger);border-radius:2px;margin-right:3px;"></span><strong>Zero</strong> — set imported months to 0; sub-code stays</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:var(--warn);border-radius:2px;margin-right:3px;"></span><strong>Retire</strong> — Zero + mark sub-code inactive (hide from new entry, history stays)</span>
+        </div>
       </div>
     `;
 
@@ -11468,7 +11475,7 @@ function _aipRenderPreviewBody() {
       if (allMissing && !projAlreadyArchived) {
         const id = `aip_arch_${projKey}`;
         const archHint = willArchive
-          ? `<span style="color:var(--danger);font-weight:600;font-size:11px;">⚠ project will be archived after import</span>`
+          ? `<span style="color:var(--danger);font-weight:600;font-size:11px;">⚠ project will be archived after import (history preserved, forward views drop it)</span>`
           : `<span style="color:var(--text3);font-size:11px;">Every allocated sub-code is missing — close out the project?</span>`;
         header = `
           <div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;padding:6px 10px;background:${willArchive ? 'rgba(248,113,113,0.10)' : 'var(--bg2)'};border:1px solid var(--border);border-radius:4px;">
@@ -11476,7 +11483,7 @@ function _aipRenderPreviewBody() {
             ${proj?.billingCode ? `<span style="color:var(--text3);font-size:11px;">${_aipEsc(proj.billingCode)}</span>` : ''}
             <span style="margin-left:auto;display:flex;align-items:center;gap:6px;">
               ${archHint}
-              <label for="${id}" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--danger);cursor:pointer;font-weight:600;">
+              <label for="${id}" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--danger);cursor:pointer;font-weight:600;" title="Archive the project: closes it out, drops it from forward views, but keeps all historical time logs and completed tasks. Reversible from the Projects tab.">
                 <input type="checkbox" id="${id}" ${willArchive ? 'checked' : ''} onchange="_aipSetPreservedProjArchive('${_aipEsc(projKey)}', this.checked)" style="cursor:pointer;">
                 Archive project
               </label>
@@ -11669,18 +11676,18 @@ function _aipRenderPreserved(p, action, projWillArchive) {
     archive:    { side: 'var(--danger)',  bg: 'rgba(248,113,113,0.06)',     strike: 'text-decoration:line-through;color:var(--text3);' }
   }[effectiveAction];
 
-  const seg = (val, label, color) => {
+  const seg = (val, label, color, tip) => {
     const sel = action === val;
-    return `<button type="button" onclick="_aipTogglePreserved('${_aipEsc(p.combo)}','${val}')"
+    return `<button type="button" onclick="_aipTogglePreserved('${_aipEsc(p.combo)}','${val}')" title="${_aipEsc(tip)}"
       style="background:${sel ? color : 'var(--bg)'};color:${sel ? '#fff' : color};border:1px solid ${color};
       padding:2px 8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;cursor:pointer;
       ${projWillArchive ? 'opacity:0.4;pointer-events:none;' : ''}">${label}</button>`;
   };
   const segGroup = `
     <div style="display:inline-flex;border-radius:4px;overflow:hidden;">
-      ${seg('keep',       'Keep',       'var(--success)')}
-      ${seg('clear',      'Clear',      'var(--danger)')}
-      ${seg('deactivate', 'Deactivate', 'var(--warn)')}
+      ${seg('keep',       'Keep',   'var(--success)', 'Leave the existing hours alone for the imported months. Past months and time logs are never affected by any of these options.')}
+      ${seg('clear',      'Zero',   'var(--danger)',  'Set the imported months to 0 hours. The sub-code stays, past hours stay, time logs stay. Reversible by Undo Import.')}
+      ${seg('deactivate', 'Retire', 'var(--warn)',    'Zero the imported months AND mark the sub-code inactive so it stops appearing in new allocation grids. Time logs and history remain visible. Reversible from Manage Sub-Codes.')}
     </div>
   `;
 
@@ -11736,6 +11743,8 @@ function _commitAllocImportPlan() {
     if (action === 'clear' || action === 'deactivate') {
       p.cells.forEach(c => {
         delete allocations[allocKey(p.projKey, p.scId, c.ym)];
+        // Zeroing this cell also wipes any rollover that landed here
+        delete _allocRollovers[p.projKey + '|' + p.scId + '|' + c.ym];
       });
     }
     if (action === 'deactivate') {
@@ -11794,9 +11803,17 @@ function _commitAllocImportPlan() {
     let hasData = false;
     r.cells.forEach(c => {
       const key = allocKey(projKey, scId, c.ym);
+      const roKey = projKey + '|' + scId + '|' + c.ym;
+      const rollover = _allocRollovers[roKey] || 0;
+      // Preserve any prior manual rollover: the spreadsheet value is the BigTime
+      // baseline, and the rolled-forward hours are the user's manual decision
+      // layered on top. The drill popup already shows them as separate lines.
       if (c.val > 0) {
-        allocations[key] = c.val;
+        allocations[key] = c.val + rollover;
         hasData = true;
+      } else if (rollover > 0) {
+        // BigTime row is missing or 0 but a rollover landed here — keep the rollover
+        allocations[key] = rollover;
       } else {
         delete allocations[key];
       }
@@ -11804,11 +11821,10 @@ function _commitAllocImportPlan() {
     if (hasData) importedRows++;
   });
 
-  // Clear rollovers only for imported sub-codes in imported months
-  Object.keys(_allocRollovers).forEach(key => {
-    const [pk, sc, ym] = key.split('|');
-    if (importMonthsSet.has(ym) && importedScs.has(pk + '|' + sc)) delete _allocRollovers[key];
-  });
+  // Rollover records are NOT wiped wholesale on import — they represent the
+  // user's manual rollover history and stay layered on top of the BigTime
+  // baseline. Individual records may have been removed above when the user
+  // chose Zero / Retire / Archive on a preserved sub-code, so persist now.
   _saveRollovers();
 
   // Collect new project / sub-code names for status summary
